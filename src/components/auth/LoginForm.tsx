@@ -1,15 +1,17 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { signIn } from "@/services/auth/auth";
 
 export default function LoginForm() {
+  const router = useRouter();
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
   const [loading, setLoading] = useState(false);
-
   const [error, setError] = useState("");
 
   async function handleSubmit(
@@ -28,7 +30,7 @@ export default function LoginForm() {
       return;
     }
 
-    window.location.href = "/";
+    router.push("/studio");
   }
 
   return (
@@ -73,12 +75,13 @@ export default function LoginForm() {
       </div>
 
       {error && (
-        <p className="text-sm text-red-500">
+        <div className="rounded-lg border border-red-500 bg-red-950 p-3 text-sm text-red-300">
           {error}
-        </p>
+        </div>
       )}
 
       <button
+        type="submit"
         disabled={loading}
         className="w-full rounded-xl bg-yellow-500 py-3 font-semibold text-black transition hover:bg-yellow-400 disabled:opacity-50"
       >
@@ -89,7 +92,7 @@ export default function LoginForm() {
         Don't have an account?{" "}
         <Link
           href="/signup"
-          className="text-yellow-500"
+          className="font-medium text-yellow-500 hover:text-yellow-400"
         >
           Create one
         </Link>

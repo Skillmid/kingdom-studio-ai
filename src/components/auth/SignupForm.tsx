@@ -1,23 +1,51 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { signUp } from "@/services/auth/auth";
 
 export default function SignupForm() {
+  const router = useRouter();
+
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
-  function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
+
+  async function handleSubmit(
+    e: React.FormEvent<HTMLFormElement>
+  ) {
     e.preventDefault();
 
-    console.log({
+    setLoading(true);
+    setError("");
+    setSuccess("");
+
+    const { error } = await signUp(
       fullName,
       email,
-      password,
-    });
+      password
+    );
 
-    // Supabase authentication comes next.
+    if (error) {
+      setError(error.message);
+      setLoading(false);
+      return;
+    }
+
+    setSuccess(
+      "Account created successfully! Please check your email to verify your account."
+    );
+
+    setLoading(false);
+
+    setTimeout(() => {
+      router.push("/login");
+    }, 3000);
   }
 
   return (
@@ -38,7 +66,7 @@ export default function SignupForm() {
           value={fullName}
           onChange={(e) => setFullName(e.target.value)}
           required
-          className="w-full rounded-xl border border-zinc-700 bg-zinc-900 px-4 py-3 text-white outline-none transition focus:border-yellow-500"
+          className="w-full rounded-xl border border-zinc-700 bg-zinc-900 px-4 py-3 text-white outline-none focus:border-yellow-500"
         />
       </div>
 
@@ -57,7 +85,7 @@ export default function SignupForm() {
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           required
-          className="w-full rounded-xl border border-zinc-700 bg-zinc-900 px-4 py-3 text-white outline-none transition focus:border-yellow-500"
+          className="w-full rounded-xl border border-zinc-700 bg-zinc-900 px-4 py-3 text-white outline-none focus:border-yellow-500"
         />
       </div>
 
@@ -76,15 +104,29 @@ export default function SignupForm() {
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           required
-          className="w-full rounded-xl border border-zinc-700 bg-zinc-900 px-4 py-3 text-white outline-none transition focus:border-yellow-500"
+          minLength={6}
+          className="w-full rounded-xl border border-zinc-700 bg-zinc-900 px-4 py-3 text-white outline-none focus:border-yellow-500"
         />
       </div>
 
+      {error && (
+        <div className="rounded-lg border border-red-500 bg-red-950 p-3 text-sm text-red-300">
+          {error}
+        </div>
+      )}
+
+      {success && (
+        <div className="rounded-lg border border-green-500 bg-green-950 p-3 text-sm text-green-300">
+          {success}
+        </div>
+      )}
+
       <button
         type="submit"
-        className="w-full rounded-xl bg-yellow-500 py-3 font-semibold text-black transition hover:bg-yellow-400"
+        disabled={loading}
+        className="w-full rounded-xl bg-yellow-500 py-3 font-semibold text-black transition hover:bg-yellow-400 disabled:opacity-50"
       >
-        Create Account
+        {loading ? "Creating Account..." : "Create Account"}
       </button>
 
       <p className="text-center text-sm text-zinc-400">
@@ -96,6 +138,7 @@ export default function SignupForm() {
           Sign In
         </Link>
       </p>
+
     </form>
   );
 }
