@@ -1,9 +1,13 @@
+import AuthLayout from "@/components/auth/AuthLayout";
 import SignupForm from "@/components/auth/SignupForm";
 
 export default function SignupPage() {
   return (
-    <main className="min-h-screen flex items-center justify-center bg-neutral-950 px-6">
+    <AuthLayout
+      title="Create Your Account"
+      subtitle="Join Kingdom Studio AI and begin your filmmaking journey."
+    >
       <SignupForm />
-    </main>
+    </AuthLayout>
   );
 }
