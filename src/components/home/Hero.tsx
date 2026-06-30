@@ -14,15 +14,15 @@ export default function Hero() {
           </p>
 
           <h1 className="text-5xl font-extrabold leading-tight tracking-tight text-white md:text-7xl">
-            Turn Stories
+            Creating...
             <br />
-            Into Cinema.
+            Kingdom Come
           </h1>
 
           <p className="mt-8 max-w-2xl text-lg leading-8 text-zinc-400">
             Kingdom Studio AI is an AI-powered filmmaking platform that
             helps creators plan, direct, generate, and produce cinematic
-            stories—from the first idea to the final film.
+            stories; from the first idea to the final film.
           </p>
 
           <div className="mt-10 flex flex-wrap gap-4">
