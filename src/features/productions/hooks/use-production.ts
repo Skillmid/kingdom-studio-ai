@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 
-import { getProduction } from "../services/get-production";
+import { supabase } from "@/lib/supabase/client";
 
 import type { Production } from "../types/production";
 
@@ -13,16 +13,33 @@ export function useProduction(id: string) {
   const [loading, setLoading] =
     useState(true);
 
+  const [error, setError] =
+    useState<string | null>(null);
+
   useEffect(() => {
     async function load() {
-      try {
-        const result =
-          await getProduction(id);
+      setLoading(true);
 
-        setProduction(result);
-      } finally {
+      console.log("Loading production:", id);
+
+      const result = await supabase
+        .from("productions")
+        .select("*")
+        .eq("id", id)
+        .single();
+
+      console.log("Supabase result:", result);
+
+      if (result.error) {
+        console.error(result.error);
+
+        setError(JSON.stringify(result.error, null, 2));
         setLoading(false);
+        return;
       }
+
+      setProduction(result.data);
+      setLoading(false);
     }
 
     load();
@@ -31,5 +48,6 @@ export function useProduction(id: string) {
   return {
     production,
     loading,
+    error,
   };
 }

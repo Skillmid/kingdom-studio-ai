@@ -1,4 +1,10 @@
+"use client";
+
+import { useCurrentUser } from "@/features/auth/hooks/use-current-user";
+
 export default function StudioHeader() {
+  const { user } = useCurrentUser();
+
   return (
     <header className="flex h-20 items-center justify-between border-b border-zinc-800 bg-zinc-950 px-8">
 
@@ -9,7 +15,11 @@ export default function StudioHeader() {
         </h2>
 
         <p className="text-sm text-zinc-400">
-          Welcome back.
+          Welcome back,{" "}
+          <span className="font-semibold text-white">
+            {user?.full_name ?? "Creator"}
+          </span>
+          .
         </p>
 
       </div>
@@ -21,7 +31,7 @@ export default function StudioHeader() {
         </button>
 
         <button className="rounded-xl bg-yellow-500 px-5 py-2 font-semibold text-black">
-          Profile
+          My Profile
         </button>
 
       </div>

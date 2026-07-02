@@ -5,20 +5,11 @@ import type { CreateProductionDTO } from "../validation/production.schema";
 
 export class ProductionRepository {
   async create(dto: CreateProductionDTO) {
-    console.log("================================");
-    console.log("Creating Production...");
-    console.log("DTO:", dto);
-
     const { data, error } = await supabase
       .from("productions")
       .insert(dto)
       .select()
       .single();
-
-    console.log("Supabase Response");
-    console.log("Data:", data);
-    console.log("Error:", error);
-    console.log("================================");
 
     if (error) {
       throw new Error(
@@ -49,7 +40,7 @@ export class ProductionRepository {
       throw error;
     }
 
-    return data as Production[];
+    return (data ?? []) as Production[];
   }
 
   async getById(id: string) {
@@ -84,7 +75,42 @@ export class ProductionRepository {
     return data as Production;
   }
 
-  async delete(id: string) {
+  async rename(
+    id: string,
+    title: string
+  ) {
+    return this.update(id, {
+      title,
+    });
+  }
+
+  async duplicate(id: string) {
+    const production =
+      await this.getById(id);
+
+    const duplicate = {
+      ...production,
+      title: `${production.title} Copy`,
+    };
+
+    delete (duplicate as Record<string, unknown>).id;
+    delete (duplicate as Record<string, unknown>).created_at;
+    delete (duplicate as Record<string, unknown>).updated_at;
+
+    const { data, error } = await supabase
+      .from("productions")
+      .insert(duplicate)
+      .select()
+      .single();
+
+    if (error) {
+      throw error;
+    }
+
+    return data as Production;
+  }
+
+  async archive(id: string) {
     const { error } = await supabase
       .from("productions")
       .update({
@@ -95,6 +121,36 @@ export class ProductionRepository {
     if (error) {
       throw error;
     }
+  }
+
+  async restore(id: string) {
+    const { error } = await supabase
+      .from("productions")
+      .update({
+        deleted_at: null,
+      })
+      .eq("id", id);
+
+    if (error) {
+      throw error;
+    }
+  }
+
+  async archiveAll() {
+    const { error } = await supabase
+      .from("productions")
+      .update({
+        deleted_at: new Date().toISOString(),
+      })
+      .is("deleted_at", null);
+
+    if (error) {
+      throw error;
+    }
+  }
+
+  async delete(id: string) {
+    return this.archive(id);
   }
 }
 

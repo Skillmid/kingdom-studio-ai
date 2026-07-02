@@ -1,10 +1,19 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 
 import { useCreateProduction } from "../hooks/use-create-production";
 
-export default function CreateProductionDialog() {
+interface CreateProductionDialogProps {
+  onClose?: () => void;
+}
+
+export default function CreateProductionDialog({
+  onClose,
+}: CreateProductionDialogProps) {
+  const router = useRouter();
+
   const [title, setTitle] = useState("");
 
   const { create, loading } =
@@ -15,16 +24,25 @@ export default function CreateProductionDialog() {
   ) {
     e.preventDefault();
 
-    const result = await create(title);
-
-    if (!result.success) {
-      alert(result.error);
+    if (!title.trim()) {
       return;
     }
 
-    alert("Production created!");
+    const result =
+      await create(title);
+
+    if (!result.success) {
+      window.alert(result.error);
+      return;
+    }
 
     setTitle("");
+
+    onClose?.();
+
+    router.push(
+      `/studio/productions/${result.production.id}`
+    );
   }
 
   return (
@@ -38,16 +56,16 @@ export default function CreateProductionDialog() {
           setTitle(e.target.value)
         }
         placeholder="Production title"
-        className="w-full rounded-lg border border-zinc-700 bg-zinc-900 p-3 text-white"
+        className="w-full rounded-xl border border-zinc-700 bg-zinc-900 p-3 text-white outline-none focus:border-yellow-500"
       />
 
       <button
         type="submit"
         disabled={loading}
-        className="rounded-lg bg-yellow-500 px-5 py-3 font-semibold text-black"
+        className="w-full rounded-xl bg-yellow-500 px-5 py-3 font-semibold text-black transition hover:bg-yellow-400 disabled:opacity-50"
       >
         {loading
-          ? "Creating..."
+          ? "Creating Production..."
           : "Create Production"}
       </button>
     </form>

@@ -1,46 +1,63 @@
 "use client";
 
-import { useRouter } from "next/navigation";
-
+import ProductionCard from "@/features/productions/components/ProductionCard";
 import { useProductions } from "@/features/productions/hooks/use-productions";
 
-export default function RecentProductions() {
-  const router = useRouter();
+import StudioToolbar from "./StudioToolbar";
 
+export default function RecentProductions() {
   const {
     productions,
     loading,
+
+    search,
+    setSearch,
+
+    sort,
+    setSort,
+
+    deleteProduction,
+    renameProduction,
+    duplicateProduction,
   } = useProductions();
+
+  if (loading) {
+    return (
+      <section className="mt-10">
+
+        <StudioToolbar
+          total={0}
+          search=""
+          sort="updated"
+          onSearch={() => {}}
+          onSort={() => {}}
+        />
+
+        <div className="mt-6 rounded-3xl border border-zinc-800 bg-zinc-900 p-16 text-center">
+          Loading productions...
+        </div>
+
+      </section>
+    );
+  }
 
   return (
     <section className="mt-10">
 
-      <div className="flex items-center justify-between">
+      <StudioToolbar
+        total={productions.length}
+        search={search}
+        sort={sort}
+        onSearch={setSearch}
+        onSort={setSort}
+      />
 
-        <h2 className="text-2xl font-semibold">
-          Your Productions
-        </h2>
+      {productions.length === 0 ? (
 
-        <button className="text-sm text-yellow-500 hover:underline">
-          View All
-        </button>
+        <div className="mt-6 rounded-3xl border border-dashed border-zinc-700 bg-zinc-900 p-20 text-center">
 
-      </div>
-
-      {loading ? (
-
-        <div className="mt-6 rounded-3xl border border-zinc-800 bg-zinc-900 p-16 text-center">
-
-          Loading productions...
-
-        </div>
-
-      ) : productions.length === 0 ? (
-
-        <div className="mt-6 rounded-3xl border border-dashed border-zinc-700 bg-zinc-900 p-16 text-center">
-
-          <h3 className="text-2xl font-semibold">
-            No productions yet
+          <h3 className="text-3xl font-bold">
+            No Productions
           </h3>
 
           <p className="mt-4 text-zinc-400">
@@ -51,36 +68,30 @@ export default function RecentProductions() {
 
       ) : (
 
-        <div className="mt-6 grid gap-6 md:grid-cols-2 xl:grid-cols-3">
+        <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
 
           {productions.map((production) => (
 
-            <button
+            <ProductionCard
               key={production.id}
-              onClick={() =>
-                router.push(
-                  `/studio/productions/${production.id}`
+              production={production}
+              onDeleted={() =>
+                deleteProduction(
+                  production.id
                 )
               }
-              className="rounded-3xl border border-zinc-800 bg-zinc-900 p-6 text-left transition hover:border-yellow-500 hover:bg-zinc-800"
-            >
-
-              <p className="text-sm uppercase tracking-widest text-yellow-500">
-                {production.status}
-              </p>
-
-              <h3 className="mt-4 text-2xl font-semibold">
-                {production.title}
-              </h3>
-
-              <p className="mt-4 text-sm text-zinc-400">
-                Updated{" "}
-                {new Date(
-                  production.updated_at
-                ).toLocaleDateString()}
-              </p>
-
-            </button>
+              onRenamed={(title) =>
+                renameProduction(
+                  production.id,
+                  title
+                )
+              }
+              onDuplicated={() =>
+                duplicateProduction(
+                  production.id
+                )
+              }
+            />
 
           ))}
 

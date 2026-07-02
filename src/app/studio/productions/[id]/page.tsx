@@ -1,5 +1,4 @@
-import ProductionLayout from "@/features/productions/components/ProductionLayout";
-import ProductionOverview from "@/features/productions/components/ProductionOverview";
+import ProductionWorkspace from "@/features/productions/components/ProductionWorkspace";
 
 interface ProductionPageProps {
   params: Promise<{
@@ -10,11 +9,11 @@ interface ProductionPageProps {
 export default async function ProductionPage({
   params,
 }: ProductionPageProps) {
-  await params;
+  const { id } = await params;
 
   return (
-    <ProductionLayout>
-      <ProductionOverview />
-    </ProductionLayout>
+    <ProductionWorkspace
+      id={id}
+    />
   );
 }

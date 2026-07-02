@@ -1,36 +1,53 @@
-export default function ProductionOverview() {
+import type { Production } from "../types/production";
+
+import ProductionHero from "./ProductionHero";
+import ProductionStats from "./ProductionStats";
+import RecentActivity from "./RecentActivity";
+import NextSteps from "./NextSteps";
+
+interface ProductionOverviewProps {
+  production: Production;
+}
+
+export default function ProductionOverview({
+  production,
+}: ProductionOverviewProps) {
   return (
-    <section>
+    <div className="space-y-10">
 
-      <p className="text-sm uppercase tracking-[0.3em] text-yellow-500">
-        Overview
-      </p>
+      <ProductionHero
+        production={production}
+      />
 
-      <h2 className="mt-3 text-4xl font-bold">
-        Welcome to your Production
-      </h2>
+      <ProductionStats />
 
-      <p className="mt-6 max-w-3xl text-lg leading-8 text-zinc-400">
-        Every Kingdom production begins with purpose.
-        Before developing scenes, characters, or dialogue,
-        take time to establish the vision God has placed
-        in your heart for this film.
-      </p>
+      <section className="rounded-3xl border border-zinc-800 bg-zinc-900 p-10">
 
-      <div className="mt-10 rounded-3xl border border-zinc-800 bg-zinc-900 p-8">
-
-        <h3 className="text-2xl font-semibold">
+        <p className="text-sm uppercase tracking-[0.3em] text-yellow-500">
           Kingdom Vision
-        </h3>
-
-        <p className="mt-4 leading-8 text-zinc-400">
-          This section will help define the mission,
-          biblical foundation, audience, and purpose
-          of this production before writing begins.
         </p>
+
+        <h2 className="mt-3 text-3xl font-bold">
+          Build with Purpose
+        </h2>
+
+        <p className="mt-6 text-lg leading-8 text-zinc-400">
+          Every Kingdom production begins by seeking God's direction.
+          Define the mission, biblical foundation, audience,
+          scripture, purpose, and desired transformation before
+          writing your screenplay.
+        </p>
+
+      </section>
+
+      <div className="grid gap-8 xl:grid-cols-2">
+
+        <RecentActivity />
+
+        <NextSteps />
 
       </div>
 
-    </section>
+    </div>
   );
 }
