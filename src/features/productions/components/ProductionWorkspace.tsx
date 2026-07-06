@@ -1,9 +1,10 @@
 "use client";
 
-import ProductionLayout from "./ProductionLayout";
-import ProductionOverview from "./ProductionOverview";
-
 import { useProduction } from "../hooks/use-production";
+
+import ProductionLayout from "./ProductionLayout";
+import ProductionHeader from "./ProductionHeader";
+import ProductionOverview from "./ProductionOverview";
 
 interface ProductionWorkspaceProps {
   id: string;
@@ -21,28 +22,35 @@ export default function ProductionWorkspace({
   if (loading) {
     return (
       <ProductionLayout>
-        <div className="p-10 text-xl">
+        <ProductionHeader
+          productionTitle="Loading..."
+          productionStatus="Loading"
+        />
+
+        <div className="p-10">
           Loading production...
         </div>
       </ProductionLayout>
     );
   }
 
-  if (error) {
+  if (error || !production) {
     return (
       <ProductionLayout>
-        <div className="p-10 text-red-500">
-          {error}
-        </div>
-      </ProductionLayout>
-    );
-  }
+        <ProductionHeader
+          productionTitle="Unknown Production"
+          productionStatus="Error"
+        />
 
-  if (!production) {
-    return (
-      <ProductionLayout>
-        <div className="p-10">
-          Production not found.
+        <div className="m-10 rounded-3xl border border-red-900 bg-red-950/20 p-8">
+          <h2 className="text-2xl font-bold text-red-400">
+            Unable to load production
+          </h2>
+
+          <p className="mt-4 text-zinc-400">
+            {error ??
+              "The requested production could not be found."}
+          </p>
         </div>
       </ProductionLayout>
     );
@@ -50,9 +58,16 @@ export default function ProductionWorkspace({
 
   return (
     <ProductionLayout>
-      <ProductionOverview
-        production={production}
+      <ProductionHeader
+        productionTitle={production.title}
+        productionStatus={production.status}
       />
+
+      <div className="p-10">
+        <ProductionOverview
+          production={production}
+        />
+      </div>
     </ProductionLayout>
   );
 }

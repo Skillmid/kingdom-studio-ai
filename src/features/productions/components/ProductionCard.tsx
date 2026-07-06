@@ -13,7 +13,7 @@ interface ProductionCardProps {
   production: Production;
   onDeleted: () => Promise<void>;
   onRenamed: (title: string) => Promise<void>;
-  onDuplicated: () => Promise<void>;
+  onDuplicated: () => Promise<Production>;
 }
 
 export default function ProductionCard({
@@ -44,7 +44,6 @@ export default function ProductionCard({
 
     try {
       await onDeleted();
-
       setDeleteOpen(false);
     } finally {
       setLoading(false);
@@ -58,7 +57,6 @@ export default function ProductionCard({
 
     try {
       await onRenamed(title);
-
       setRenameOpen(false);
     } finally {
       setLoading(false);
@@ -69,7 +67,12 @@ export default function ProductionCard({
     setLoading(true);
 
     try {
-      await onDuplicated();
+      const duplicate =
+        await onDuplicated();
+
+      router.push(
+        `/studio/productions/${duplicate.id}`
+      );
     } finally {
       setLoading(false);
     }

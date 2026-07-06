@@ -1,6 +1,5 @@
 import type { ReactNode } from "react";
 
-import ProductionHeader from "./ProductionHeader";
 import ProductionSidebar from "./ProductionSidebar";
 
 interface ProductionLayoutProps {
@@ -13,14 +12,14 @@ export default function ProductionLayout({
   return (
     <div className="min-h-screen bg-zinc-950 text-white">
 
-      <ProductionHeader />
-
       <div className="flex">
 
         <ProductionSidebar />
 
-        <main className="flex-1 p-10">
+        <main className="min-h-screen flex-1 overflow-y-auto">
+
           {children}
+
         </main>
 
       </div>

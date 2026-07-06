@@ -1,8 +1,8 @@
 "use client";
 
-import type { ProductionSort } from "@/features/productions/hooks/use-productions";
+import type { ProductionSort } from "../hooks/use-productions";
 
-interface StudioToolbarProps {
+interface ProductionToolbarProps {
   total: number;
   search: string;
   sort: ProductionSort;
@@ -10,13 +10,13 @@ interface StudioToolbarProps {
   onSort: (value: ProductionSort) => void;
 }
 
-export default function StudioToolbar({
+export default function ProductionToolbar({
   total,
   search,
   sort,
   onSearch,
   onSort,
-}: StudioToolbarProps) {
+}: ProductionToolbarProps) {
   return (
     <section className="mb-8 flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
 

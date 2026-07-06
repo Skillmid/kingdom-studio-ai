@@ -1,5 +1,7 @@
 "use client";
 
+import Link from "next/link";
+
 import { useCurrentUser } from "@/features/auth/hooks/use-current-user";
 
 export default function StudioHeader() {
@@ -18,21 +20,26 @@ export default function StudioHeader() {
           Welcome back,{" "}
           <span className="font-semibold text-white">
             {user?.full_name ?? "Creator"}
-          </span>
-          .
+          </span>.
         </p>
 
       </div>
 
       <div className="flex items-center gap-4">
 
-        <button className="rounded-xl border border-zinc-700 px-4 py-2 text-sm transition hover:border-yellow-500">
+        <Link
+          href="/studio/notifications"
+          className="rounded-xl border border-zinc-700 px-4 py-2 text-sm transition hover:border-yellow-500 hover:bg-zinc-900"
+        >
           Notifications
-        </button>
+        </Link>
 
-        <button className="rounded-xl bg-yellow-500 px-5 py-2 font-semibold text-black">
+        <Link
+          href="/studio/profile"
+          className="rounded-xl bg-yellow-500 px-5 py-2 font-semibold text-black transition hover:bg-yellow-400"
+        >
           My Profile
-        </button>
+        </Link>
 
       </div>
 

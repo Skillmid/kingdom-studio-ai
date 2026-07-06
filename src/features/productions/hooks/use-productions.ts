@@ -8,7 +8,6 @@ import {
 } from "react";
 
 import { productionRepository } from "../repositories/production.repository";
-
 import type { Production } from "../types/production";
 
 export type ProductionSort =
@@ -37,7 +36,7 @@ export function useProductions() {
 
     try {
       const result =
-        await productionRepository.getAll();
+        await productionRepository.getAllIncludingArchived();
 
       setProductions(result);
 
@@ -94,48 +93,55 @@ export function useProductions() {
     return duplicate;
   }
 
-  async function deleteProduction(
+  async function archiveProduction(
     id: string
   ) {
     await productionRepository.archive(id);
 
-    setProductions((current) =>
-      current.filter(
-        (production) =>
-          production.id !== id
-      )
-    );
+    await refresh();
+  }
+
+  async function restoreProduction(
+    id: string
+  ) {
+    await productionRepository.restore(id);
+
+    await refresh();
+  }
+
+  async function deleteForever(
+    id: string
+  ) {
+    await productionRepository.deleteForever(id);
+
+    await refresh();
   }
 
   async function archiveAll() {
     await productionRepository.archiveAll();
 
-    setProductions([]);
+    await refresh();
   }
 
   const filteredProductions =
     useMemo(() => {
-      let list =
-        [...productions];
+      let list = [...productions];
 
       if (search.trim()) {
         const keyword =
           search.toLowerCase();
 
-        list = list.filter(
-          (production) =>
-            production.title
-              .toLowerCase()
-              .includes(keyword)
+        list = list.filter((production) =>
+          production.title
+            .toLowerCase()
+            .includes(keyword)
         );
       }
 
       switch (sort) {
         case "name":
           list.sort((a, b) =>
-            a.title.localeCompare(
-              b.title
-            )
+            a.title.localeCompare(b.title)
           );
           break;
 
@@ -170,17 +176,34 @@ export function useProductions() {
       sort,
     ]);
 
+  const activeProductions =
+    filteredProductions.filter(
+      (production) =>
+        production.deleted_at === null
+    );
+
+  const archivedProductions =
+    filteredProductions.filter(
+      (production) =>
+        production.deleted_at !== null
+    );
+
   return {
     loading,
     error,
 
-    productions:
-      filteredProductions,
+    productions: activeProductions,
+
+    activeProductions,
+
+    archivedProductions,
 
     search,
+
     sort,
 
     setSearch,
+
     setSort,
 
     refresh,
@@ -189,7 +212,11 @@ export function useProductions() {
 
     duplicateProduction,
 
-    deleteProduction,
+    archiveProduction,
+
+    restoreProduction,
+
+    deleteForever,
 
     archiveAll,
   };
