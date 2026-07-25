@@ -6,7 +6,7 @@ export function useProductionActions() {
   const {
     renameProduction,
     duplicateProduction,
-    deleteProduction,
+    archiveProduction,
     archiveAll,
     refresh,
   } = useProductions();
@@ -30,11 +30,11 @@ export function useProductionActions() {
   async function archive(
     id: string
   ) {
-    return deleteProduction(id);
+    await archiveProduction(id);
   }
 
   async function deleteAll() {
-    return archiveAll();
+    await archiveAll();
   }
 
   return {

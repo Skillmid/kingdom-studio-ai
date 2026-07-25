@@ -36,6 +36,13 @@ export default function CreateProductionDialog({
       return;
     }
 
+    if (!result.production) {
+      window.alert(
+        "Production was created but no production data was returned."
+      );
+      return;
+    }
+
     setTitle("");
 
     onClose?.();

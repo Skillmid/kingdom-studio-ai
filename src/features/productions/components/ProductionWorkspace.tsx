@@ -1,17 +1,20 @@
 "use client";
 
+import type { ReactNode } from "react";
+
 import { useProduction } from "../hooks/use-production";
 
 import ProductionLayout from "./ProductionLayout";
 import ProductionHeader from "./ProductionHeader";
-import ProductionOverview from "./ProductionOverview";
 
 interface ProductionWorkspaceProps {
   id: string;
+  children: ReactNode;
 }
 
 export default function ProductionWorkspace({
   id,
+  children,
 }: ProductionWorkspaceProps) {
   const {
     production,
@@ -63,10 +66,8 @@ export default function ProductionWorkspace({
         productionStatus={production.status}
       />
 
-      <div className="p-10">
-        <ProductionOverview
-          production={production}
-        />
+      <div className="flex-1">
+        {children}
       </div>
     </ProductionLayout>
   );

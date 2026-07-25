@@ -16,7 +16,7 @@ export default function ProductionList() {
     setSearch,
     sort,
     setSort,
-    deleteProduction,
+    deleteForever,
     renameProduction,
     duplicateProduction,
   } = useProductions();
@@ -28,7 +28,6 @@ export default function ProductionList() {
   if (loading) {
     return (
       <section className="mt-10">
-
         <ProductionToolbar
           total={0}
           search=""
@@ -38,25 +37,18 @@ export default function ProductionList() {
         />
 
         <div className="mt-6 rounded-3xl border border-zinc-800 bg-zinc-900 p-16 text-center">
-
           Loading productions...
-
         </div>
-
       </section>
     );
   }
 
   return (
     <section className="mt-10">
-
       <div className="mb-6 flex items-center gap-3">
-
         <button
           type="button"
-          onClick={() =>
-            setTab("active")
-          }
+          onClick={() => setTab("active")}
           className={`rounded-xl px-5 py-2 transition ${
             tab === "active"
               ? "bg-yellow-500 font-semibold text-black"
@@ -68,9 +60,7 @@ export default function ProductionList() {
 
         <button
           type="button"
-          onClick={() =>
-            setTab("archived")
-          }
+          onClick={() => setTab("archived")}
           className={`rounded-xl px-5 py-2 transition ${
             tab === "archived"
               ? "bg-yellow-500 font-semibold text-black"
@@ -79,13 +69,10 @@ export default function ProductionList() {
         >
           Archived
         </button>
-
       </div>
 
       {tab === "active" && (
-
         <>
-
           <ProductionToolbar
             total={productions.length}
             search={search}
@@ -95,9 +82,7 @@ export default function ProductionList() {
           />
 
           {productions.length === 0 ? (
-
             <div className="mt-6 rounded-3xl border border-dashed border-zinc-700 bg-zinc-900 p-20 text-center">
-
               <h3 className="text-3xl font-bold">
                 No Productions
               </h3>
@@ -105,54 +90,39 @@ export default function ProductionList() {
               <p className="mt-4 text-zinc-400">
                 Create your first Kingdom production.
               </p>
-
             </div>
-
           ) : (
-
             <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
-
-              {productions.map(
-                (production) => (
-
-                  <ProductionCard
-                    key={production.id}
-                    production={production}
-                    onDeleted={() =>
-                      deleteProduction(
-                        production.id
-                      )
-                    }
-                    onRenamed={(title) =>
-                      renameProduction(
-                        production.id,
-                        title
-                      )
-                    }
-                    onDuplicated={() =>
-                      duplicateProduction(
-                        production.id
-                      )
-                    }
-                  />
-
-                )
-              )}
-
+              {productions.map((production) => (
+                <ProductionCard
+                  key={production.id}
+                  production={production}
+                  onDeleted={async () => {
+                    await deleteForever(
+                      production.id
+                    );
+                  }}
+                  onRenamed={async (title) => {
+                    await renameProduction(
+                      production.id,
+                      title
+                    );
+                  }}
+                  onDuplicated={() =>
+                    duplicateProduction(
+                      production.id
+                    )
+                  }
+                />
+              ))}
             </div>
-
           )}
-
         </>
-
       )}
 
       {tab === "archived" && (
-
         <ArchivedProductionList />
-
       )}
-
     </section>
   );
 }
