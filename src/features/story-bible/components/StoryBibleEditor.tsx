@@ -1,8 +1,17 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import {
+  useEffect,
+  useState,
+} from "react";
 
-import { useStoryBible } from "../hooks/use-story-bible";
+import {
+  useSave,
+} from "@/platform/save";
+
+import {
+  useStoryBible,
+} from "../hooks/use-story-bible";
 
 import StoryBibleProgress from "./StoryBibleProgress";
 import StoryBibleOverview from "./StoryBibleOverview";
@@ -102,11 +111,20 @@ export default function StoryBibleEditor({
     storyBible,
     loading,
     saving,
+    error,
     save,
-  } = useStoryBible(productionId);
+  } = useStoryBible(
+    productionId
+  );
+
+  const {
+    runSave,
+  } = useSave();
 
   const [form, setForm] =
-    useState(defaultForm);
+    useState<StoryBibleForm>(
+      defaultForm
+    );
 
   useEffect(() => {
     if (!storyBible) {
@@ -114,7 +132,8 @@ export default function StoryBibleEditor({
     }
 
     setForm({
-      title: storyBible.title,
+      title:
+        storyBible.title ?? "",
 
       logline:
         storyBible.logline ?? "",
@@ -147,16 +166,19 @@ export default function StoryBibleEditor({
         storyBible.tone ?? "",
 
       language:
-        storyBible.language,
+        storyBible.language ??
+        "English",
 
       visual_style:
         storyBible.visual_style ?? "",
 
       aspect_ratio:
-        storyBible.aspect_ratio,
+        storyBible.aspect_ratio ??
+        "16:9",
 
       duration_minutes:
-        storyBible.duration_minutes,
+        storyBible.duration_minutes ??
+        10,
 
       universe:
         storyBible.universe ?? "",
@@ -203,7 +225,9 @@ export default function StoryBibleEditor({
     });
   }, [storyBible]);
 
-  function update<K extends keyof StoryBibleForm>(
+  function update<
+    K extends keyof StoryBibleForm,
+  >(
     key: K,
     value: StoryBibleForm[K]
   ) {
@@ -214,7 +238,16 @@ export default function StoryBibleEditor({
   }
 
   async function handleSave() {
-    await save(form);
+    try {
+      await runSave(
+        async () => {
+          await save(form);
+        }
+      );
+    } catch {
+      // Error state is handled by
+      // useStoryBible and SaveProvider.
+    }
   }
 
   if (loading) {
@@ -228,12 +261,20 @@ export default function StoryBibleEditor({
   return (
     <div className="space-y-8">
 
+      {error && (
+        <div className="rounded-2xl border border-red-500/40 bg-red-500/10 p-5 text-sm text-red-400">
+          {error}
+        </div>
+      )}
+
       <StoryBibleProgress
         title={form.title}
         logline={form.logline}
         synopsis={form.synopsis}
         theme={form.theme}
-        scripture={form.scripture_foundation}
+        scripture={
+          form.scripture_foundation
+        }
         genre={form.genre}
         beginning={form.beginning}
         conflict={form.conflict}
@@ -246,19 +287,30 @@ export default function StoryBibleEditor({
         logline={form.logline}
         synopsis={form.synopsis}
         onTitleChange={(value) =>
-          update("title", value)
+          update(
+            "title",
+            value
+          )
         }
         onLoglineChange={(value) =>
-          update("logline", value)
+          update(
+            "logline",
+            value
+          )
         }
         onSynopsisChange={(value) =>
-          update("synopsis", value)
+          update(
+            "synopsis",
+            value
+          )
         }
       />
 
       <StoryBibleKingdomVision
         theme={form.theme}
-        coreMessage={form.core_message}
+        coreMessage={
+          form.core_message
+        }
         scriptureFoundation={
           form.scripture_foundation
         }
@@ -266,18 +318,30 @@ export default function StoryBibleEditor({
           form.kingdom_objective
         }
         onThemeChange={(value) =>
-          update("theme", value)
+          update(
+            "theme",
+            value
+          )
         }
-        onCoreMessageChange={(value) =>
-          update("core_message", value)
+        onCoreMessageChange={(
+          value
+        ) =>
+          update(
+            "core_message",
+            value
+          )
         }
-        onScriptureFoundationChange={(value) =>
+        onScriptureFoundationChange={(
+          value
+        ) =>
           update(
             "scripture_foundation",
             value
           )
         }
-        onKingdomObjectiveChange={(value) =>
+        onKingdomObjectiveChange={(
+          value
+        ) =>
           update(
             "kingdom_objective",
             value
@@ -292,19 +356,34 @@ export default function StoryBibleEditor({
         climax={form.climax}
         ending={form.ending}
         onBeginningChange={(value) =>
-          update("beginning", value)
+          update(
+            "beginning",
+            value
+          )
         }
         onConflictChange={(value) =>
-          update("conflict", value)
+          update(
+            "conflict",
+            value
+          )
         }
         onMidpointChange={(value) =>
-          update("midpoint", value)
+          update(
+            "midpoint",
+            value
+          )
         }
         onClimaxChange={(value) =>
-          update("climax", value)
+          update(
+            "climax",
+            value
+          )
         }
         onEndingChange={(value) =>
-          update("ending", value)
+          update(
+            "ending",
+            value
+          )
         }
       />
 
@@ -332,40 +411,60 @@ export default function StoryBibleEditor({
           form.primary_location
         }
         onGenreChange={(value) =>
-          update("genre", value)
+          update(
+            "genre",
+            value
+          )
         }
-        onTargetAudienceChange={(value) =>
+        onTargetAudienceChange={(
+          value
+        ) =>
           update(
             "target_audience",
             value
           )
         }
         onToneChange={(value) =>
-          update("tone", value)
+          update(
+            "tone",
+            value
+          )
         }
         onLanguageChange={(value) =>
-          update("language", value)
+          update(
+            "language",
+            value
+          )
         }
-        onVisualStyleChange={(value) =>
+        onVisualStyleChange={(
+          value
+        ) =>
           update(
             "visual_style",
             value
           )
         }
-        onAspectRatioChange={(value) =>
+        onAspectRatioChange={(
+          value
+        ) =>
           update(
             "aspect_ratio",
             value
           )
         }
-        onDurationMinutesChange={(value) =>
+        onDurationMinutesChange={(
+          value
+        ) =>
           update(
             "duration_minutes",
             value
           )
         }
         onUniverseChange={(value) =>
-          update("universe", value)
+          update(
+            "universe",
+            value
+          )
         }
         onTimePeriodChange={(value) =>
           update(
@@ -373,7 +472,9 @@ export default function StoryBibleEditor({
             value
           )
         }
-        onPrimaryLocationChange={(value) =>
+        onPrimaryLocationChange={(
+          value
+        ) =>
           update(
             "primary_location",
             value
@@ -382,8 +483,12 @@ export default function StoryBibleEditor({
       />
 
       <StoryBibleAIContext
-        aiContext={form.ai_context}
-        aiRules={form.ai_rules}
+        aiContext={
+          form.ai_context
+        }
+        aiRules={
+          form.ai_rules
+        }
         forbiddenElements={
           form.forbidden_elements
         }
@@ -405,19 +510,25 @@ export default function StoryBibleEditor({
             value
           )
         }
-        onForbiddenElementsChange={(value) =>
+        onForbiddenElementsChange={(
+          value
+        ) =>
           update(
             "forbidden_elements",
             value
           )
         }
-        onPreferredVocabularyChange={(value) =>
+        onPreferredVocabularyChange={(
+          value
+        ) =>
           update(
             "preferred_vocabulary",
             value
           )
         }
-        onVisualConsistencyChange={(value) =>
+        onVisualConsistencyChange={(
+          value
+        ) =>
           update(
             "visual_consistency",
             value
@@ -428,9 +539,10 @@ export default function StoryBibleEditor({
       <div className="sticky bottom-6 flex justify-end">
 
         <button
+          type="button"
           onClick={handleSave}
           disabled={saving}
-          className="rounded-2xl bg-yellow-500 px-10 py-4 font-semibold text-black shadow-xl transition hover:opacity-90 disabled:opacity-50"
+          className="rounded-2xl bg-yellow-500 px-10 py-4 font-semibold text-black shadow-xl transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
         >
           {saving
             ? "Saving Story Bible..."

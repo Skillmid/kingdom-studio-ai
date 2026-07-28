@@ -1,0 +1,482 @@
+"use client";
+
+import {
+  useCallback,
+  useEffect,
+  useState,
+} from "react";
+
+import {
+  scriptPipeline,
+} from "../services/script-pipeline.service";
+
+import {
+  screenplayRepository,
+} from "../repositories/screenplay.repository";
+
+import type {
+  ImportFileType,
+} from "@/features/import-engine";
+
+import type {
+  ProductionKnowledge,
+  ScreenplaySource,
+} from "@/features/production-knowledge";
+
+import type {
+  ScriptAnalysis,
+} from "../types/script-analysis";
+
+import type {
+  Screenplay,
+  ScreenplayRevision,
+} from "../types/screenplay";
+
+interface ImportScriptInput {
+  name: string;
+
+  type: ImportFileType;
+
+  content: string;
+}
+
+function getTitleFromFileName(
+  fileName: string
+) {
+  return (
+    fileName.replace(
+      /\.[^/.]+$/,
+      ""
+    ) || "Untitled Screenplay"
+  );
+}
+
+export function useScriptWorkspace(
+  productionId: string
+) {
+  const [
+    screenplay,
+    setScreenplay,
+  ] = useState<Screenplay | null>(
+    null
+  );
+
+  const [content, setContent] =
+    useState("");
+
+  const [title, setTitle] =
+    useState(
+      "Untitled Screenplay"
+    );
+
+  const [
+    fileName,
+    setFileName,
+  ] = useState<string | null>(
+    null
+  );
+
+  const [
+    source,
+    setSource,
+  ] = useState<ScreenplaySource>(
+    "internal"
+  );
+
+  const [
+    originalContent,
+    setOriginalContent,
+  ] = useState("");
+
+  const [
+    originalTitle,
+    setOriginalTitle,
+  ] = useState(
+    "Untitled Screenplay"
+  );
+
+  const [
+    knowledge,
+    setKnowledge,
+  ] =
+    useState<ProductionKnowledge | null>(
+      null
+    );
+
+  const [
+    analysis,
+    setAnalysis,
+  ] =
+    useState<ScriptAnalysis | null>(
+      null
+    );
+
+  const [
+    revisions,
+    setRevisions,
+  ] = useState<
+    ScreenplayRevision[]
+  >([]);
+
+  const [
+    loading,
+    setLoading,
+  ] = useState(true);
+
+  const [
+    processing,
+    setProcessing,
+  ] = useState(false);
+
+  const [
+    saving,
+    setSaving,
+  ] = useState(false);
+
+  const [
+    error,
+    setError,
+  ] = useState<string | null>(
+    null
+  );
+
+  const isDirty =
+    content !== originalContent ||
+    title !== originalTitle;
+
+  const loadRevisions =
+    useCallback(
+      async (
+        screenplayId: string
+      ) => {
+        const result =
+          await screenplayRepository.getRevisions(
+            screenplayId
+          );
+
+        setRevisions(result);
+
+        return result;
+      },
+      []
+    );
+
+  const load =
+    useCallback(async () => {
+      if (!productionId) {
+        setLoading(false);
+        return;
+      }
+
+      setLoading(true);
+      setError(null);
+
+      try {
+        const existing =
+          await screenplayRepository.getByProductionId(
+            productionId
+          );
+
+        if (!existing) {
+          setScreenplay(null);
+
+          setContent("");
+          setOriginalContent("");
+
+          setTitle(
+            "Untitled Screenplay"
+          );
+
+          setOriginalTitle(
+            "Untitled Screenplay"
+          );
+
+          setFileName(null);
+
+          setSource("internal");
+
+          setRevisions([]);
+
+          return;
+        }
+
+        setScreenplay(existing);
+
+        setContent(
+          existing.content
+        );
+
+        setOriginalContent(
+          existing.content
+        );
+
+        setTitle(existing.title);
+
+        setOriginalTitle(
+          existing.title
+        );
+
+        setFileName(
+          existing.sourceFileName
+        );
+
+        setSource(
+          existing.source
+        );
+
+        await loadRevisions(
+          existing.id
+        );
+      } catch (error) {
+        setError(
+          error instanceof Error
+            ? error.message
+            : "Unable to load screenplay."
+        );
+      } finally {
+        setLoading(false);
+      }
+    }, [
+      productionId,
+      loadRevisions,
+    ]);
+
+  useEffect(() => {
+    void load();
+  }, [load]);
+
+  const importScript =
+    useCallback(
+      async (
+        input: ImportScriptInput
+      ) => {
+        setProcessing(true);
+        setError(null);
+
+        try {
+          const result =
+            await scriptPipeline.process(
+              productionId,
+              {
+                name: input.name,
+
+                type: input.type,
+
+                content:
+                  input.content,
+              }
+            );
+
+          const importedTitle =
+            result.knowledge
+              .screenplay.title ||
+            getTitleFromFileName(
+              input.name
+            );
+
+          setContent(
+            result.screenplay
+          );
+
+          setTitle(
+            importedTitle
+          );
+
+          setFileName(
+            input.name
+          );
+
+          setSource(
+            input.type
+          );
+
+          setKnowledge(
+            result.knowledge
+          );
+
+          setAnalysis(
+            result.analysis
+          );
+
+          return result;
+        } catch (error) {
+          const message =
+            error instanceof Error
+              ? error.message
+              : "Unable to process screenplay.";
+
+          setError(message);
+
+          throw error;
+        } finally {
+          setProcessing(false);
+        }
+      },
+      [productionId]
+    );
+
+  const saveScreenplay =
+    useCallback(
+      async (
+        reason = "manual-save"
+      ) => {
+        if (!productionId) {
+          throw new Error(
+            "Production ID is required."
+          );
+        }
+
+        if (!content.trim()) {
+          throw new Error(
+            "Screenplay content cannot be empty."
+          );
+        }
+
+        setSaving(true);
+        setError(null);
+
+        try {
+          const saved =
+            await screenplayRepository.save(
+              productionId,
+              {
+                title:
+                  title.trim() ||
+                  "Untitled Screenplay",
+
+                content,
+
+                source,
+
+                sourceFileName:
+                  fileName,
+
+                status:
+                  screenplay
+                    ? "revised"
+                    : fileName
+                      ? "imported"
+                      : "draft",
+
+                reason,
+              }
+            );
+
+          setScreenplay(saved);
+
+          setTitle(saved.title);
+
+          setOriginalTitle(
+            saved.title
+          );
+
+          setContent(
+            saved.content
+          );
+
+          setOriginalContent(
+            saved.content
+          );
+
+          setSource(
+            saved.source
+          );
+
+          setFileName(
+            saved.sourceFileName
+          );
+
+          await loadRevisions(
+            saved.id
+          );
+
+          return saved;
+        } catch (error) {
+          const message =
+            error instanceof Error
+              ? error.message
+              : "Unable to save screenplay.";
+
+          setError(message);
+
+          throw error;
+        } finally {
+          setSaving(false);
+        }
+      },
+      [
+        productionId,
+        content,
+        title,
+        source,
+        fileName,
+        screenplay,
+        loadRevisions,
+      ]
+    );
+
+  function clear() {
+    setScreenplay(null);
+
+    setContent("");
+    setOriginalContent("");
+
+    setTitle(
+      "Untitled Screenplay"
+    );
+
+    setOriginalTitle(
+      "Untitled Screenplay"
+    );
+
+    setFileName(null);
+
+    setSource("internal");
+
+    setKnowledge(null);
+
+    setAnalysis(null);
+
+    setRevisions([]);
+
+    setError(null);
+  }
+
+  return {
+    screenplay,
+
+    content,
+    setContent,
+
+    title,
+    setTitle,
+
+    fileName,
+
+    source,
+
+    knowledge,
+
+    analysis,
+
+    revisions,
+
+    loading,
+
+    processing,
+
+    saving,
+
+    error,
+
+    isDirty,
+
+    importScript,
+
+    saveScreenplay,
+
+    refresh: load,
+
+    clear,
+  };
+}
