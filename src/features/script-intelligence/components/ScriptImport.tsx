@@ -106,15 +106,6 @@ export default function ScriptImport({
       return;
     }
 
-    /*
-     * PDF and DOCX require binary
-     * extraction. We intentionally do
-     * not corrupt them by reading them
-     * with File.text().
-     *
-     * Their parser integration will be
-     * added to the server import route.
-     */
     if (!canReadAsText(type)) {
       setLocalError(
         `${type.toUpperCase()} import is prepared but binary extraction is not connected yet. Use Paste Script, TXT, Fountain, Markdown, or FDX for now.`
@@ -123,14 +114,30 @@ export default function ScriptImport({
       return;
     }
 
-    const content =
-      await file.text();
+    try {
+      const content =
+        await file.text();
 
-    await onImport({
-      name: file.name,
-      type,
-      content,
-    });
+      if (!content.trim()) {
+        setLocalError(
+          "The selected screenplay file is empty."
+        );
+
+        return;
+      }
+
+      await onImport({
+        name: file.name,
+        type,
+        content,
+      });
+    } catch (error) {
+      setLocalError(
+        error instanceof Error
+          ? error.message
+          : "Unable to import screenplay."
+      );
+    }
   }
 
   async function handlePaste() {
@@ -139,7 +146,7 @@ export default function ScriptImport({
 
     if (!content) {
       setLocalError(
-        "Paste a screenplay before importing."
+        "Paste a screenplay before adding it to the editor."
       );
 
       return;
@@ -147,15 +154,23 @@ export default function ScriptImport({
 
     setLocalError(null);
 
-    await onImport({
-      name: "pasted-screenplay.txt",
-      type: "txt",
-      content,
-    });
+    try {
+      await onImport({
+        name: "pasted-screenplay.txt",
+        type: "txt",
+        content,
+      });
 
-    setPastedScript("");
+      setPastedScript("");
 
-    setPasteOpen(false);
+      setPasteOpen(false);
+    } catch (error) {
+      setLocalError(
+        error instanceof Error
+          ? error.message
+          : "Unable to process pasted screenplay."
+      );
+    }
   }
 
   return (
@@ -170,13 +185,16 @@ export default function ScriptImport({
           </p>
 
           <h2 className="mt-2 text-xl font-semibold">
-            Import Full Screenplay
+            Add Screenplay
           </h2>
 
-          <p className="mt-2 text-sm text-zinc-400">
-            Bring an existing screenplay
-            into the production or paste
-            the complete script directly.
+          <p className="mt-2 max-w-3xl text-sm leading-6 text-zinc-400">
+            Choose an existing screenplay
+            file or paste a complete script.
+            The screenplay will be placed
+            into the editor below for review
+            before you save it to the
+            production.
           </p>
 
         </div>
@@ -212,7 +230,7 @@ export default function ScriptImport({
             onClick={() =>
               fileInputRef.current?.click()
             }
-            className="rounded-xl border border-zinc-700 px-5 py-3 font-medium transition hover:border-yellow-500 disabled:opacity-50"
+            className="rounded-xl border border-zinc-700 px-5 py-3 font-medium transition hover:border-yellow-500 disabled:cursor-not-allowed disabled:opacity-50"
           >
             Choose File
           </button>
@@ -220,15 +238,19 @@ export default function ScriptImport({
           <button
             type="button"
             disabled={processing}
-            onClick={() =>
+            onClick={() => {
+              setLocalError(null);
+
               setPasteOpen(
                 (current) =>
                   !current
-              )
-            }
-            className="rounded-xl bg-yellow-500 px-5 py-3 font-semibold text-black transition hover:opacity-90 disabled:opacity-50"
+              );
+            }}
+            className="rounded-xl bg-yellow-500 px-5 py-3 font-semibold text-black transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
           >
-            Paste Script
+            {pasteOpen
+              ? "Close Paste"
+              : "Paste Script"}
           </button>
 
         </div>
@@ -238,18 +260,42 @@ export default function ScriptImport({
       {pasteOpen && (
         <div className="mt-6 space-y-4 border-t border-zinc-800 pt-6">
 
+          <div>
+
+            <h3 className="font-semibold">
+              Paste Screenplay
+            </h3>
+
+            <p className="mt-1 text-sm text-zinc-500">
+              Paste the complete screenplay
+              below. It will be added to the
+              main screenplay editor before
+              saving.
+            </p>
+
+          </div>
+
           <textarea
             value={pastedScript}
+            disabled={processing}
             onChange={(event) =>
               setPastedScript(
                 event.target.value
               )
             }
             placeholder="Paste the complete screenplay here..."
-            className="min-h-[320px] w-full rounded-2xl border border-zinc-700 bg-zinc-950 p-5 font-mono text-sm leading-7 outline-none transition focus:border-yellow-500"
+            spellCheck
+            className="min-h-[320px] w-full rounded-2xl border border-zinc-700 bg-zinc-950 p-5 font-mono text-sm leading-7 outline-none transition focus:border-yellow-500 disabled:opacity-60"
           />
 
-          <div className="flex justify-end">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+
+            <p className="text-xs text-zinc-500">
+              Adding the screenplay does not
+              save it to the production. Review
+              it in the editor, then use Save
+              Screenplay.
+            </p>
 
             <button
               type="button"
@@ -260,11 +306,11 @@ export default function ScriptImport({
               onClick={
                 handlePaste
               }
-              className="rounded-xl bg-yellow-500 px-6 py-3 font-semibold text-black disabled:opacity-50"
+              className="shrink-0 rounded-xl bg-yellow-500 px-6 py-3 font-semibold text-black transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
             >
               {processing
                 ? "Processing..."
-                : "Import Screenplay"}
+                : "Add to Screenplay"}
             </button>
 
           </div>

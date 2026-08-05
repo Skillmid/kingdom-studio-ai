@@ -7,10 +7,6 @@ import {
   contextEngine,
 } from "@/features/production-knowledge";
 
-import {
-  scriptIntelligence,
-} from "./script-intelligence.service";
-
 import type {
   ImportedFile,
 } from "@/features/import-engine";
@@ -28,7 +24,7 @@ export interface ScriptPipelineResult {
 
   knowledge: ProductionKnowledge;
 
-  analysis: ScriptAnalysis;
+  analysis: ScriptAnalysis | null;
 }
 
 export class ScriptPipelineService {
@@ -53,18 +49,34 @@ export class ScriptPipelineService {
         file.type
       );
 
-    const context =
-      contextEngine.create(
-        extracted.knowledge
-      );
+    /**
+     * Build the production context.
+     *
+     * This prepares downstream AI features
+     * such as Story Bible generation,
+     * Character generation,
+     * Storyboard,
+     * AI Director,
+     * Voice,
+     * Render,
+     * etc.
+     */
+    contextEngine.create(
+      extracted.knowledge
+    );
 
-    const analysis =
-      await scriptIntelligence.analyze(
-        imported.screenplay
-      );
-
-    void context;
-
+    /**
+     * IMPORTANT
+     *
+     * Script Intelligence is now a
+     * dedicated user action.
+     *
+     * Importing a screenplay should NOT
+     * automatically consume AI credits.
+     *
+     * The creator decides when to analyse
+     * or reanalyse the screenplay.
+     */
     return {
       screenplay:
         imported.screenplay,
@@ -72,7 +84,7 @@ export class ScriptPipelineService {
       knowledge:
         extracted.knowledge,
 
-      analysis,
+      analysis: null,
     };
   }
 }

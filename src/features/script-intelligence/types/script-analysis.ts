@@ -1,3 +1,19 @@
+export type ScriptReviewType =
+  | "full"
+  | "professional"
+  | "spiritual"
+  | "cultural"
+  | "dialogue"
+  | "character"
+  | "story"
+  | "production";
+
+export type ScriptReviewSeverity =
+  | "info"
+  | "suggestion"
+  | "important"
+  | "critical";
+
 export interface ScriptAnalysis {
   screenplay: ScreenplayAnalysis;
 
@@ -12,6 +28,8 @@ export interface ScriptAnalysis {
   spirituality: SpiritualAnalysis;
 
   culture: CulturalAnalysis;
+
+  professional: ProfessionalAnalysis;
 
   production: ProductionAnalysis;
 }
@@ -96,6 +114,20 @@ export interface CulturalAnalysis {
   recommendations: string[];
 }
 
+export interface ProfessionalAnalysis {
+  score: number;
+
+  screenplayFormat: string[];
+
+  industryJargon: string[];
+
+  continuity: string[];
+
+  clarity: string[];
+
+  recommendations: string[];
+}
+
 export interface ProductionAnalysis {
   budget: string;
 
@@ -104,4 +136,36 @@ export interface ProductionAnalysis {
   risks: string[];
 
   recommendations: string[];
+}
+
+export interface ScriptReviewIssue {
+  id: string;
+
+  type: ScriptReviewType;
+
+  severity: ScriptReviewSeverity;
+
+  title: string;
+
+  description: string;
+
+  originalText?: string;
+
+  suggestedText?: string;
+
+  reason?: string;
+
+  scene?: number;
+}
+
+export interface ScriptReview {
+  type: ScriptReviewType;
+
+  summary: string;
+
+  score: number;
+
+  issues: ScriptReviewIssue[];
+
+  createdAt: string;
 }

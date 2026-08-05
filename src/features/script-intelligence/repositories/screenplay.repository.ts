@@ -319,6 +319,87 @@ export class ScreenplayRepository {
       (data ?? []) as RevisionRow[]
     ).map(mapRevision);
   }
+
+  async getRevisionById(
+    revisionId: string
+  ): Promise<ScreenplayRevision> {
+    const {
+      data,
+      error,
+    } = await supabase
+      .from(
+        "screenplay_revisions"
+      )
+      .select("*")
+      .eq(
+        "id",
+        revisionId
+      )
+      .single();
+
+    if (error) {
+      throw new Error(
+        error.message
+      );
+    }
+
+    return mapRevision(
+      data as RevisionRow
+    );
+  }
+
+  async restoreRevision(
+    productionId: string,
+    revisionId: string
+  ): Promise<Screenplay> {
+    const revision =
+      await this.getRevisionById(
+        revisionId
+      );
+
+    const current =
+      await this.getByProductionId(
+        productionId
+      );
+
+    if (!current) {
+      throw new Error(
+        "Screenplay not found."
+      );
+    }
+
+    if (
+      revision.screenplayId !==
+      current.id
+    ) {
+      throw new Error(
+        "Revision does not belong to this screenplay."
+      );
+    }
+
+    return this.save(
+      productionId,
+      {
+        title:
+          revision.title,
+
+        content:
+          revision.content,
+
+        source:
+          current.source,
+
+        sourceFileName:
+          current.sourceFileName,
+
+        status:
+          "revised",
+
+        reason:
+          `restored-from-version-${revision.version}`,
+      }
+    );
+  }
 }
 
 export const screenplayRepository =

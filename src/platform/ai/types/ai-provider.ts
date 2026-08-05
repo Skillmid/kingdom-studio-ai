@@ -1,4 +1,5 @@
 export type AIProvider =
+  | "openrouter"
   | "openai"
   | "claude"
   | "gemini"
@@ -16,12 +17,16 @@ export interface AIRequest {
   temperature?: number;
 
   maxTokens?: number;
+
+  model?: string;
 }
 
 export interface AIResponse {
   text: string;
 
   provider: AIProvider;
+
+  model?: string;
 
   tokens?: number;
 }

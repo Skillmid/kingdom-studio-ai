@@ -1,12 +1,12 @@
 "use client";
 
-import { ReactNode } from "react";
+import type {
+  ReactNode,
+} from "react";
 
 import WorkspaceLayout from "./WorkspaceLayout";
 import WorkspaceHeader from "./WorkspaceHeader";
-import WorkspaceSidebar, {
-  WorkspaceNavigationItem,
-} from "./WorkspaceSidebar";
+import WorkspaceSidebar from "./WorkspaceSidebar";
 
 import {
   WorkspaceProvider,
@@ -15,6 +15,10 @@ import {
 import type {
   WorkspaceOptions,
 } from "@/features/workspace";
+
+import type {
+  WorkspaceNavigationItem,
+} from "./WorkspaceSidebar";
 
 interface WorkspaceShellProps {
   title: string;
@@ -42,7 +46,9 @@ export default function WorkspaceShell({
   rightPanel,
 }: WorkspaceShellProps) {
   return (
-    <WorkspaceProvider options={options}>
+    <WorkspaceProvider
+      options={options}
+    >
       <WorkspaceLayout
         sidebar={
           <WorkspaceSidebar

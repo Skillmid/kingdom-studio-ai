@@ -7,17 +7,19 @@ import type {
   AIResponse,
 } from "../types/ai-provider";
 
-interface AIAPIResponse {
+interface OpenRouterAPIResponse {
   text?: string;
 
   provider?: string;
+
+  model?: string;
 
   tokens?: number;
 
   error?: string;
 }
 
-export class OpenAIProvider
+export class OpenRouterProvider
   implements AIProviderAdapter
 {
   async generate(
@@ -34,49 +36,41 @@ export class OpenAIProvider
         },
 
         body: JSON.stringify({
+          ...request,
+
           provider:
-            request.provider,
-
-          systemPrompt:
-            request.systemPrompt,
-
-          userPrompt:
-            request.userPrompt,
-
-          temperature:
-            request.temperature,
-
-          maxTokens:
-            request.maxTokens,
+            "openrouter",
         }),
       }
     );
 
     const data =
-      (await response.json()) as AIAPIResponse;
+      (await response.json()) as OpenRouterAPIResponse;
 
     if (!response.ok) {
       throw new Error(
         data.error ||
-          "AI request failed."
+          "OpenRouter request failed."
       );
     }
 
     if (!data.text) {
       throw new Error(
-        "AI provider returned an empty response."
+        "OpenRouter returned an empty response."
       );
     }
 
     return {
-      provider: "openai",
+      provider: "openrouter",
 
       text: data.text,
+
+      model: data.model,
 
       tokens: data.tokens,
     };
   }
 }
 
-export const openAIProvider =
-  new OpenAIProvider();
+export const openRouterProvider =
+  new OpenRouterProvider();

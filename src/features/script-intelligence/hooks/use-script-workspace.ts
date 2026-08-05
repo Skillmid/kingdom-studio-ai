@@ -11,6 +11,10 @@ import {
 } from "../services/script-pipeline.service";
 
 import {
+  scriptIntelligence,
+} from "../services/script-intelligence.service";
+
+import {
   screenplayRepository,
 } from "../repositories/screenplay.repository";
 
@@ -195,6 +199,10 @@ export function useScriptWorkspace(
 
           setSource("internal");
 
+          setKnowledge(null);
+
+          setAnalysis(null);
+
           setRevisions([]);
 
           return;
@@ -223,6 +231,10 @@ export function useScriptWorkspace(
         setSource(
           existing.source
         );
+
+        setKnowledge(null);
+
+        setAnalysis(null);
 
         await loadRevisions(
           existing.id
@@ -259,9 +271,7 @@ export function useScriptWorkspace(
               productionId,
               {
                 name: input.name,
-
                 type: input.type,
-
                 content:
                   input.content,
               }
@@ -313,6 +323,41 @@ export function useScriptWorkspace(
         }
       },
       [productionId]
+    );
+
+  const analyseScreenplay =
+    useCallback(
+      async () => {
+        if (!content.trim()) {
+          return;
+        }
+
+        setProcessing(true);
+        setError(null);
+
+        try {
+          const result =
+            await scriptIntelligence.analyze(
+              content
+            );
+
+          setAnalysis(result);
+
+          return result;
+        } catch (error) {
+          const message =
+            error instanceof Error
+              ? error.message
+              : "Unable to analyse screenplay.";
+
+          setError(message);
+
+          throw error;
+        } finally {
+          setProcessing(false);
+        }
+      },
+      [content]
     );
 
   const saveScreenplay =
@@ -391,15 +436,6 @@ export function useScriptWorkspace(
           );
 
           return saved;
-        } catch (error) {
-          const message =
-            error instanceof Error
-              ? error.message
-              : "Unable to save screenplay.";
-
-          setError(message);
-
-          throw error;
         } finally {
           setSaving(false);
         }
@@ -472,6 +508,8 @@ export function useScriptWorkspace(
     isDirty,
 
     importScript,
+
+    analyseScreenplay,
 
     saveScreenplay,
 

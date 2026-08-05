@@ -29,13 +29,15 @@ function ScriptWorkspaceContent({
   const {
     screenplay,
 
-    content,
-    setContent,
-
     title,
     setTitle,
 
+    content,
+    setContent,
+
     fileName,
+
+    source,
 
     knowledge,
 
@@ -55,7 +57,11 @@ function ScriptWorkspaceContent({
 
     importScript,
 
+    analyseScreenplay,
+
     saveScreenplay,
+
+    refresh,
 
     clear,
   } = useScriptWorkspace(
@@ -89,6 +95,24 @@ function ScriptWorkspaceContent({
     }
   }
 
+  async function handleAnalyse() {
+    try {
+      await analyseScreenplay();
+    } catch {
+      // Workspace exposes the error.
+    }
+  }
+
+  async function handleRestore(
+    revisionId: string
+  ) {
+    try {
+      // restoreRevision handling
+    } catch {
+      // Workspace exposes the error.
+    }
+  }
+
   if (loading) {
     return (
       <div className="p-10">
@@ -115,10 +139,13 @@ function ScriptWorkspaceContent({
           </h1>
 
           <p className="mt-4 max-w-4xl text-zinc-400">
-            Write, import, analyse,
-            professionally refine, and
-            prepare the screenplay for
-            the production pipeline.
+            Develop the creator&apos;s
+            screenplay with professional,
+            cultural, spiritual, dialogue,
+            character, story, and
+            production intelligence while
+            preserving human creative
+            authority.
           </p>
 
         </div>
@@ -169,20 +196,28 @@ function ScriptWorkspaceContent({
         <input
           id="screenplay-title"
           value={title}
+          disabled={
+            processing ||
+            saving
+          }
           onChange={(event) =>
             setTitle(
               event.target.value
             )
           }
-          className="mt-3 w-full border-none bg-transparent text-3xl font-bold outline-none placeholder:text-zinc-700"
+          className="mt-3 w-full border-none bg-transparent text-3xl font-bold outline-none placeholder:text-zinc-700 disabled:opacity-50"
           placeholder="Untitled Screenplay"
         />
 
       </section>
 
       <ScriptImport
-        processing={processing}
-        onImport={importScript}
+        processing={
+          processing
+        }
+        onImport={
+          importScript
+        }
       />
 
       {error && (
@@ -257,14 +292,16 @@ function ScriptWorkspaceContent({
       <div
         className={
           intelligenceOpen
-            ? "grid gap-8 xl:grid-cols-[minmax(0,1fr)_380px]"
+            ? "grid gap-8 xl:grid-cols-[minmax(0,1fr)_420px]"
             : "grid gap-8"
         }
       >
 
         <ScriptEditor
           value={content}
-          onChange={setContent}
+          onChange={
+            setContent
+          }
           disabled={
             processing ||
             saving
@@ -273,18 +310,26 @@ function ScriptWorkspaceContent({
 
         {intelligenceOpen && (
           <ScriptIntelligencePanel
-            analysis={analysis}
-            processing={
-              processing
-            }
-          />
+  analysis={analysis}
+  processing={processing}
+  onAnalyse={handleAnalyse}
+/>
         )}
 
       </div>
 
       {historyOpen && (
         <ScriptRevisionHistory
-          revisions={revisions}
+          revisions={
+            revisions
+          }
+          currentVersion={
+            screenplay?.version
+          }
+          restoring={false}
+          onRestore={
+            handleRestore
+          }
         />
       )}
 
@@ -302,6 +347,7 @@ function ScriptWorkspaceContent({
           <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
 
             <div className="rounded-2xl bg-zinc-950 p-5">
+
               <p className="text-sm text-zinc-500">
                 Characters
               </p>
@@ -313,9 +359,11 @@ function ScriptWorkspaceContent({
                     .length
                 }
               </p>
+
             </div>
 
             <div className="rounded-2xl bg-zinc-950 p-5">
+
               <p className="text-sm text-zinc-500">
                 Scenes
               </p>
@@ -327,9 +375,11 @@ function ScriptWorkspaceContent({
                     .length
                 }
               </p>
+
             </div>
 
             <div className="rounded-2xl bg-zinc-950 p-5">
+
               <p className="text-sm text-zinc-500">
                 Acts
               </p>
@@ -341,9 +391,11 @@ function ScriptWorkspaceContent({
                     .acts
                 }
               </p>
+
             </div>
 
             <div className="rounded-2xl bg-zinc-950 p-5">
+
               <p className="text-sm text-zinc-500">
                 Source
               </p>
@@ -355,6 +407,7 @@ function ScriptWorkspaceContent({
                     .source
                 }
               </p>
+
             </div>
 
           </div>
