@@ -21,9 +21,7 @@ import type {
 
 export interface ScriptPipelineResult {
   screenplay: string;
-
   knowledge: ProductionKnowledge;
-
   analysis: ScriptAnalysis | null;
 }
 
@@ -78,11 +76,9 @@ export class ScriptPipelineService {
      * or reanalyse the screenplay.
      */
     return {
-      screenplay:
-        imported.screenplay,
+      screenplay: imported.screenplay,
 
-      knowledge:
-        extracted.knowledge,
+      knowledge: extracted.knowledge,
 
       analysis: null,
     };

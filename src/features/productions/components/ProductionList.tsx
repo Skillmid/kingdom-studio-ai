@@ -16,6 +16,7 @@ export default function ProductionList() {
     setSearch,
     sort,
     setSort,
+    archiveProduction,
     deleteForever,
     renameProduction,
     duplicateProduction,
@@ -98,9 +99,7 @@ export default function ProductionList() {
                   key={production.id}
                   production={production}
                   onDeleted={async () => {
-                    await deleteForever(
-                      production.id
-                    );
+                    await archiveProduction(production.id);
                   }}
                   onRenamed={async (title) => {
                     await renameProduction(

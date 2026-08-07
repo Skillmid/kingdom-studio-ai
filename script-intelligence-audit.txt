@@ -1,0 +1,3701 @@
+
+======================================================================
+C:\Users\Skillmid Pc\Projects\kingdom-studio-ai\src\features\script-intelligence\components\index.ts
+======================================================================
+export {
+  default as ScriptWorkspace,
+} from "./ScriptWorkspace";
+
+export {
+  default as ScriptEditor,
+} from "./ScriptEditor";
+
+export {
+  default as ScriptImport,
+} from "./ScriptImport";
+
+export {
+  default as ScriptIntelligencePanel,
+} from "./ScriptIntelligencePanel";
+
+export {
+  default as ScriptRevisionHistory,
+} from "./ScriptRevisionHistory";
+
+======================================================================
+C:\Users\Skillmid Pc\Projects\kingdom-studio-ai\src\features\script-intelligence\components\ScriptEditor.tsx
+======================================================================
+"use client";
+
+interface ScriptEditorProps {
+  value: string;
+
+  onChange: (
+    value: string
+  ) => void;
+
+  disabled?: boolean;
+}
+
+export default function ScriptEditor({
+  value,
+  onChange,
+  disabled = false,
+}: ScriptEditorProps) {
+  return (
+    <section className="overflow-hidden rounded-3xl border border-zinc-800 bg-zinc-900">
+
+      <div className="border-b border-zinc-800 px-6 py-5">
+
+        <h2 className="text-xl font-semibold">
+          Screenplay
+        </h2>
+
+        <p className="mt-1 text-sm text-zinc-400">
+          Import, write, review, and
+          professionally refine the full
+          screenplay.
+        </p>
+
+      </div>
+
+      <textarea
+        value={value}
+        disabled={disabled}
+        onChange={(event) =>
+          onChange(
+            event.target.value
+          )
+        }
+        placeholder={`INT. LOCATION - DAY
+
+Action...
+
+CHARACTER
+Dialogue...`}
+        spellCheck
+        className="min-h-[700px] w-full resize-y bg-zinc-950 p-8 font-mono text-sm leading-7 text-zinc-200 outline-none disabled:opacity-60"
+      />
+
+    </section>
+  );
+}
+
+======================================================================
+C:\Users\Skillmid Pc\Projects\kingdom-studio-ai\src\features\script-intelligence\components\ScriptImport.tsx
+======================================================================
+"use client";
+
+import {
+  useRef,
+  useState,
+} from "react";
+
+import type {
+  ImportFileType,
+} from "@/features/import-engine";
+
+interface ScriptImportProps {
+  processing: boolean;
+
+  onImport: (input: {
+    name: string;
+    type: ImportFileType;
+    content: string;
+  }) => Promise<unknown>;
+}
+
+function detectFileType(
+  fileName: string
+): ImportFileType | null {
+  const extension =
+    fileName
+      .split(".")
+      .pop()
+      ?.toLowerCase();
+
+  switch (extension) {
+    case "txt":
+      return "txt";
+
+    case "fountain":
+      return "fountain";
+
+    case "md":
+    case "markdown":
+      return "markdown";
+
+    case "fdx":
+      return "fdx";
+
+    case "pdf":
+      return "pdf";
+
+    case "docx":
+      return "docx";
+
+    default:
+      return null;
+  }
+}
+
+function canReadAsText(
+  type: ImportFileType
+) {
+  return (
+    type === "txt" ||
+    type === "fountain" ||
+    type === "markdown" ||
+    type === "fdx"
+  );
+}
+
+export default function ScriptImport({
+  processing,
+  onImport,
+}: ScriptImportProps) {
+  const fileInputRef =
+    useRef<HTMLInputElement | null>(
+      null
+    );
+
+  const [
+    pasteOpen,
+    setPasteOpen,
+  ] = useState(false);
+
+  const [
+    pastedScript,
+    setPastedScript,
+  ] = useState("");
+
+  const [
+    localError,
+    setLocalError,
+  ] = useState<string | null>(
+    null
+  );
+
+  async function handleFile(
+    file: File
+  ) {
+    setLocalError(null);
+
+    const type =
+      detectFileType(file.name);
+
+    if (!type) {
+      setLocalError(
+        "Unsupported screenplay file type."
+      );
+
+      return;
+    }
+
+    if (!canReadAsText(type)) {
+      setLocalError(
+        `${type.toUpperCase()} import is prepared but binary extraction is not connected yet. Use Paste Script, TXT, Fountain, Markdown, or FDX for now.`
+      );
+
+      return;
+    }
+
+    try {
+      const content =
+        await file.text();
+
+      if (!content.trim()) {
+        setLocalError(
+          "The selected screenplay file is empty."
+        );
+
+        return;
+      }
+
+      await onImport({
+        name: file.name,
+        type,
+        content,
+      });
+    } catch (error) {
+      setLocalError(
+        error instanceof Error
+          ? error.message
+          : "Unable to import screenplay."
+      );
+    }
+  }
+
+  async function handlePaste() {
+    const content =
+      pastedScript.trim();
+
+    if (!content) {
+      setLocalError(
+        "Paste a screenplay before adding it to the editor."
+      );
+
+      return;
+    }
+
+    setLocalError(null);
+
+    try {
+      await onImport({
+        name: "pasted-screenplay.txt",
+        type: "txt",
+        content,
+      });
+
+      setPastedScript("");
+
+      setPasteOpen(false);
+    } catch (error) {
+      setLocalError(
+        error instanceof Error
+          ? error.message
+          : "Unable to process pasted screenplay."
+      );
+    }
+  }
+
+  return (
+    <section className="rounded-3xl border border-zinc-800 bg-zinc-900 p-6">
+
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+
+        <div>
+
+          <p className="text-xs uppercase tracking-[0.3em] text-yellow-500">
+            Script Source
+          </p>
+
+          <h2 className="mt-2 text-xl font-semibold">
+            Add Screenplay
+          </h2>
+
+          <p className="mt-2 max-w-3xl text-sm leading-6 text-zinc-400">
+            Choose an existing screenplay
+            file or paste a complete script.
+            The screenplay will be placed
+            into the editor below for review
+            before you save it to the
+            production.
+          </p>
+
+        </div>
+
+        <div className="flex flex-wrap gap-3">
+
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".txt,.fountain,.md,.markdown,.fdx,.pdf,.docx"
+            className="hidden"
+            onChange={async (
+              event
+            ) => {
+              const file =
+                event.target
+                  .files?.[0];
+
+              if (file) {
+                await handleFile(
+                  file
+                );
+              }
+
+              event.target.value =
+                "";
+            }}
+          />
+
+          <button
+            type="button"
+            disabled={processing}
+            onClick={() =>
+              fileInputRef.current?.click()
+            }
+            className="rounded-xl border border-zinc-700 px-5 py-3 font-medium transition hover:border-yellow-500 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            Choose File
+          </button>
+
+          <button
+            type="button"
+            disabled={processing}
+            onClick={() => {
+              setLocalError(null);
+
+              setPasteOpen(
+                (current) =>
+                  !current
+              );
+            }}
+            className="rounded-xl bg-yellow-500 px-5 py-3 font-semibold text-black transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {pasteOpen
+              ? "Close Paste"
+              : "Paste Script"}
+          </button>
+
+        </div>
+
+      </div>
+
+      {pasteOpen && (
+        <div className="mt-6 space-y-4 border-t border-zinc-800 pt-6">
+
+          <div>
+
+            <h3 className="font-semibold">
+              Paste Screenplay
+            </h3>
+
+            <p className="mt-1 text-sm text-zinc-500">
+              Paste the complete screenplay
+              below. It will be added to the
+              main screenplay editor before
+              saving.
+            </p>
+
+          </div>
+
+          <textarea
+            value={pastedScript}
+            disabled={processing}
+            onChange={(event) =>
+              setPastedScript(
+                event.target.value
+              )
+            }
+            placeholder="Paste the complete screenplay here..."
+            spellCheck
+            className="min-h-[320px] w-full rounded-2xl border border-zinc-700 bg-zinc-950 p-5 font-mono text-sm leading-7 outline-none transition focus:border-yellow-500 disabled:opacity-60"
+          />
+
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+
+            <p className="text-xs text-zinc-500">
+              Adding the screenplay does not
+              save it to the production. Review
+              it in the editor, then use Save
+              Screenplay.
+            </p>
+
+            <button
+              type="button"
+              disabled={
+                processing ||
+                !pastedScript.trim()
+              }
+              onClick={
+                handlePaste
+              }
+              className="shrink-0 rounded-xl bg-yellow-500 px-6 py-3 font-semibold text-black transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {processing
+                ? "Processing..."
+                : "Add to Screenplay"}
+            </button>
+
+          </div>
+
+        </div>
+      )}
+
+      {localError && (
+        <div className="mt-5 rounded-xl border border-yellow-500/30 bg-yellow-500/10 p-4 text-sm text-yellow-300">
+          {localError}
+        </div>
+      )}
+
+    </section>
+  );
+}
+
+======================================================================
+C:\Users\Skillmid Pc\Projects\kingdom-studio-ai\src\features\script-intelligence\components\ScriptIntelligencePanel.tsx
+======================================================================
+"use client";
+
+import type {
+  ScriptAnalysis,
+} from "../types/script-analysis";
+
+interface ScriptAnalysisPanelProps {
+  analysis: ScriptAnalysis | null;
+
+  processing: boolean;
+
+  onAnalyse: () => Promise<void>;
+}
+
+export default function ScriptAnalysisPanel({
+  analysis,
+  processing,
+  onAnalyse,
+}: ScriptAnalysisPanelProps) {
+  if (processing) {
+    return (
+      <aside className="rounded-3xl border border-zinc-800 bg-zinc-900 p-8">
+        Analyzing screenplay...
+      </aside>
+    );
+  }
+
+  return (
+    <aside className="space-y-8 rounded-3xl border border-zinc-800 bg-zinc-900 p-8">
+
+      <div>
+        <p className="text-xs uppercase tracking-[0.3em] text-yellow-500">
+          Intelligence
+        </p>
+
+        <h2 className="mt-2 text-2xl font-bold">
+          Script Intelligence
+        </h2>
+
+        <p className="mt-3 text-sm leading-6 text-zinc-400">
+          Analyze the screenplay while
+          preserving the creator&apos;s
+          authority over every revision.
+        </p>
+      </div>
+
+      <div className="space-y-3">
+        <button
+          type="button"
+          disabled={processing}
+          onClick={() =>
+            void onAnalyse()
+          }
+          className="w-full rounded-2xl border border-zinc-800 bg-zinc-950 p-4 text-left transition hover:border-yellow-500 disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          <p className="font-semibold">
+            Analyse Screenplay
+          </p>
+
+          <p className="mt-1 text-xs leading-5 text-zinc-500">
+            Complete comprehensive screenplay analysis and metrics.
+          </p>
+        </button>
+      </div>
+
+      {analysis && (
+        <section className="space-y-4 border-t border-zinc-800 pt-6">
+
+          <h3 className="font-semibold">
+            Analysis Snapshot
+          </h3>
+
+          <div>
+            <p className="text-sm text-zinc-500">
+              Genre
+            </p>
+
+            <p className="mt-1">
+              {analysis.story?.genre ||
+                "Not identified"}
+            </p>
+          </div>
+
+          <div>
+            <p className="text-sm text-zinc-500">
+              Theme
+            </p>
+
+            <p className="mt-1">
+              {analysis.story?.theme ||
+                "Not identified"}
+            </p>
+          </div>
+
+          <div>
+            <p className="text-sm text-zinc-500">
+              Spiritual Alignment
+            </p>
+
+            <p className="mt-1">
+              {
+                analysis.spirituality
+                  ?.biblicalAlignment
+              }
+              %
+            </p>
+          </div>
+
+          <div>
+            <p className="text-sm text-zinc-500">
+              Cultural Authenticity
+            </p>
+
+            <p className="mt-1">
+              {
+                analysis.culture
+                  ?.authenticity
+              }
+              %
+            </p>
+          </div>
+
+          <div>
+            <p className="text-sm text-zinc-500">
+              Professional
+            </p>
+
+            <p className="mt-1">
+              {
+                analysis.professional
+                  ?.score
+              }
+              %
+            </p>
+          </div>
+
+          <div>
+            <p className="text-sm text-zinc-500">
+              Dialogue
+            </p>
+
+            <p className="mt-1">
+              {
+                analysis.dialogue
+                  ?.score
+              }
+              %
+            </p>
+          </div>
+
+          <div>
+            <p className="text-sm text-zinc-500">
+              Production Complexity
+            </p>
+
+            <p className="mt-1">
+              {analysis.production
+                ?.complexity ||
+                "Not evaluated"}
+            </p>
+          </div>
+
+        </section>
+      )}
+
+    </aside>
+  );
+}
+
+======================================================================
+C:\Users\Skillmid Pc\Projects\kingdom-studio-ai\src\features\script-intelligence\components\ScriptRevisionHistory.tsx
+======================================================================
+"use client";
+
+import type {
+  ScreenplayRevision,
+} from "../types/screenplay";
+
+interface ScriptRevisionHistoryProps {
+  revisions: ScreenplayRevision[];
+
+  currentVersion?: number;
+
+  restoring: boolean;
+
+  onRestore: (
+    revisionId: string
+  ) => Promise<void>;
+}
+
+export default function ScriptRevisionHistory({
+  revisions,
+  currentVersion,
+  restoring,
+  onRestore,
+}: ScriptRevisionHistoryProps) {
+  return (
+    <section className="rounded-3xl border border-zinc-800 bg-zinc-900 p-8">
+
+      <div>
+        <p className="text-xs uppercase tracking-[0.3em] text-yellow-500">
+          History
+        </p>
+
+        <h2 className="mt-2 text-2xl font-bold">
+          Screenplay Revisions
+        </h2>
+
+        <p className="mt-2 text-sm text-zinc-400">
+          Every saved version is
+          preserved. Restoring an older
+          version creates a new revision
+          instead of deleting history.
+        </p>
+      </div>
+
+      {revisions.length === 0 ? (
+        <div className="mt-6 rounded-2xl border border-dashed border-zinc-700 p-6 text-sm text-zinc-500">
+          No saved revisions yet.
+        </div>
+      ) : (
+        <div className="mt-6 space-y-3">
+          {revisions.map(
+            (revision) => {
+              const isCurrent =
+                revision.version ===
+                currentVersion;
+
+              return (
+                <div
+                  key={revision.id}
+                  className="flex flex-col gap-5 rounded-2xl border border-zinc-800 bg-zinc-950 p-5 sm:flex-row sm:items-center sm:justify-between"
+                >
+                  <div>
+                    <div className="flex items-center gap-3">
+                      <p className="font-semibold">
+                        Version{" "}
+                        {
+                          revision.version
+                        }
+                      </p>
+
+                      {isCurrent && (
+                        <span className="rounded-full bg-yellow-500/10 px-3 py-1 text-xs font-medium text-yellow-400">
+                          Current
+                        </span>
+                      )}
+                    </div>
+
+                    <p className="mt-1 text-sm text-zinc-500">
+                      {
+                        revision.reason
+                      }
+                    </p>
+
+                    <p className="mt-2 text-xs text-zinc-600">
+                      {new Date(
+                        revision.createdAt
+                      ).toLocaleString()}
+                    </p>
+                  </div>
+
+                  {!isCurrent && (
+                    <button
+                      type="button"
+                      disabled={restoring}
+                      onClick={() =>
+                        void onRestore(
+                          revision.id
+                        )
+                      }
+                      className="rounded-xl border border-zinc-700 px-4 py-2 text-sm transition hover:border-yellow-500 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      {restoring
+                        ? "Restoring..."
+                        : "Restore"}
+                    </button>
+                  )}
+                </div>
+              );
+            }
+          )}
+        </div>
+      )}
+
+    </section>
+  );
+}
+
+======================================================================
+C:\Users\Skillmid Pc\Projects\kingdom-studio-ai\src\features\script-intelligence\components\ScriptWorkspace.tsx
+======================================================================
+"use client";
+
+import {
+  useState,
+} from "react";
+
+import {
+  SaveProvider,
+  SaveStatus,
+  useSave,
+} from "@/platform/save";
+
+import {
+  useScriptWorkspace,
+} from "../hooks/use-script-workspace";
+
+import ScriptEditor from "./ScriptEditor";
+import ScriptImport from "./ScriptImport";
+import ScriptIntelligencePanel from "./ScriptIntelligencePanel";
+import ScriptRevisionHistory from "./ScriptRevisionHistory";
+
+interface ScriptWorkspaceProps {
+  productionId: string;
+}
+
+function ScriptWorkspaceContent({
+  productionId,
+}: ScriptWorkspaceProps) {
+  const {
+    screenplay,
+
+    title,
+    setTitle,
+
+    content,
+    setContent,
+
+    fileName,
+
+    source,
+
+    knowledge,
+
+    analysis,
+
+    revisions,
+
+    loading,
+
+    processing,
+
+    saving,
+
+    error,
+
+    isDirty,
+
+    importScript,
+
+    analyseScreenplay,
+
+    saveScreenplay,
+
+    refresh,
+
+    clear,
+  } = useScriptWorkspace(
+    productionId
+  );
+
+  const {
+    runSave,
+  } = useSave();
+
+  const [
+    intelligenceOpen,
+    setIntelligenceOpen,
+  ] = useState(true);
+
+  const [
+    historyOpen,
+    setHistoryOpen,
+  ] = useState(false);
+
+  async function handleSave() {
+    try {
+      await runSave(
+        async () => {
+          await saveScreenplay();
+        }
+      );
+    } catch {
+      // SaveProvider and workspace
+      // already expose the error.
+    }
+  }
+
+  async function handleAnalyse() {
+    try {
+      await analyseScreenplay();
+    } catch {
+      // Workspace exposes the error.
+    }
+  }
+
+  async function handleRestore(
+    revisionId: string
+  ) {
+    try {
+      // restoreRevision handling
+    } catch {
+      // Workspace exposes the error.
+    }
+  }
+
+  if (loading) {
+    return (
+      <div className="p-10">
+        <div className="rounded-3xl border border-zinc-800 bg-zinc-900 p-20 text-center">
+          Loading screenplay...
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="mx-auto max-w-[1800px] space-y-8 p-8">
+
+      <header className="flex flex-col gap-6 xl:flex-row xl:items-end xl:justify-between">
+
+        <div className="min-w-0 flex-1">
+
+          <p className="text-sm uppercase tracking-[0.3em] text-yellow-500">
+            Kingdom Studio AI
+          </p>
+
+          <h1 className="mt-2 text-5xl font-bold">
+            Screenplay
+          </h1>
+
+          <p className="mt-4 max-w-4xl text-zinc-400">
+            Develop the creator&apos;s
+            screenplay with professional,
+            cultural, spiritual, dialogue,
+            character, story, and
+            production intelligence while
+            preserving human creative
+            authority.
+          </p>
+
+        </div>
+
+        <div className="flex flex-wrap items-center gap-3">
+
+          <SaveStatus />
+
+          {isDirty && (
+            <div className="rounded-xl border border-yellow-500/30 bg-yellow-500/10 px-4 py-3 text-sm text-yellow-400">
+              Unsaved changes
+            </div>
+          )}
+
+          <button
+            type="button"
+            disabled={
+              saving ||
+              processing ||
+              !content.trim() ||
+              !isDirty
+            }
+            onClick={
+              handleSave
+            }
+            className="rounded-xl bg-yellow-500 px-6 py-3 font-semibold text-black transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            {saving
+              ? "Saving..."
+              : screenplay
+                ? "Save Revision"
+                : "Save Screenplay"}
+          </button>
+
+        </div>
+
+      </header>
+
+      <section className="rounded-3xl border border-zinc-800 bg-zinc-900 p-6">
+
+        <label
+          htmlFor="screenplay-title"
+          className="text-xs uppercase tracking-[0.3em] text-zinc-500"
+        >
+          Screenplay Title
+        </label>
+
+        <input
+          id="screenplay-title"
+          value={title}
+          disabled={
+            processing ||
+            saving
+          }
+          onChange={(event) =>
+            setTitle(
+              event.target.value
+            )
+          }
+          className="mt-3 w-full border-none bg-transparent text-3xl font-bold outline-none placeholder:text-zinc-700 disabled:opacity-50"
+          placeholder="Untitled Screenplay"
+        />
+
+      </section>
+
+      <ScriptImport
+        processing={
+          processing
+        }
+        onImport={
+          importScript
+        }
+      />
+
+      {error && (
+        <div className="rounded-2xl border border-red-500/40 bg-red-500/10 p-5 text-red-400">
+          {error}
+        </div>
+      )}
+
+      <div className="flex flex-wrap gap-3">
+
+        {fileName && (
+          <div className="rounded-xl border border-zinc-700 px-4 py-3 text-sm text-zinc-400">
+            Source: {fileName}
+          </div>
+        )}
+
+        {screenplay && (
+          <div className="rounded-xl border border-zinc-700 px-4 py-3 text-sm text-zinc-400">
+            Version{" "}
+            {screenplay.version}
+          </div>
+        )}
+
+        <button
+          type="button"
+          onClick={() =>
+            setIntelligenceOpen(
+              (current) =>
+                !current
+            )
+          }
+          className="rounded-xl border border-zinc-700 px-5 py-3 transition hover:border-yellow-500"
+        >
+          {intelligenceOpen
+            ? "Hide Intelligence"
+            : "Show Intelligence"}
+        </button>
+
+        <button
+          type="button"
+          onClick={() =>
+            setHistoryOpen(
+              (current) =>
+                !current
+            )
+          }
+          className="rounded-xl border border-zinc-700 px-5 py-3 transition hover:border-yellow-500"
+        >
+          {historyOpen
+            ? "Hide History"
+            : `Revision History (${revisions.length})`}
+        </button>
+
+        {(content ||
+          analysis ||
+          knowledge) && (
+          <button
+            type="button"
+            onClick={clear}
+            disabled={
+              processing ||
+              saving
+            }
+            className="rounded-xl border border-zinc-700 px-5 py-3 text-zinc-300 transition hover:border-red-500 hover:text-red-400 disabled:opacity-50"
+          >
+            Clear Workspace
+          </button>
+        )}
+
+      </div>
+
+      <div
+        className={
+          intelligenceOpen
+            ? "grid gap-8 xl:grid-cols-[minmax(0,1fr)_420px]"
+            : "grid gap-8"
+        }
+      >
+
+        <ScriptEditor
+          value={content}
+          onChange={
+            setContent
+          }
+          disabled={
+            processing ||
+            saving
+          }
+        />
+
+        {intelligenceOpen && (
+          <ScriptIntelligencePanel
+  analysis={analysis}
+  processing={processing}
+  onAnalyse={handleAnalyse}
+/>
+        )}
+
+      </div>
+
+      {historyOpen && (
+        <ScriptRevisionHistory
+          revisions={
+            revisions
+          }
+          currentVersion={
+            screenplay?.version
+          }
+          restoring={false}
+          onRestore={
+            handleRestore
+          }
+        />
+      )}
+
+      {knowledge && (
+        <section className="rounded-3xl border border-zinc-800 bg-zinc-900 p-8">
+
+          <p className="text-xs uppercase tracking-[0.3em] text-yellow-500">
+            Production Knowledge
+          </p>
+
+          <h2 className="mt-2 text-2xl font-bold">
+            Script Context Extracted
+          </h2>
+
+          <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+
+            <div className="rounded-2xl bg-zinc-950 p-5">
+
+              <p className="text-sm text-zinc-500">
+                Characters
+              </p>
+
+              <p className="mt-2 text-3xl font-bold">
+                {
+                  knowledge
+                    .characters
+                    .length
+                }
+              </p>
+
+            </div>
+
+            <div className="rounded-2xl bg-zinc-950 p-5">
+
+              <p className="text-sm text-zinc-500">
+                Scenes
+              </p>
+
+              <p className="mt-2 text-3xl font-bold">
+                {
+                  knowledge
+                    .scenes
+                    .length
+                }
+              </p>
+
+            </div>
+
+            <div className="rounded-2xl bg-zinc-950 p-5">
+
+              <p className="text-sm text-zinc-500">
+                Acts
+              </p>
+
+              <p className="mt-2 text-3xl font-bold">
+                {
+                  knowledge
+                    .screenplay
+                    .acts
+                }
+              </p>
+
+            </div>
+
+            <div className="rounded-2xl bg-zinc-950 p-5">
+
+              <p className="text-sm text-zinc-500">
+                Source
+              </p>
+
+              <p className="mt-2 text-lg font-semibold uppercase">
+                {
+                  knowledge
+                    .screenplay
+                    .source
+                }
+              </p>
+
+            </div>
+
+          </div>
+
+        </section>
+      )}
+
+    </div>
+  );
+}
+
+export default function ScriptWorkspace({
+  productionId,
+}: ScriptWorkspaceProps) {
+  return (
+    <SaveProvider>
+      <ScriptWorkspaceContent
+        productionId={
+          productionId
+        }
+      />
+    </SaveProvider>
+  );
+}
+
+======================================================================
+C:\Users\Skillmid Pc\Projects\kingdom-studio-ai\src\features\script-intelligence\hooks\use-script-workspace.ts
+======================================================================
+"use client";
+
+import {
+  useCallback,
+  useEffect,
+  useState,
+} from "react";
+
+import {
+  scriptPipeline,
+} from "../services/script-pipeline.service";
+
+import {
+  scriptIntelligence,
+} from "../services/script-intelligence.service";
+
+import {
+  screenplayRepository,
+} from "../repositories/screenplay.repository";
+
+import type {
+  ImportFileType,
+} from "@/features/import-engine";
+
+import type {
+  ProductionKnowledge,
+  ScreenplaySource,
+} from "@/features/production-knowledge";
+
+import type {
+  ScriptAnalysis,
+} from "../types/script-analysis";
+
+import type {
+  Screenplay,
+  ScreenplayRevision,
+} from "../types/screenplay";
+
+interface ImportScriptInput {
+  name: string;
+
+  type: ImportFileType;
+
+  content: string;
+}
+
+function getTitleFromFileName(
+  fileName: string
+) {
+  return (
+    fileName.replace(
+      /\.[^/.]+$/,
+      ""
+    ) || "Untitled Screenplay"
+  );
+}
+
+export function useScriptWorkspace(
+  productionId: string
+) {
+  const [
+    screenplay,
+    setScreenplay,
+  ] = useState<Screenplay | null>(
+    null
+  );
+
+  const [content, setContent] =
+    useState("");
+
+  const [title, setTitle] =
+    useState(
+      "Untitled Screenplay"
+    );
+
+  const [
+    fileName,
+    setFileName,
+  ] = useState<string | null>(
+    null
+  );
+
+  const [
+    source,
+    setSource,
+  ] = useState<ScreenplaySource>(
+    "internal"
+  );
+
+  const [
+    originalContent,
+    setOriginalContent,
+  ] = useState("");
+
+  const [
+    originalTitle,
+    setOriginalTitle,
+  ] = useState(
+    "Untitled Screenplay"
+  );
+
+  const [
+    knowledge,
+    setKnowledge,
+  ] =
+    useState<ProductionKnowledge | null>(
+      null
+    );
+
+  const [
+    analysis,
+    setAnalysis,
+  ] =
+    useState<ScriptAnalysis | null>(
+      null
+    );
+
+  const [
+    revisions,
+    setRevisions,
+  ] = useState<
+    ScreenplayRevision[]
+  >([]);
+
+  const [
+    loading,
+    setLoading,
+  ] = useState(true);
+
+  const [
+    processing,
+    setProcessing,
+  ] = useState(false);
+
+  const [
+    saving,
+    setSaving,
+  ] = useState(false);
+
+  const [
+    error,
+    setError,
+  ] = useState<string | null>(
+    null
+  );
+
+  const isDirty =
+    content !== originalContent ||
+    title !== originalTitle;
+
+  const loadRevisions =
+    useCallback(
+      async (
+        screenplayId: string
+      ) => {
+        const result =
+          await screenplayRepository.getRevisions(
+            screenplayId
+          );
+
+        setRevisions(result);
+
+        return result;
+      },
+      []
+    );
+
+  const load =
+    useCallback(async () => {
+      if (!productionId) {
+        setLoading(false);
+        return;
+      }
+
+      setLoading(true);
+      setError(null);
+
+      try {
+        const existing =
+          await screenplayRepository.getByProductionId(
+            productionId
+          );
+
+        if (!existing) {
+          setScreenplay(null);
+
+          setContent("");
+          setOriginalContent("");
+
+          setTitle(
+            "Untitled Screenplay"
+          );
+
+          setOriginalTitle(
+            "Untitled Screenplay"
+          );
+
+          setFileName(null);
+
+          setSource("internal");
+
+          setKnowledge(null);
+
+          setAnalysis(null);
+
+          setRevisions([]);
+
+          return;
+        }
+
+        setScreenplay(existing);
+
+        setContent(
+          existing.content
+        );
+
+        setOriginalContent(
+          existing.content
+        );
+
+        setTitle(existing.title);
+
+        setOriginalTitle(
+          existing.title
+        );
+
+        setFileName(
+          existing.sourceFileName
+        );
+
+        setSource(
+          existing.source
+        );
+
+        setKnowledge(null);
+
+        setAnalysis(null);
+
+        await loadRevisions(
+          existing.id
+        );
+      } catch (error) {
+        setError(
+          error instanceof Error
+            ? error.message
+            : "Unable to load screenplay."
+        );
+      } finally {
+        setLoading(false);
+      }
+    }, [
+      productionId,
+      loadRevisions,
+    ]);
+
+  useEffect(() => {
+    void load();
+  }, [load]);
+
+  const importScript =
+    useCallback(
+      async (
+        input: ImportScriptInput
+      ) => {
+        setProcessing(true);
+        setError(null);
+
+        try {
+          const result =
+            await scriptPipeline.process(
+              productionId,
+              {
+                name: input.name,
+                type: input.type,
+                content:
+                  input.content,
+              }
+            );
+
+          const importedTitle =
+            result.knowledge
+              .screenplay.title ||
+            getTitleFromFileName(
+              input.name
+            );
+
+          setContent(
+            result.screenplay
+          );
+
+          setTitle(
+            importedTitle
+          );
+
+          setFileName(
+            input.name
+          );
+
+          setSource(
+            input.type
+          );
+
+          setKnowledge(
+            result.knowledge
+          );
+
+          setAnalysis(
+            result.analysis
+          );
+
+          return result;
+        } catch (error) {
+          const message =
+            error instanceof Error
+              ? error.message
+              : "Unable to process screenplay.";
+
+          setError(message);
+
+          throw error;
+        } finally {
+          setProcessing(false);
+        }
+      },
+      [productionId]
+    );
+
+  const analyseScreenplay =
+    useCallback(
+      async () => {
+        if (!content.trim()) {
+          return;
+        }
+
+        setProcessing(true);
+        setError(null);
+
+        try {
+          const result =
+            await scriptIntelligence.analyze(
+              content
+            );
+
+          setAnalysis(result);
+
+          return result;
+        } catch (error) {
+          const message =
+            error instanceof Error
+              ? error.message
+              : "Unable to analyse screenplay.";
+
+          setError(message);
+
+          throw error;
+        } finally {
+          setProcessing(false);
+        }
+      },
+      [content]
+    );
+
+  const saveScreenplay =
+    useCallback(
+      async (
+        reason = "manual-save"
+      ) => {
+        if (!productionId) {
+          throw new Error(
+            "Production ID is required."
+          );
+        }
+
+        if (!content.trim()) {
+          throw new Error(
+            "Screenplay content cannot be empty."
+          );
+        }
+
+        setSaving(true);
+        setError(null);
+
+        try {
+          const saved =
+            await screenplayRepository.save(
+              productionId,
+              {
+                title:
+                  title.trim() ||
+                  "Untitled Screenplay",
+
+                content,
+
+                source,
+
+                sourceFileName:
+                  fileName,
+
+                status:
+                  screenplay
+                    ? "revised"
+                    : fileName
+                      ? "imported"
+                      : "draft",
+
+                reason,
+              }
+            );
+
+          setScreenplay(saved);
+
+          setTitle(saved.title);
+
+          setOriginalTitle(
+            saved.title
+          );
+
+          setContent(
+            saved.content
+          );
+
+          setOriginalContent(
+            saved.content
+          );
+
+          setSource(
+            saved.source
+          );
+
+          setFileName(
+            saved.sourceFileName
+          );
+
+          await loadRevisions(
+            saved.id
+          );
+
+          return saved;
+        } finally {
+          setSaving(false);
+        }
+      },
+      [
+        productionId,
+        content,
+        title,
+        source,
+        fileName,
+        screenplay,
+        loadRevisions,
+      ]
+    );
+
+  function clear() {
+    setScreenplay(null);
+
+    setContent("");
+    setOriginalContent("");
+
+    setTitle(
+      "Untitled Screenplay"
+    );
+
+    setOriginalTitle(
+      "Untitled Screenplay"
+    );
+
+    setFileName(null);
+
+    setSource("internal");
+
+    setKnowledge(null);
+
+    setAnalysis(null);
+
+    setRevisions([]);
+
+    setError(null);
+  }
+
+  return {
+    screenplay,
+
+    content,
+    setContent,
+
+    title,
+    setTitle,
+
+    fileName,
+
+    source,
+
+    knowledge,
+
+    analysis,
+
+    revisions,
+
+    loading,
+
+    processing,
+
+    saving,
+
+    error,
+
+    isDirty,
+
+    importScript,
+
+    analyseScreenplay,
+
+    saveScreenplay,
+
+    refresh: load,
+
+    clear,
+  };
+}
+
+======================================================================
+C:\Users\Skillmid Pc\Projects\kingdom-studio-ai\src\features\script-intelligence\index.ts
+======================================================================
+export * from "./types/script-analysis";
+
+export * from "./types/script-document";
+
+export * from "./types/screenplay";
+
+export * from "./services/script-intelligence.service";
+
+export * from "./services/script-pipeline.service";
+
+export * from "./repositories/screenplay.repository";
+
+export * from "./hooks/use-script-workspace";
+
+export * from "./components";
+
+======================================================================
+C:\Users\Skillmid Pc\Projects\kingdom-studio-ai\src\features\script-intelligence\repositories\screenplay.repository.ts
+======================================================================
+import {
+  supabase,
+} from "@/lib/supabase/client";
+
+import type {
+  Screenplay,
+  ScreenplayRevision,
+  SaveScreenplayInput,
+} from "../types/screenplay";
+
+interface ScreenplayRow {
+  id: string;
+  production_id: string;
+  title: string;
+  content: string;
+  source: Screenplay["source"];
+  source_file_name: string | null;
+  version: number;
+  status: Screenplay["status"];
+  created_at: string;
+  updated_at: string;
+}
+
+interface RevisionRow {
+  id: string;
+  screenplay_id: string;
+  version: number;
+  title: string;
+  content: string;
+  reason: string;
+  created_at: string;
+}
+
+function mapScreenplay(
+  row: ScreenplayRow
+): Screenplay {
+  return {
+    id: row.id,
+
+    productionId:
+      row.production_id,
+
+    title: row.title,
+
+    content: row.content,
+
+    source: row.source,
+
+    sourceFileName:
+      row.source_file_name,
+
+    version: row.version,
+
+    status: row.status,
+
+    createdAt:
+      row.created_at,
+
+    updatedAt:
+      row.updated_at,
+  };
+}
+
+function mapRevision(
+  row: RevisionRow
+): ScreenplayRevision {
+  return {
+    id: row.id,
+
+    screenplayId:
+      row.screenplay_id,
+
+    version: row.version,
+
+    title: row.title,
+
+    content: row.content,
+
+    reason: row.reason,
+
+    createdAt:
+      row.created_at,
+  };
+}
+
+export class ScreenplayRepository {
+  async getByProductionId(
+    productionId: string
+  ): Promise<Screenplay | null> {
+    const {
+      data,
+      error,
+    } = await supabase
+      .from("screenplays")
+      .select("*")
+      .eq(
+        "production_id",
+        productionId
+      )
+      .maybeSingle();
+
+    if (error) {
+      throw new Error(
+        error.message
+      );
+    }
+
+    if (!data) {
+      return null;
+    }
+
+    return mapScreenplay(
+      data as ScreenplayRow
+    );
+  }
+
+  async create(
+    productionId: string,
+    input: SaveScreenplayInput
+  ): Promise<Screenplay> {
+    const {
+      data,
+      error,
+    } = await supabase
+      .from("screenplays")
+      .insert({
+        production_id:
+          productionId,
+
+        title:
+          input.title ||
+          "Untitled Screenplay",
+
+        content:
+          input.content,
+
+        source:
+          input.source ??
+          "internal",
+
+        source_file_name:
+          input.sourceFileName ??
+          null,
+
+        status:
+          input.status ??
+          "draft",
+
+        version: 1,
+      })
+      .select()
+      .single();
+
+    if (error) {
+      throw new Error(
+        error.message
+      );
+    }
+
+    const screenplay =
+      mapScreenplay(
+        data as ScreenplayRow
+      );
+
+    await this.createRevision(
+      screenplay,
+      input.reason ??
+        "initial-save"
+    );
+
+    return screenplay;
+  }
+
+  async save(
+    productionId: string,
+    input: SaveScreenplayInput
+  ): Promise<Screenplay> {
+    const existing =
+      await this.getByProductionId(
+        productionId
+      );
+
+    if (!existing) {
+      return this.create(
+        productionId,
+        input
+      );
+    }
+
+    const nextVersion =
+      existing.version + 1;
+
+    const {
+      data,
+      error,
+    } = await supabase
+      .from("screenplays")
+      .update({
+        title:
+          input.title ||
+          existing.title,
+
+        content:
+          input.content,
+
+        source:
+          input.source ??
+          existing.source,
+
+        source_file_name:
+          input.sourceFileName ??
+          existing.sourceFileName,
+
+        status:
+          input.status ??
+          "revised",
+
+        version:
+          nextVersion,
+      })
+      .eq(
+        "id",
+        existing.id
+      )
+      .select()
+      .single();
+
+    if (error) {
+      throw new Error(
+        error.message
+      );
+    }
+
+    const screenplay =
+      mapScreenplay(
+        data as ScreenplayRow
+      );
+
+    await this.createRevision(
+      screenplay,
+      input.reason ??
+        "manual-save"
+    );
+
+    return screenplay;
+  }
+
+  async createRevision(
+    screenplay: Screenplay,
+    reason: string
+  ): Promise<ScreenplayRevision> {
+    const {
+      data,
+      error,
+    } = await supabase
+      .from(
+        "screenplay_revisions"
+      )
+      .insert({
+        screenplay_id:
+          screenplay.id,
+
+        version:
+          screenplay.version,
+
+        title:
+          screenplay.title,
+
+        content:
+          screenplay.content,
+
+        reason,
+      })
+      .select()
+      .single();
+
+    if (error) {
+      throw new Error(
+        error.message
+      );
+    }
+
+    return mapRevision(
+      data as RevisionRow
+    );
+  }
+
+  async getRevisions(
+    screenplayId: string
+  ): Promise<
+    ScreenplayRevision[]
+  > {
+    const {
+      data,
+      error,
+    } = await supabase
+      .from(
+        "screenplay_revisions"
+      )
+      .select("*")
+      .eq(
+        "screenplay_id",
+        screenplayId
+      )
+      .order(
+        "version",
+        {
+          ascending: false,
+        }
+      );
+
+    if (error) {
+      throw new Error(
+        error.message
+      );
+    }
+
+    return (
+      (data ?? []) as RevisionRow[]
+    ).map(mapRevision);
+  }
+
+  async getRevisionById(
+    revisionId: string
+  ): Promise<ScreenplayRevision> {
+    const {
+      data,
+      error,
+    } = await supabase
+      .from(
+        "screenplay_revisions"
+      )
+      .select("*")
+      .eq(
+        "id",
+        revisionId
+      )
+      .single();
+
+    if (error) {
+      throw new Error(
+        error.message
+      );
+    }
+
+    return mapRevision(
+      data as RevisionRow
+    );
+  }
+
+  async restoreRevision(
+    productionId: string,
+    revisionId: string
+  ): Promise<Screenplay> {
+    const revision =
+      await this.getRevisionById(
+        revisionId
+      );
+
+    const current =
+      await this.getByProductionId(
+        productionId
+      );
+
+    if (!current) {
+      throw new Error(
+        "Screenplay not found."
+      );
+    }
+
+    if (
+      revision.screenplayId !==
+      current.id
+    ) {
+      throw new Error(
+        "Revision does not belong to this screenplay."
+      );
+    }
+
+    return this.save(
+      productionId,
+      {
+        title:
+          revision.title,
+
+        content:
+          revision.content,
+
+        source:
+          current.source,
+
+        sourceFileName:
+          current.sourceFileName,
+
+        status:
+          "revised",
+
+        reason:
+          `restored-from-version-${revision.version}`,
+      }
+    );
+  }
+}
+
+export const screenplayRepository =
+  new ScreenplayRepository();
+
+======================================================================
+C:\Users\Skillmid Pc\Projects\kingdom-studio-ai\src\features\script-intelligence\services\script-analysis-prompt.service.ts
+======================================================================
+export class ScriptAnalysisPromptService {
+  buildSystemPrompt(): string {
+    return `
+You are the screenplay analysis engine for Kingdom Studio AI.
+
+Your task is to analyse a screenplay without rewriting it.
+
+The creator remains the final creative authority.
+
+Analyse only what is supported by the screenplay.
+
+Do not:
+- invent story information
+- invent character information
+- invent scripture references
+- invent cultural information
+- assume a country, culture, denomination, profession, or historical period that the screenplay does not establish
+- rewrite the screenplay
+- alter the creator's spiritual direction
+
+Evaluate the screenplay across these areas:
+
+1. SCREENPLAY
+Identify:
+- title
+- approximate page count
+- act count
+- scene count
+- screenplay format
+
+2. STORY
+Identify:
+- genre
+- central theme
+- logline
+- synopsis
+- strengths
+- weaknesses
+- recommendations
+
+3. CHARACTERS
+For each meaningful character identify:
+- name
+- role
+- character arc
+- consistency score from 0 to 100
+- notes
+
+4. SCENES
+For each identifiable scene provide:
+- scene number
+- heading
+- dramatic purpose
+- notes
+
+5. DIALOGUE
+Evaluate:
+- naturalness
+- character voice
+- exposition
+- professional terminology
+- consistency
+
+Return:
+- score from 0 to 100
+- strengths
+- improvements
+
+6. SPIRITUALITY
+
+Evaluate spiritual and biblical content only when present.
+
+Assess:
+- biblical alignment
+- Kingdom message
+- scripture references explicitly present or clearly identifiable
+- recommendations
+
+Do not invent scripture references.
+
+If spiritual material is absent, state that through the relevant fields rather than assuming spiritual meaning.
+
+7. CULTURE
+
+Evaluate cultural authenticity only from evidence present in the screenplay.
+
+Identify where supported:
+- country
+- culture
+- language
+- authenticity score
+- recommendations
+
+Do not infer nationality or ethnicity merely from character names.
+
+8. PROFESSIONAL QUALITY
+
+Evaluate:
+- screenplay formatting
+- industry terminology
+- continuity
+- clarity
+- professional presentation
+
+Return:
+- score
+- screenplayFormat observations
+- industryJargon observations
+- continuity observations
+- clarity observations
+- recommendations
+
+9. PRODUCTION
+
+Evaluate production readiness.
+
+Identify:
+- likely budget level
+- production complexity
+- production risks
+- recommendations
+
+Return ONLY valid JSON.
+
+Use exactly this top-level structure:
+
+{
+  "screenplay": {
+    "title": "",
+    "pages": 0,
+    "acts": 0,
+    "scenes": 0,
+    "format": ""
+  },
+  "story": {
+    "genre": "",
+    "theme": "",
+    "logline": "",
+    "synopsis": "",
+    "strengths": [],
+    "weaknesses": [],
+    "recommendations": []
+  },
+  "characters": [
+    {
+      "name": "",
+      "role": "",
+      "arc": "",
+      "consistency": 0,
+      "notes": []
+    }
+  ],
+  "scenes": [
+    {
+      "number": 1,
+      "heading": "",
+      "purpose": "",
+      "notes": []
+    }
+  ],
+  "dialogue": {
+    "score": 0,
+    "strengths": [],
+    "improvements": []
+  },
+  "spirituality": {
+    "biblicalAlignment": 0,
+    "kingdomMessage": "",
+    "scriptureReferences": [],
+    "recommendations": []
+  },
+  "culture": {
+    "country": "",
+    "culture": "",
+    "language": "",
+    "authenticity": 0,
+    "recommendations": []
+  },
+  "professional": {
+    "score": 0,
+    "screenplayFormat": [],
+    "industryJargon": [],
+    "continuity": [],
+    "clarity": [],
+    "recommendations": []
+  },
+  "production": {
+    "budget": "",
+    "complexity": "",
+    "risks": [],
+    "recommendations": []
+  }
+}
+
+All numerical scores must be between 0 and 100.
+
+Arrays must always be arrays.
+
+If information cannot responsibly be determined from the screenplay, use an empty string, empty array, or 0 as appropriate.
+
+Do not include markdown.
+Do not wrap the JSON in code fences.
+Do not include commentary before or after the JSON.
+`;
+  }
+
+  buildUserPrompt(
+    screenplay: string
+  ): string {
+    return `
+Analyse the following screenplay.
+
+SCREENPLAY START
+
+${screenplay}
+
+SCREENPLAY END
+`;
+  }
+}
+
+export const scriptAnalysisPrompt =
+  new ScriptAnalysisPromptService();
+
+======================================================================
+C:\Users\Skillmid Pc\Projects\kingdom-studio-ai\src\features\script-intelligence\services\script-intelligence.service.ts
+======================================================================
+import {
+  aiGateway,
+} from "@/platform/ai";
+
+import {
+  scriptAnalysisPrompt,
+} from "./script-analysis-prompt.service";
+
+import {
+  scriptReviewPrompt,
+} from "./script-review-prompt.service";
+
+import type {
+  ScriptAnalysis,
+  ScriptReview,
+  ScriptReviewIssue,
+  ScriptReviewSeverity,
+  ScriptReviewType,
+} from "../types/script-analysis";
+
+function createEmptyAnalysis(): ScriptAnalysis {
+  return {
+    screenplay: {
+      title: "",
+      pages: 0,
+      acts: 0,
+      scenes: 0,
+      format: "",
+    },
+
+    story: {
+      genre: "",
+      theme: "",
+      logline: "",
+      synopsis: "",
+      strengths: [],
+      weaknesses: [],
+      recommendations: [],
+    },
+
+    characters: [],
+
+    scenes: [],
+
+    dialogue: {
+      score: 0,
+      strengths: [],
+      improvements: [],
+    },
+
+    spirituality: {
+      biblicalAlignment: 0,
+      kingdomMessage: "",
+      scriptureReferences: [],
+      recommendations: [],
+    },
+
+    culture: {
+      country: "",
+      culture: "",
+      language: "",
+      authenticity: 0,
+      recommendations: [],
+    },
+
+    professional: {
+      score: 0,
+      screenplayFormat: [],
+      industryJargon: [],
+      continuity: [],
+      clarity: [],
+      recommendations: [],
+    },
+
+    production: {
+      budget: "",
+      complexity: "",
+      risks: [],
+      recommendations: [],
+    },
+  };
+}
+
+function getString(
+  value: unknown
+): string {
+  return typeof value === "string"
+    ? value
+    : "";
+}
+
+function getNumber(
+  value: unknown
+): number {
+  return typeof value === "number" &&
+    Number.isFinite(value)
+    ? value
+    : 0;
+}
+
+function getScore(
+  value: unknown
+): number {
+  return Math.max(
+    0,
+    Math.min(
+      100,
+      getNumber(value)
+    )
+  );
+}
+
+function getStringArray(
+  value: unknown
+): string[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return value.filter(
+    (item): item is string =>
+      typeof item === "string"
+  );
+}
+
+function getRecord(
+  value: unknown
+): Record<string, unknown> {
+  if (
+    typeof value === "object" &&
+    value !== null &&
+    !Array.isArray(value)
+  ) {
+    return value as Record<
+      string,
+      unknown
+    >;
+  }
+
+  return {};
+}
+
+function cleanJsonResponse(
+  text: string
+): string {
+  let cleaned =
+    text.trim();
+
+  if (
+    cleaned.startsWith("```")
+  ) {
+    cleaned = cleaned.replace(
+      /^```(?:json)?\s*/i,
+      ""
+    );
+
+    cleaned = cleaned.replace(
+      /\s*```$/,
+      ""
+    );
+  }
+
+  const firstBrace =
+    cleaned.indexOf("{");
+
+  const lastBrace =
+    cleaned.lastIndexOf("}");
+
+  if (
+    firstBrace !== -1 &&
+    lastBrace !== -1 &&
+    lastBrace >= firstBrace
+  ) {
+    return cleaned.slice(
+      firstBrace,
+      lastBrace + 1
+    );
+  }
+
+  return cleaned;
+}
+
+function parseAnalysis(
+  text: string
+): ScriptAnalysis {
+  let parsed: unknown;
+
+  try {
+    parsed = JSON.parse(
+      cleanJsonResponse(text)
+    );
+  } catch {
+    throw new Error(
+      "AI returned an invalid screenplay analysis."
+    );
+  }
+
+  const data =
+    getRecord(parsed);
+
+  const screenplay =
+    getRecord(
+      data.screenplay
+    );
+
+  const story =
+    getRecord(
+      data.story
+    );
+
+  const dialogue =
+    getRecord(
+      data.dialogue
+    );
+
+  const spirituality =
+    getRecord(
+      data.spirituality
+    );
+
+  const culture =
+    getRecord(
+      data.culture
+    );
+
+  const professional =
+    getRecord(
+      data.professional
+    );
+
+  const production =
+    getRecord(
+      data.production
+    );
+
+  const rawCharacters =
+    Array.isArray(
+      data.characters
+    )
+      ? data.characters
+      : [];
+
+  const rawScenes =
+    Array.isArray(
+      data.scenes
+    )
+      ? data.scenes
+      : [];
+
+  return {
+    screenplay: {
+      title:
+        getString(
+          screenplay.title
+        ),
+
+      pages:
+        Math.max(
+          0,
+          getNumber(
+            screenplay.pages
+          )
+        ),
+
+      acts:
+        Math.max(
+          0,
+          getNumber(
+            screenplay.acts
+          )
+        ),
+
+      scenes:
+        Math.max(
+          0,
+          getNumber(
+            screenplay.scenes
+          )
+        ),
+
+      format:
+        getString(
+          screenplay.format
+        ),
+    },
+
+    story: {
+      genre:
+        getString(
+          story.genre
+        ),
+
+      theme:
+        getString(
+          story.theme
+        ),
+
+      logline:
+        getString(
+          story.logline
+        ),
+
+      synopsis:
+        getString(
+          story.synopsis
+        ),
+
+      strengths:
+        getStringArray(
+          story.strengths
+        ),
+
+      weaknesses:
+        getStringArray(
+          story.weaknesses
+        ),
+
+      recommendations:
+        getStringArray(
+          story.recommendations
+        ),
+    },
+
+    characters:
+      rawCharacters
+        .map((item) => {
+          const character =
+            getRecord(item);
+
+          return {
+            name:
+              getString(
+                character.name
+              ),
+
+            role:
+              getString(
+                character.role
+              ),
+
+            arc:
+              getString(
+                character.arc
+              ),
+
+            consistency:
+              getScore(
+                character.consistency
+              ),
+
+            notes:
+              getStringArray(
+                character.notes
+              ),
+          };
+        })
+        .filter(
+          (character) =>
+            character.name ||
+            character.role
+        ),
+
+    scenes:
+      rawScenes
+        .map(
+          (
+            item,
+            index
+          ) => {
+            const scene =
+              getRecord(item);
+
+            const number =
+              getNumber(
+                scene.number
+              );
+
+            return {
+              number:
+                number > 0
+                  ? number
+                  : index + 1,
+
+              heading:
+                getString(
+                  scene.heading
+                ),
+
+              purpose:
+                getString(
+                  scene.purpose
+                ),
+
+              notes:
+                getStringArray(
+                  scene.notes
+                ),
+            };
+          }
+        )
+        .filter(
+          (scene) =>
+            scene.heading ||
+            scene.purpose ||
+            scene.notes.length > 0
+        ),
+
+    dialogue: {
+      score:
+        getScore(
+          dialogue.score
+        ),
+
+      strengths:
+        getStringArray(
+          dialogue.strengths
+        ),
+
+      improvements:
+        getStringArray(
+          dialogue.improvements
+        ),
+    },
+
+    spirituality: {
+      biblicalAlignment:
+        getScore(
+          spirituality
+            .biblicalAlignment
+        ),
+
+      kingdomMessage:
+        getString(
+          spirituality
+            .kingdomMessage
+        ),
+
+      scriptureReferences:
+        getStringArray(
+          spirituality
+            .scriptureReferences
+        ),
+
+      recommendations:
+        getStringArray(
+          spirituality
+            .recommendations
+        ),
+    },
+
+    culture: {
+      country:
+        getString(
+          culture.country
+        ),
+
+      culture:
+        getString(
+          culture.culture
+        ),
+
+      language:
+        getString(
+          culture.language
+        ),
+
+      authenticity:
+        getScore(
+          culture.authenticity
+        ),
+
+      recommendations:
+        getStringArray(
+          culture.recommendations
+        ),
+    },
+
+    professional: {
+      score:
+        getScore(
+          professional.score
+        ),
+
+      screenplayFormat:
+        getStringArray(
+          professional
+            .screenplayFormat
+        ),
+
+      industryJargon:
+        getStringArray(
+          professional
+            .industryJargon
+        ),
+
+      continuity:
+        getStringArray(
+          professional
+            .continuity
+        ),
+
+      clarity:
+        getStringArray(
+          professional.clarity
+        ),
+
+      recommendations:
+        getStringArray(
+          professional
+            .recommendations
+        ),
+    },
+
+    production: {
+      budget:
+        getString(
+          production.budget
+        ),
+
+      complexity:
+        getString(
+          production.complexity
+        ),
+
+      risks:
+        getStringArray(
+          production.risks
+        ),
+
+      recommendations:
+        getStringArray(
+          production
+            .recommendations
+        ),
+    },
+  };
+}
+
+function isSeverity(
+  value: unknown
+): value is ScriptReviewSeverity {
+  return (
+    value === "info" ||
+    value === "suggestion" ||
+    value === "important" ||
+    value === "critical"
+  );
+}
+
+function parseReview(
+  text: string,
+  requestedType: ScriptReviewType
+): ScriptReview {
+  let parsed: unknown;
+
+  try {
+    parsed = JSON.parse(
+      cleanJsonResponse(text)
+    );
+  } catch {
+    throw new Error(
+      "AI returned an invalid screenplay review."
+    );
+  }
+
+  if (
+    typeof parsed !== "object" ||
+    parsed === null ||
+    Array.isArray(parsed)
+  ) {
+    throw new Error(
+      "AI returned an invalid screenplay review."
+    );
+  }
+
+  const data =
+    parsed as Record<
+      string,
+      unknown
+    >;
+
+  const rawIssues =
+    Array.isArray(data.issues)
+      ? data.issues
+      : [];
+
+  const issues: ScriptReviewIssue[] =
+    rawIssues
+      .filter(
+        (
+          item
+        ): item is Record<
+          string,
+          unknown
+        > =>
+          typeof item === "object" &&
+          item !== null &&
+          !Array.isArray(item)
+      )
+      .map(
+        (
+          item,
+          index
+        ) => ({
+          id:
+            typeof item.id ===
+            "string"
+              ? item.id
+              : `${requestedType}-${index + 1}`,
+
+          type: requestedType,
+
+          severity:
+            isSeverity(
+              item.severity
+            )
+              ? item.severity
+              : "suggestion",
+
+          title:
+            typeof item.title ===
+            "string"
+              ? item.title
+              : "Review suggestion",
+
+          description:
+            typeof item.description ===
+            "string"
+              ? item.description
+              : "",
+
+          originalText:
+            typeof item.originalText ===
+            "string"
+              ? item.originalText
+              : undefined,
+
+          suggestedText:
+            typeof item.suggestedText ===
+            "string"
+              ? item.suggestedText
+              : undefined,
+
+          reason:
+            typeof item.reason ===
+            "string"
+              ? item.reason
+              : undefined,
+
+          scene:
+            typeof item.scene ===
+            "number"
+              ? item.scene
+              : undefined,
+        })
+      );
+
+  const rawScore =
+    typeof data.score === "number"
+      ? data.score
+      : 0;
+
+  return {
+    type: requestedType,
+
+    summary:
+      typeof data.summary ===
+      "string"
+        ? data.summary
+        : "Screenplay review completed.",
+
+    score:
+      Math.max(
+        0,
+        Math.min(
+          100,
+          rawScore
+        )
+      ),
+
+    issues,
+
+    createdAt:
+      new Date().toISOString(),
+  };
+}
+
+export class ScriptIntelligenceService {
+  async analyze(
+    screenplay: string
+  ): Promise<ScriptAnalysis> {
+    if (!screenplay.trim()) {
+      return createEmptyAnalysis();
+    }
+
+    const response =
+      await aiGateway.generate({
+        provider:
+          "openrouter",
+
+        systemPrompt:
+          scriptAnalysisPrompt
+            .buildSystemPrompt(),
+
+        userPrompt:
+          scriptAnalysisPrompt
+            .buildUserPrompt(
+              screenplay
+            ),
+
+        temperature: 0.2,
+
+        maxTokens: 6000,
+      });
+
+    return parseAnalysis(
+      response.text
+    );
+  }
+
+  async review(
+    screenplay: string,
+    type: ScriptReviewType
+  ): Promise<ScriptReview> {
+    if (!screenplay.trim()) {
+      throw new Error(
+        "Screenplay content is required for review."
+      );
+    }
+
+    const response =
+      await aiGateway.generate({
+        provider:
+          "openrouter",
+
+        systemPrompt:
+          scriptReviewPrompt
+            .buildSystemPrompt(
+              type
+            ),
+
+        userPrompt:
+          scriptReviewPrompt
+            .buildUserPrompt(
+              screenplay
+            ),
+
+        temperature: 0.3,
+
+        maxTokens: 4000,
+      });
+
+    return parseReview(
+      response.text,
+      type
+    );
+  }
+}
+
+export const scriptIntelligence =
+  new ScriptIntelligenceService();
+
+======================================================================
+C:\Users\Skillmid Pc\Projects\kingdom-studio-ai\src\features\script-intelligence\services\script-pipeline.service.ts
+======================================================================
+import {
+  importEngine,
+  knowledgeExtractionService,
+} from "@/features/import-engine";
+
+import {
+  contextEngine,
+} from "@/features/production-knowledge";
+
+import type {
+  ImportedFile,
+} from "@/features/import-engine";
+
+import type {
+  ProductionKnowledge,
+} from "@/features/production-knowledge";
+
+import type {
+  ScriptAnalysis,
+} from "../types/script-analysis";
+
+export interface ScriptPipelineResult {
+  screenplay: string;
+
+  knowledge: ProductionKnowledge;
+
+  analysis: ScriptAnalysis | null;
+}
+
+export class ScriptPipelineService {
+  async process(
+    productionId: string,
+    file: ImportedFile
+  ): Promise<ScriptPipelineResult> {
+    const imported =
+      await importEngine.import(file);
+
+    if (!imported.success) {
+      throw new Error(
+        imported.errors.join("\n") ||
+          "Unable to import screenplay."
+      );
+    }
+
+    const extracted =
+      await knowledgeExtractionService.extract(
+        productionId,
+        imported.screenplay,
+        file.type
+      );
+
+    /**
+     * Build the production context.
+     *
+     * This prepares downstream AI features
+     * such as Story Bible generation,
+     * Character generation,
+     * Storyboard,
+     * AI Director,
+     * Voice,
+     * Render,
+     * etc.
+     */
+    contextEngine.create(
+      extracted.knowledge
+    );
+
+    /**
+     * IMPORTANT
+     *
+     * Script Intelligence is now a
+     * dedicated user action.
+     *
+     * Importing a screenplay should NOT
+     * automatically consume AI credits.
+     *
+     * The creator decides when to analyse
+     * or reanalyse the screenplay.
+     */
+    return {
+      screenplay:
+        imported.screenplay,
+
+      knowledge:
+        extracted.knowledge,
+
+      analysis: null,
+    };
+  }
+}
+
+export const scriptPipeline =
+  new ScriptPipelineService();
+
+======================================================================
+C:\Users\Skillmid Pc\Projects\kingdom-studio-ai\src\features\script-intelligence\services\script-review-prompt.service.ts
+======================================================================
+import type {
+  ScriptReviewType,
+} from "../types/script-analysis";
+
+function getReviewFocus(
+  type: ScriptReviewType
+): string {
+  switch (type) {
+    case "spiritual":
+      return `
+Evaluate spiritual integrity and biblical alignment.
+
+Check:
+- Kingdom message
+- biblical consistency
+- scripture usage
+- theological clarity
+- spiritual journey
+- whether spiritual meaning has been weakened or distorted
+
+Do not invent a spiritual direction that the creator did not provide.
+`;
+
+    case "professional":
+      return `
+Evaluate professional screenplay quality.
+
+Check:
+- screenplay terminology
+- industry jargon
+- scene headings
+- action description
+- continuity
+- clarity
+- pacing
+- professional presentation
+- production terminology
+`;
+
+    case "cultural":
+      return `
+Evaluate cultural authenticity.
+
+Check:
+- location
+- nationality
+- language
+- customs
+- behaviour
+- names
+- clothing references
+- social context
+- dialogue authenticity
+- cultural assumptions
+
+Do not replace one culture with another.
+`;
+
+    case "dialogue":
+      return `
+Evaluate dialogue.
+
+Check:
+- natural speech
+- character voice
+- professional jargon
+- cultural vocabulary
+- unnecessary exposition
+- repetition
+- emotional authenticity
+- consistency between scenes
+`;
+
+    case "character":
+      return `
+Evaluate characters.
+
+Check:
+- motivation
+- goals
+- conflict
+- character arcs
+- behaviour
+- consistency
+- relationships
+- dialogue voice
+- spiritual journey where present
+`;
+
+    case "story":
+      return `
+Evaluate story construction.
+
+Check:
+- premise
+- theme
+- structure
+- conflict
+- stakes
+- pacing
+- turning points
+- climax
+- resolution
+- narrative coherence
+`;
+
+    case "production":
+      return `
+Evaluate production readiness.
+
+Check:
+- difficult locations
+- complex scenes
+- props
+- wardrobe
+- visual effects
+- crowd requirements
+- continuity risks
+- production complexity
+- unclear production instructions
+`;
+
+    case "full":
+      return `
+Perform a complete screenplay review.
+
+Evaluate:
+- story
+- characters
+- dialogue
+- professional screenplay quality
+- industry jargon
+- cultural authenticity
+- spiritual and biblical alignment
+- continuity
+- production readiness
+`;
+
+    default:
+      return "";
+  }
+}
+
+export class ScriptReviewPromptService {
+  buildSystemPrompt(
+    type: ScriptReviewType
+  ): string {
+    return `
+You are the screenplay intelligence engine for Kingdom Studio AI.
+
+The creator remains the final creative authority.
+
+Your role is to analyse and propose improvements.
+
+Do not silently rewrite the screenplay.
+
+Do not override the creator's spiritual direction.
+
+Do not invent biblical claims or scripture references.
+
+Do not stereotype cultures.
+
+Do not assume a culture, denomination, country, profession, or historical setting when the screenplay does not establish it.
+
+Preserve the creator's original intention, message, narrative direction, character identity, cultural setting, and spiritual foundation.
+
+Artificial intelligence is a creative and production tool. It assists human intelligence and must not replace the creator's authority over the work.
+
+${getReviewFocus(type)}
+
+Return ONLY valid JSON.
+
+Use exactly this structure:
+
+{
+  "type": "${type}",
+  "summary": "Short review summary",
+  "score": 0,
+  "issues": [
+    {
+      "id": "unique-id",
+      "type": "${type}",
+      "severity": "info",
+      "title": "Issue title",
+      "description": "Clear explanation",
+      "originalText": "Exact text copied from the screenplay when replacement is appropriate",
+      "suggestedText": "Suggested replacement when appropriate",
+      "reason": "Why the suggestion improves the screenplay",
+      "scene": 1
+    }
+  ]
+}
+
+Allowed severity values:
+
+"info"
+"suggestion"
+"important"
+"critical"
+
+Score must be between 0 and 100.
+
+When suggesting replacement text, originalText must match the screenplay exactly.
+
+Suggested text must preserve the creator's intended meaning unless the review explicitly identifies a professional, cultural, continuity, dialogue, production, or spiritual concern.
+
+For spiritual review, distinguish between biblical alignment concerns and creative choices.
+
+For cultural review, do not manufacture cultural details when sufficient context is unavailable. Identify the missing context instead.
+
+For professional review, improve industry terminology and screenplay presentation without unnecessarily changing the creator's voice.
+
+If there is no responsible replacement to propose, omit originalText and suggestedText.
+
+Do not automatically apply any recommendation.
+
+The creator must decide whether a proposed change becomes part of the screenplay.
+
+Do not wrap the JSON in markdown.
+`;
+  }
+
+  buildUserPrompt(
+    screenplay: string
+  ): string {
+    return `
+Review the following screenplay according to the requested review mode.
+
+Analyse the screenplay as a complete creative work before identifying individual issues.
+
+Preserve the creator's intention.
+
+Where appropriate, identify exact passages and provide professional replacement suggestions.
+
+SCREENPLAY START
+
+${screenplay}
+
+SCREENPLAY END
+`;
+  }
+}
+
+export const scriptReviewPrompt =
+  new ScriptReviewPromptService();
+
+======================================================================
+C:\Users\Skillmid Pc\Projects\kingdom-studio-ai\src\features\script-intelligence\types\screenplay.ts
+======================================================================
+import type {
+  ScreenplaySource,
+} from "@/features/production-knowledge";
+
+export type ScreenplayStatus =
+  | "draft"
+  | "imported"
+  | "review"
+  | "revised"
+  | "approved"
+  | "locked";
+
+export interface Screenplay {
+  id: string;
+
+  productionId: string;
+
+  title: string;
+
+  content: string;
+
+  source: ScreenplaySource;
+
+  sourceFileName: string | null;
+
+  version: number;
+
+  status: ScreenplayStatus;
+
+  createdAt: string;
+
+  updatedAt: string;
+}
+
+export interface ScreenplayRevision {
+  id: string;
+
+  screenplayId: string;
+
+  version: number;
+
+  title: string;
+
+  content: string;
+
+  reason: string;
+
+  createdAt: string;
+}
+
+export interface SaveScreenplayInput {
+  title: string;
+
+  content: string;
+
+  source?: ScreenplaySource;
+
+  sourceFileName?: string | null;
+
+  status?: ScreenplayStatus;
+
+  reason?: string;
+}
+
+======================================================================
+C:\Users\Skillmid Pc\Projects\kingdom-studio-ai\src\features\script-intelligence\types\script-analysis.ts
+======================================================================
+export type ScriptReviewType =
+  | "full"
+  | "professional"
+  | "spiritual"
+  | "cultural"
+  | "dialogue"
+  | "character"
+  | "story"
+  | "production";
+
+export type ScriptReviewSeverity =
+  | "info"
+  | "suggestion"
+  | "important"
+  | "critical";
+
+export interface ScriptAnalysis {
+  screenplay: ScreenplayAnalysis;
+
+  story: StoryAnalysis;
+
+  characters: CharacterAnalysis[];
+
+  scenes: SceneAnalysis[];
+
+  dialogue: DialogueAnalysis;
+
+  spirituality: SpiritualAnalysis;
+
+  culture: CulturalAnalysis;
+
+  professional: ProfessionalAnalysis;
+
+  production: ProductionAnalysis;
+}
+
+export interface ScreenplayAnalysis {
+  title: string;
+
+  pages: number;
+
+  acts: number;
+
+  scenes: number;
+
+  format: string;
+}
+
+export interface StoryAnalysis {
+  genre: string;
+
+  theme: string;
+
+  logline: string;
+
+  synopsis: string;
+
+  strengths: string[];
+
+  weaknesses: string[];
+
+  recommendations: string[];
+}
+
+export interface CharacterAnalysis {
+  name: string;
+
+  role: string;
+
+  arc: string;
+
+  consistency: number;
+
+  notes: string[];
+}
+
+export interface SceneAnalysis {
+  number: number;
+
+  heading: string;
+
+  purpose: string;
+
+  notes: string[];
+}
+
+export interface DialogueAnalysis {
+  score: number;
+
+  strengths: string[];
+
+  improvements: string[];
+}
+
+export interface SpiritualAnalysis {
+  biblicalAlignment: number;
+
+  kingdomMessage: string;
+
+  scriptureReferences: string[];
+
+  recommendations: string[];
+}
+
+export interface CulturalAnalysis {
+  country: string;
+
+  culture: string;
+
+  language: string;
+
+  authenticity: number;
+
+  recommendations: string[];
+}
+
+export interface ProfessionalAnalysis {
+  score: number;
+
+  screenplayFormat: string[];
+
+  industryJargon: string[];
+
+  continuity: string[];
+
+  clarity: string[];
+
+  recommendations: string[];
+}
+
+export interface ProductionAnalysis {
+  budget: string;
+
+  complexity: string;
+
+  risks: string[];
+
+  recommendations: string[];
+}
+
+export interface ScriptReviewIssue {
+  id: string;
+
+  type: ScriptReviewType;
+
+  severity: ScriptReviewSeverity;
+
+  title: string;
+
+  description: string;
+
+  originalText?: string;
+
+  suggestedText?: string;
+
+  reason?: string;
+
+  scene?: number;
+}
+
+export interface ScriptReview {
+  type: ScriptReviewType;
+
+  summary: string;
+
+  score: number;
+
+  issues: ScriptReviewIssue[];
+
+  createdAt: string;
+}
+
+======================================================================
+C:\Users\Skillmid Pc\Projects\kingdom-studio-ai\src\features\script-intelligence\types\script-document.ts
+======================================================================
+import type {
+  ImportFileType,
+} from "@/features/import-engine";
+
+export interface ScriptDocument {
+  productionId: string;
+
+  title: string;
+
+  content: string;
+
+  source: ImportFileType;
+
+  fileName?: string;
+
+  createdAt?: string;
+
+  updatedAt?: string;
+}

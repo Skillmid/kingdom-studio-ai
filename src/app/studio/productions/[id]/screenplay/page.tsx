@@ -1,6 +1,8 @@
-import {
-  ScriptWorkspace,
-} from "@/features/script-intelligence";
+"use client";
+
+import { use } from "react";
+
+import { ScriptWorkspace } from "@/features/script-intelligence";
 
 interface ScreenplayPageProps {
   params: Promise<{
@@ -8,12 +10,10 @@ interface ScreenplayPageProps {
   }>;
 }
 
-export default async function ScreenplayPage({
+export default function ScreenplayPage({
   params,
 }: ScreenplayPageProps) {
-  const {
-    id,
-  } = await params;
+  const { id } = use(params);
 
   return (
     <ScriptWorkspace
