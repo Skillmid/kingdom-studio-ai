@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import {
   useState,
@@ -61,7 +61,9 @@ function ScriptWorkspaceContent({
 
     saveScreenplay,
 
-    refresh,
+          restoreRevision,
+
+refresh,
 
     clear,
   } = useScriptWorkspace(
@@ -104,16 +106,23 @@ function ScriptWorkspaceContent({
   }
 
   async function handleRestore(
-    revisionId: string
-  ) {
-    try {
-      // restoreRevision handling
-    } catch {
-      // Workspace exposes the error.
-    }
+  revisionId: string
+) {
+  try {
+    await runSave(
+      async () => {
+        await restoreRevision(
+          revisionId
+        );
+      }
+    );
+  } catch {
+    // Workspace exposes the error.
   }
 
-  if (loading) {
+    }
+
+    if (loading) {
     return (
       <div className="p-10">
         <div className="rounded-3xl border border-zinc-800 bg-zinc-900 p-20 text-center">
@@ -432,3 +441,10 @@ export default function ScriptWorkspace({
     </SaveProvider>
   );
 }
+
+
+
+
+
+
+

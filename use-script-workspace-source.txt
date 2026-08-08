@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import {
   useCallback,
@@ -451,74 +451,6 @@ export function useScriptWorkspace(
       ]
     );
 
-  const restoreRevision =
-    useCallback(
-      async (
-        revisionId: string
-      ) => {
-        if (!productionId) {
-          throw new Error(
-            "Production ID is required."
-          );
-        }
-
-        setSaving(true);
-        setError(null);
-
-        try {
-          const restored =
-            await screenplayRepository.restoreRevision(
-              productionId,
-              revisionId
-            );
-
-          setScreenplay(restored);
-
-          setTitle(restored.title);
-
-          setOriginalTitle(
-            restored.title
-          );
-
-          setContent(
-            restored.content
-          );
-
-          setOriginalContent(
-            restored.content
-          );
-
-          setSource(
-            restored.source
-          );
-
-          setFileName(
-            restored.sourceFileName
-          );
-
-          await loadRevisions(
-            restored.id
-          );
-
-          return restored;
-        } catch (error) {
-          setError(
-            error instanceof Error
-              ? error.message
-              : "Unable to restore revision."
-          );
-
-          throw error;
-        } finally {
-          setSaving(false);
-        }
-      },
-      [
-        productionId,
-        loadRevisions,
-      ]
-    );
-
   function clear() {
     setScreenplay(null);
 
@@ -581,12 +513,8 @@ export function useScriptWorkspace(
 
     saveScreenplay,
 
-    restoreRevision,
-
     refresh: load,
 
     clear,
   };
 }
-
-
