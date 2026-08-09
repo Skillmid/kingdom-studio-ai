@@ -142,6 +142,110 @@ export default function ScriptAnalysisPanel({
                 </button>
               ))}
             </div>          </section>
+      {review && (
+        <section className="space-y-4 border-t border-zinc-800 pt-6">
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <p className="text-xs uppercase tracking-[0.2em] text-yellow-500">
+                Specialised Review
+              </p>
+
+              <h3 className="mt-1 text-lg font-semibold capitalize">
+                {review.type === "full"
+                  ? "Full Screenplay Review"
+                  : `${review.type} Review`}
+              </h3>
+            </div>
+
+            <Score value={review.score} />
+          </div>
+
+          <div className="rounded-2xl border border-zinc-800 bg-zinc-950 p-4">
+            <p className="text-xs uppercase tracking-wider text-zinc-500">
+              Summary
+            </p>
+
+            <p className="mt-2 text-sm leading-6 text-zinc-300">
+              {review.summary}
+            </p>
+          </div>
+
+          {review.issues.length ? (
+            <div className="space-y-3">
+              <p className="text-xs uppercase tracking-wider text-zinc-500">
+                Issues & Recommendations
+              </p>
+
+              {review.issues.map((issue) => (
+                <div
+                  key={issue.id}
+                  className="rounded-2xl border border-zinc-800 bg-zinc-950 p-4"
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <p className="font-semibold">
+                        {issue.title}
+                      </p>
+
+                      {typeof issue.scene === "number" && (
+                        <p className="mt-1 text-xs text-zinc-500">
+                          Scene {issue.scene}
+                        </p>
+                      )}
+                    </div>
+
+                    <span className="rounded-full bg-zinc-800 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider text-zinc-400">
+                      {issue.severity}
+                    </span>
+                  </div>
+
+                  <p className="mt-3 text-sm leading-6 text-zinc-300">
+                    {issue.description}
+                  </p>
+
+                  {issue.originalText && (
+                    <div className="mt-4">
+                      <p className="text-xs uppercase tracking-wider text-zinc-500">
+                        Original
+                      </p>
+
+                      <p className="mt-1 rounded-xl bg-zinc-900 p-3 text-sm leading-6 text-zinc-400">
+                        {issue.originalText}
+                      </p>
+                    </div>
+                  )}
+
+                  {issue.suggestedText && (
+                    <div className="mt-4">
+                      <p className="text-xs uppercase tracking-wider text-zinc-500">
+                        Suggested
+                      </p>
+
+                      <p className="mt-1 rounded-xl bg-zinc-900 p-3 text-sm leading-6 text-zinc-300">
+                        {issue.suggestedText}
+                      </p>
+                    </div>
+                  )}
+
+                  {issue.reason && (
+                    <div className="mt-4">
+                      <p className="text-xs uppercase tracking-wider text-zinc-500">
+                        Why
+                      </p>
+
+                      <p className="mt-1 text-sm leading-6 text-zinc-400">
+                        {issue.reason}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          ) : (
+            <EmptyState text="No issues were identified in this review." />
+          )}
+        </section>
+      )}
       {!analysis ? (
         <div className="rounded-2xl border border-dashed border-zinc-800 p-6">
           <p className="font-medium">
@@ -186,7 +290,7 @@ export default function ScriptAnalysisPanel({
 
               <Metric
                 label="Format"
-                value={analysis.screenplay?.format || "—"}
+                value={analysis.screenplay?.format || "â€”"}
               />
             </div>
           </section>
@@ -372,12 +476,12 @@ export default function ScriptAnalysisPanel({
             <div className="grid grid-cols-2 gap-3">
               <Metric
                 label="Country"
-                value={analysis.culture?.country || "—"}
+                value={analysis.culture?.country || "â€”"}
               />
 
               <Metric
                 label="Language"
-                value={analysis.culture?.language || "—"}
+                value={analysis.culture?.language || "â€”"}
               />
             </div>
 
