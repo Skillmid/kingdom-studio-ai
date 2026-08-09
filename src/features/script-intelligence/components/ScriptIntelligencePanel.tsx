@@ -1,7 +1,11 @@
-﻿"use client";
+"use client";
+
+import { useState } from "react";
 
 import type {
   ScriptAnalysis,
+  ScriptReview,
+
 } from "../types/script-analysis";
 
 interface ScriptAnalysisPanelProps {
@@ -10,13 +14,27 @@ interface ScriptAnalysisPanelProps {
   processing: boolean;
 
   onAnalyse: () => Promise<void>;
+
+  onReview: (
+    type:
+      | "professional"
+      | "spiritual"
+      | "cultural"
+      | "dialogue"
+      | "character"
+      | "story"
+      | "production"
+  ) => Promise<ScriptReview | undefined>;
 }
 
 export default function ScriptAnalysisPanel({
   analysis,
   processing,
   onAnalyse,
+  onReview,
 }: ScriptAnalysisPanelProps) {
+  const [review, setReview] =
+    useState<ScriptReview | null>(null);
   if (processing) {
     return (
       <aside className="rounded-3xl border border-zinc-800 bg-zinc-900 p-8">
@@ -77,6 +95,53 @@ export default function ScriptAnalysisPanel({
         </p>
       </button>
 
+      <section className="space-y-3">
+        <div>
+          <h3 className="text-sm font-semibold">
+            Specialised Reviews
+          </h3>
+
+          <p className="mt-1 text-xs leading-5 text-zinc-500">
+            Run a focused review without changing the screenplay.
+          </p>
+        </div>
+
+                    <div className="grid gap-2">
+              {[
+                ["story", "Story"],
+                ["character", "Characters"],
+                ["dialogue", "Dialogue"],
+                ["spiritual", "Spiritual"],
+                ["cultural", "Cultural"],
+                ["professional", "Professional"],
+                ["production", "Production"],
+              ].map(([type, label]) => (
+                <button
+                  key={type}
+                  type="button"
+                  disabled={processing}
+                  onClick={async () => {
+                    const result = await onReview(
+                      type as
+                        | "story"
+                        | "character"
+                        | "dialogue"
+                        | "spiritual"
+                        | "cultural"
+                        | "professional"
+                        | "production"
+                    );
+
+                    if (result) {
+                      setReview(result);
+                    }
+                  }}
+                  className="rounded-xl border border-zinc-800 bg-zinc-950 px-4 py-3 text-left text-sm transition hover:border-yellow-500 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {label} Review
+                </button>
+              ))}
+            </div>          </section>
       {!analysis ? (
         <div className="rounded-2xl border border-dashed border-zinc-800 p-6">
           <p className="font-medium">

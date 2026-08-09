@@ -360,6 +360,48 @@ export function useScriptWorkspace(
       [content]
     );
 
+      const reviewScreenplay =
+        useCallback(
+          async (
+            type:
+              | "professional"
+              | "spiritual"
+              | "cultural"
+              | "dialogue"
+              | "character"
+              | "story"
+              | "production"
+          ) => {
+            if (!content.trim()) {
+              return;
+            }
+
+            setProcessing(true);
+            setError(null);
+
+            try {
+              const result =
+                await scriptIntelligence.review(
+                  content,
+                  type
+                );
+
+              return result;
+            } catch (error) {
+              const message =
+                error instanceof Error
+                  ? error.message
+                  : "Unable to review screenplay.";
+
+              setError(message);
+
+              throw error;
+            } finally {
+              setProcessing(false);
+            }
+          },
+          [content]
+        );
   const saveScreenplay =
     useCallback(
       async (
@@ -578,7 +620,10 @@ export function useScriptWorkspace(
     importScript,
 
     analyseScreenplay,
+
+
 
+        reviewScreenplay,
     saveScreenplay,
 
     restoreRevision,
@@ -588,5 +633,9 @@ export function useScriptWorkspace(
     clear,
   };
 }
+
+
+
+
 
 

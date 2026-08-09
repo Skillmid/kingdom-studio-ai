@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import {
   useState,
@@ -58,6 +58,9 @@ function ScriptWorkspaceContent({
     importScript,
 
     analyseScreenplay,
+
+
+    reviewScreenplay,
 
     saveScreenplay,
 
@@ -322,7 +325,8 @@ refresh,
   analysis={analysis}
   processing={processing}
   onAnalyse={handleAnalyse}
-/>
+          onReview={reviewScreenplay}
+        />
         )}
 
       </div>
@@ -441,10 +445,3 @@ export default function ScriptWorkspace({
     </SaveProvider>
   );
 }
-
-
-
-
-
-
-
