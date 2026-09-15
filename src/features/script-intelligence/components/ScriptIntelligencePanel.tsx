@@ -5,16 +5,12 @@ import { useState } from "react";
 import type {
   ScriptAnalysis,
   ScriptReview,
-
 } from "../types/script-analysis";
 
 interface ScriptAnalysisPanelProps {
   analysis: ScriptAnalysis | null;
-
   processing: boolean;
-
   onAnalyse: () => Promise<void>;
-
   onReview: (
     type:
       | "professional"
@@ -33,8 +29,8 @@ export default function ScriptAnalysisPanel({
   onAnalyse,
   onReview,
 }: ScriptAnalysisPanelProps) {
-  const [review, setReview] =
-    useState<ScriptReview | null>(null);
+  const [review, setReview] = useState<ScriptReview | null>(null);
+
   if (processing) {
     return (
       <aside className="rounded-3xl border border-zinc-800 bg-zinc-900 p-8">
@@ -63,7 +59,6 @@ export default function ScriptAnalysisPanel({
 
   return (
     <aside className="space-y-8 rounded-3xl border border-zinc-800 bg-zinc-900 p-8">
-
       <div>
         <p className="text-xs uppercase tracking-[0.3em] text-yellow-500">
           Intelligence
@@ -106,42 +101,44 @@ export default function ScriptAnalysisPanel({
           </p>
         </div>
 
-                    <div className="grid gap-2">
-              {[
-                ["story", "Story"],
-                ["character", "Characters"],
-                ["dialogue", "Dialogue"],
-                ["spiritual", "Spiritual"],
-                ["cultural", "Cultural"],
-                ["professional", "Professional"],
-                ["production", "Production"],
-              ].map(([type, label]) => (
-                <button
-                  key={type}
-                  type="button"
-                  disabled={processing}
-                  onClick={async () => {
-                    const result = await onReview(
-                      type as
-                        | "story"
-                        | "character"
-                        | "dialogue"
-                        | "spiritual"
-                        | "cultural"
-                        | "professional"
-                        | "production"
-                    );
+        <div className="grid gap-2">
+          {[
+            ["story", "Story"],
+            ["character", "Characters"],
+            ["dialogue", "Dialogue"],
+            ["spiritual", "Spiritual"],
+            ["cultural", "Cultural"],
+            ["professional", "Professional"],
+            ["production", "Production"],
+          ].map(([type, label]) => (
+            <button
+              key={type}
+              type="button"
+              disabled={processing}
+              onClick={async () => {
+                const result = await onReview(
+                  type as
+                    | "story"
+                    | "character"
+                    | "dialogue"
+                    | "spiritual"
+                    | "cultural"
+                    | "professional"
+                    | "production"
+                );
 
-                    if (result) {
-                      setReview(result);
-                    }
-                  }}
-                  className="rounded-xl border border-zinc-800 bg-zinc-950 px-4 py-3 text-left text-sm transition hover:border-yellow-500 disabled:cursor-not-allowed disabled:opacity-50"
-                >
-                  {label} Review
-                </button>
-              ))}
-            </div>          </section>
+                if (result) {
+                  setReview(result);
+                }
+              }}
+              className="rounded-xl border border-zinc-800 bg-zinc-950 px-4 py-3 text-left text-sm transition hover:border-yellow-500 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {label} Review
+            </button>
+          ))}
+        </div>
+      </section>
+
       {review && (
         <section className="space-y-4 border-t border-zinc-800 pt-6">
           <div className="flex items-start justify-between gap-4">
@@ -246,6 +243,7 @@ export default function ScriptAnalysisPanel({
           )}
         </section>
       )}
+
       {!analysis ? (
         <div className="rounded-2xl border border-dashed border-zinc-800 p-6">
           <p className="font-medium">
@@ -260,7 +258,6 @@ export default function ScriptAnalysisPanel({
         </div>
       ) : (
         <div className="space-y-8">
-
           <section className="space-y-4">
             <div className="flex items-center justify-between">
               <h3 className="font-semibold">
@@ -290,7 +287,7 @@ export default function ScriptAnalysisPanel({
 
               <Metric
                 label="Format"
-                value={analysis.screenplay?.format || "â€”"}
+                value={analysis.screenplay?.format || "Standard"}
               />
             </div>
           </section>
@@ -476,12 +473,12 @@ export default function ScriptAnalysisPanel({
             <div className="grid grid-cols-2 gap-3">
               <Metric
                 label="Country"
-                value={analysis.culture?.country || "â€”"}
+                value={analysis.culture?.country || "None Specified"}
               />
 
               <Metric
                 label="Language"
-                value={analysis.culture?.language || "â€”"}
+                value={analysis.culture?.language || "None Specified"}
               />
             </div>
 
@@ -562,7 +559,6 @@ export default function ScriptAnalysisPanel({
               items={analysis.production?.recommendations}
             />
           </section>
-
         </div>
       )}
     </aside>

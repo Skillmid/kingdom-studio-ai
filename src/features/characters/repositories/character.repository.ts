@@ -44,9 +44,7 @@ type CharacterRow = {
 export class CharacterRepository {
   private readonly supabase = supabase;
 
-  async getByProductionId(
-    productionId: string
-  ): Promise<Character[]> {
+  async getByProductionId(productionId: string): Promise<Character[]> {
     const { data, error } = await this.supabase
       .from(TABLE_NAME)
       .select("*")
@@ -64,9 +62,7 @@ export class CharacterRepository {
     );
   }
 
-  async getById(
-    id: string
-  ): Promise<Character | null> {
+  async getById(id: string): Promise<Character | null> {
     const { data, error } = await this.supabase
       .from(TABLE_NAME)
       .select("*")
@@ -84,9 +80,7 @@ export class CharacterRepository {
     return this.mapCharacter(data as CharacterRow);
   }
 
-  async create(
-    character: Partial<Character>
-  ): Promise<Character> {
+  async create(character: Partial<Character>): Promise<Character> {
     const payload = this.toDatabase(character);
 
     const { data, error } = await this.supabase
@@ -100,6 +94,27 @@ export class CharacterRepository {
     }
 
     return this.mapCharacter(data as CharacterRow);
+  }
+
+  async createMany(characters: Partial<Character>[]): Promise<Character[]> {
+    if (characters.length === 0) {
+      return [];
+    }
+
+    const payloads = characters.map((c) => this.toDatabase(c));
+
+    const { data, error } = await this.supabase
+      .from(TABLE_NAME)
+      .insert(payloads)
+      .select();
+
+    if (error) {
+      throw new Error(error.message);
+    }
+
+    return ((data ?? []) as CharacterRow[]).map((row) =>
+      this.mapCharacter(row)
+    );
   }
 
   async update(
@@ -122,9 +137,7 @@ export class CharacterRepository {
     return this.mapCharacter(data as CharacterRow);
   }
 
-  async delete(
-    id: string
-  ): Promise<void> {
+  async delete(id: string): Promise<void> {
     const { error } = await this.supabase
       .from(TABLE_NAME)
       .delete()
@@ -135,10 +148,7 @@ export class CharacterRepository {
     }
   }
 
-  async updateProgress(
-    id: string,
-    progress: number
-  ): Promise<void> {
+  async updateProgress(id: string, progress: number): Promise<void> {
     const { error } = await this.supabase
       .from(TABLE_NAME)
       .update({
@@ -151,9 +161,7 @@ export class CharacterRepository {
     }
   }
 
-  private mapCharacter(
-    data: CharacterRow
-  ): Character {
+  private mapCharacter(data: CharacterRow): Character {
     return {
       id: data.id,
       productionId: data.production_id,
@@ -171,8 +179,7 @@ export class CharacterRepository {
       weight: data.weight,
       eyeColor: data.eye_color,
       hairColor: data.hair_color,
-      distinguishingFeatures:
-        data.distinguishing_features,
+      distinguishingFeatures: data.distinguishing_features,
       personality: data.personality,
       strengths: data.strengths,
       weaknesses: data.weaknesses,
@@ -183,13 +190,10 @@ export class CharacterRepository {
       goal: data.goal,
       conflict: data.conflict,
       characterArc: data.character_arc,
-      spiritualJourney:
-        data.spiritual_journey,
+      spiritualJourney: data.spiritual_journey,
       speechStyle: data.speech_style,
-      catchPhrases:
-        data.catch_phrases,
-      aiInstructions:
-        data.ai_instructions,
+      catchPhrases: data.catch_phrases,
+      aiInstructions: data.ai_instructions,
       progress: data.progress ?? 0,
       references: [],
       createdAt: data.created_at,
@@ -197,63 +201,41 @@ export class CharacterRepository {
     };
   }
 
-  private toDatabase(
-    character: Partial<Character>
-  ) {
+  private toDatabase(character: Partial<Character>) {
     return {
-      production_id:
-        character.productionId,
+      production_id: character.productionId,
       name: character.name,
-      role: character.role,
-      status: character.status,
+      role: character.role ?? "supporting",
+      status: character.status ?? "draft",
       age: character.age,
       gender: character.gender,
       occupation: character.occupation,
-      nationality:
-        character.nationality,
-      ethnicity:
-        character.ethnicity,
-      biography:
-        character.biography,
-      appearance:
-        character.appearance,
+      nationality: character.nationality,
+      ethnicity: character.ethnicity,
+      biography: character.biography,
+      appearance: character.appearance,
       height: character.height,
       weight: character.weight,
-      eye_color:
-        character.eyeColor,
-      hair_color:
-        character.hairColor,
-      distinguishing_features:
-        character.distinguishingFeatures,
-      personality:
-        character.personality,
-      strengths:
-        character.strengths,
-      weaknesses:
-        character.weaknesses,
+      eye_color: character.eyeColor,
+      hair_color: character.hairColor,
+      distinguishing_features: character.distinguishingFeatures,
+      personality: character.personality,
+      strengths: character.strengths,
+      weaknesses: character.weaknesses,
       fears: character.fears,
       habits: character.habits,
       values: character.values,
-      motivation:
-        character.motivation,
+      motivation: character.motivation,
       goal: character.goal,
-      conflict:
-        character.conflict,
-      character_arc:
-        character.characterArc,
-      spiritual_journey:
-        character.spiritualJourney,
-      speech_style:
-        character.speechStyle,
-      catch_phrases:
-        character.catchPhrases,
-      ai_instructions:
-        character.aiInstructions,
-      progress:
-        character.progress,
+      conflict: character.conflict,
+      character_arc: character.characterArc,
+      spiritual_journey: character.spiritualJourney,
+      speech_style: character.speechStyle,
+      catch_phrases: character.catchPhrases,
+      ai_instructions: character.aiInstructions,
+      progress: character.progress ?? 0,
     };
   }
 }
 
-export const characterRepository =
-  new CharacterRepository();
+export const characterRepository = new CharacterRepository();

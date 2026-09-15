@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import {
   useState,
@@ -82,10 +82,9 @@ refresh,
     setIntelligenceOpen,
   ] = useState(true);
 
-  const [
-    historyOpen,
-    setHistoryOpen,
-  ] = useState(false);
+  const [historyOpen, setHistoryOpen] = useState(false);
+
+  const [restoring, setRestoring] = useState(false);
 
   async function handleSave() {
     try {
@@ -108,22 +107,19 @@ refresh,
     }
   }
 
-  async function handleRestore(
-  revisionId: string
-) {
-  try {
-    await runSave(
-      async () => {
-        await restoreRevision(
-          revisionId
-        );
-      }
-    );
-  } catch {
-    // Workspace exposes the error.
-  }
+  async function handleRestore(revisionId: string) {
+    setRestoring(true);
 
+    try {
+      await runSave(async () => {
+        await restoreRevision(revisionId);
+      });
+    } catch {
+      // Workspace exposes the error.
+    } finally {
+      setRestoring(false);
     }
+  }
 
     if (loading) {
     return (
@@ -339,7 +335,7 @@ refresh,
           currentVersion={
             screenplay?.version
           }
-          restoring={false}
+          restoring={restoring}
           onRestore={
             handleRestore
           }
@@ -445,3 +441,5 @@ export default function ScriptWorkspace({
     </SaveProvider>
   );
 }
+
+
