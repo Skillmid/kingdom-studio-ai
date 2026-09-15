@@ -1,9 +1,9 @@
 ﻿"use client";
 
 import { useState } from "react";
-import type { FormEvent } from "react";
-import { useCharacters } from "../hooks/use-characters";
+import CharacterEditor from "./CharacterEditor";
 import CharacterList from "./CharacterList";
+import { useCharacters } from "../hooks/use-characters";
 import type { Character, CharacterRole } from "../types/character";
 
 interface CharactersViewProps {
@@ -18,197 +18,245 @@ export function CharactersView({ productionId }: CharactersViewProps) {
     syncing,
     error,
     createCharacter,
+    updateCharacter,
     syncFromScreenplay,
   } = useCharacters(productionId);
 
-  const [isCreateOpen, setIsCreateOpen] = useState(false);
-  const [notification, setNotification] = useState<string | null>(null);
-
+  const [selectedCharacter, setSelectedCharacter] =
+    useState<Character | null>(null);
   const [newName, setNewName] = useState("");
   const [newRole, setNewRole] = useState<CharacterRole>("supporting");
   const [newOccupation, setNewOccupation] = useState("");
   const [newBiography, setNewBiography] = useState("");
+  const [showCreateForm, setShowCreateForm] = useState(false);
+  const [notification, setNotification] = useState<string | null>(null);
 
   async function handleSync() {
     try {
       const result = await syncFromScreenplay();
-      if (result.createdCount === 0 && result.totalExtracted === 0) {
-        setNotification("No characters identified in the current screenplay.");
+
+      if (result.totalExtracted === 0) {
+        setNotification("No characters were detected in the screenplay.");
       } else if (result.createdCount === 0) {
         setNotification(
-          `All ${result.totalExtracted} extracted characters already exist in this production.`
+          `Found ${result.totalExtracted} character${result.totalExtracted === 1 ? "" : "s"}, but they are already in this production.`,
         );
       } else {
         setNotification(
-          `Successfully imported ${result.createdCount} new character${
-            result.createdCount === 1 ? "" : "s"
-          } from the screenplay.`
+          `Added ${result.createdCount} new character${result.createdCount === 1 ? "" : "s"} from the screenplay.`,
         );
       }
     } catch {
-      // Error state is handled within useCharacters
+      // The hook exposes the error state.
     }
   }
 
-  async function handleCreate(e: FormEvent) {
-    e.preventDefault();
-    if (!newName.trim()) return;
+  async function handleCreate(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
 
-    await createCharacter({
-      name: newName.trim(),
-      role: newRole,
-      occupation: newOccupation.trim() || undefined,
-      biography: newBiography.trim() || undefined,
-      status: "draft",
-      progress: 0,
-    });
+    if (!newName.trim()) {
+      return;
+    }
 
-    setNewName("");
-    setNewRole("supporting");
-    setNewOccupation("");
-    setNewBiography("");
-    setIsCreateOpen(false);
+    try {
+      await createCharacter({
+        name: newName.trim(),
+        role: newRole,
+        occupation: newOccupation.trim() || undefined,
+        biography: newBiography.trim() || undefined,
+        status: "draft",
+        progress: 0,
+      });
+
+      setNewName("");
+      setNewRole("supporting");
+      setNewOccupation("");
+      setNewBiography("");
+      setShowCreateForm(false);
+      setNotification("Character created successfully.");
+    } catch {
+      // The hook exposes the error state.
+    }
+  }
+
+  async function handleUpdate(updates: Partial<Character>) {
+    if (!selectedCharacter) {
+      return;
+    }
+
+    const updated = await updateCharacter(selectedCharacter.id, updates);
+    setSelectedCharacter(updated);
+    setNotification("Character profile saved successfully.");
   }
 
   return (
-    <div className="mx-auto max-w-7xl space-y-8 p-8">
-      <div className="flex flex-col gap-4 border-b border-zinc-800 pb-6 sm:flex-row sm:items-center sm:justify-between">
+    <div className="space-y-8 p-6">
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <div>
-          <h1 className="text-3xl font-bold">Characters</h1>
-          <p className="mt-1 text-sm text-zinc-400">
-            Manage your cast, character bibles, and visual continuity profiles.
+          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-yellow-500">
+            Pre-Production
+          </p>
+          <h1 className="mt-2 text-3xl font-bold text-white">Characters</h1>
+          <p className="mt-2 max-w-2xl text-sm text-zinc-400">
+            Build and refine the characters that will drive your production.
+            Characters extracted from the screenplay can be reviewed and
+            developed here.
           </p>
         </div>
 
-        <div className="flex flex-wrap items-center gap-3">
+        <div className="flex flex-wrap gap-3">
           <button
             type="button"
-            disabled={syncing || loading}
             onClick={handleSync}
-            className="rounded-xl border border-zinc-700 bg-zinc-800 px-4 py-2 text-sm font-medium text-zinc-200 transition hover:border-yellow-500 hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
+            disabled={syncing}
+            className="rounded-xl border border-yellow-500/40 bg-yellow-500/10 px-4 py-3 text-sm font-semibold text-yellow-400 transition hover:bg-yellow-500/20 disabled:cursor-not-allowed disabled:opacity-50"
           >
-            {syncing ? "Syncing Cast..." : "Sync from Screenplay"}
+            {syncing ? "Syncing..." : "Sync from Screenplay"}
           </button>
 
           <button
             type="button"
-            onClick={() => setIsCreateOpen(true)}
-            className="rounded-xl bg-yellow-500 px-4 py-2 text-sm font-semibold text-black transition hover:bg-yellow-400 disabled:opacity-50"
+            onClick={() => setShowCreateForm(true)}
+            className="rounded-xl bg-yellow-500 px-4 py-3 text-sm font-semibold text-black transition hover:opacity-90"
           >
-            + Add Character
+            Add Character
           </button>
         </div>
       </div>
 
       {error && (
-        <div className="rounded-xl border border-red-500/30 bg-red-500/10 p-4 text-sm text-red-400">
+        <div className="rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-300">
           {error}
         </div>
       )}
 
       {notification && (
-        <div className="flex items-center justify-between rounded-xl border border-yellow-500/30 bg-yellow-500/10 p-4 text-sm text-yellow-300">
+        <div className="flex items-center justify-between rounded-xl border border-zinc-800 bg-zinc-900 px-4 py-3 text-sm text-zinc-300">
           <span>{notification}</span>
           <button
             type="button"
             onClick={() => setNotification(null)}
-            className="ml-4 text-xs font-semibold uppercase text-zinc-400 hover:text-white"
+            className="ml-4 text-zinc-500 transition hover:text-white"
           >
             Dismiss
           </button>
         </div>
       )}
 
-      <CharacterList characters={characters} loading={loading} />
+      <CharacterList
+        characters={characters}
+        loading={loading}
+        onOpen={setSelectedCharacter}
+      />
 
-      {isCreateOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm">
-          <div className="w-full max-w-lg rounded-2xl border border-zinc-800 bg-zinc-900 p-6 shadow-2xl">
-            <h2 className="text-xl font-bold text-white">Create Character</h2>
-            <p className="mt-1 text-xs text-zinc-400">
-              Add a new character profile to this production.
-            </p>
-
-            <form onSubmit={handleCreate} className="mt-6 space-y-4">
+      {showCreateForm && (
+        <div className="fixed inset-0 z-50 overflow-y-auto bg-black/80 p-4 backdrop-blur-sm">
+          <div className="mx-auto my-16 max-w-2xl rounded-3xl border border-zinc-800 bg-zinc-950 p-6 shadow-2xl">
+            <div className="mb-6 flex items-start justify-between">
               <div>
-                <label className="block text-xs font-semibold uppercase tracking-wider text-zinc-400">
-                  Name *
+                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-yellow-500">
+                  New Character
+                </p>
+                <h2 className="mt-1 text-2xl font-bold text-white">
+                  Add Character
+                </h2>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setShowCreateForm(false)}
+                className="rounded-xl border border-zinc-700 px-3 py-2 text-sm text-zinc-400 transition hover:text-white"
+              >
+                Close
+              </button>
+            </div>
+
+            <form onSubmit={handleCreate} className="space-y-5">
+              <div>
+                <label className="mb-2 block text-sm font-medium text-zinc-300">
+                  Name
                 </label>
                 <input
-                  type="text"
-                  required
                   value={newName}
-                  onChange={(e) => setNewName(e.target.value)}
-                  placeholder="e.g. Pastor David"
-                  className="mt-1.5 w-full rounded-xl border border-zinc-800 bg-zinc-950 px-4 py-2.5 text-sm text-white placeholder-zinc-600 focus:border-yellow-500 focus:outline-none"
+                  onChange={(event) => setNewName(event.target.value)}
+                  placeholder="Character name"
+                  className="w-full rounded-xl border border-zinc-700 bg-zinc-900 px-4 py-3 text-sm text-white outline-none placeholder:text-zinc-600 focus:border-yellow-500"
+                  autoFocus
                 />
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-semibold uppercase tracking-wider text-zinc-400">
-                    Role
-                  </label>
-                  <select
-                    value={newRole}
-                    onChange={(e) =>
-                      setNewRole(e.target.value as CharacterRole)
-                    }
-                    className="mt-1.5 w-full rounded-xl border border-zinc-800 bg-zinc-950 px-3 py-2.5 text-sm text-white focus:border-yellow-500 focus:outline-none"
-                  >
-                    <option value="lead">Lead</option>
-                    <option value="supporting">Supporting</option>
-                    <option value="minor">Minor</option>
-                    <option value="extra">Extra</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold uppercase tracking-wider text-zinc-400">
-                    Occupation
-                  </label>
-                  <input
-                    type="text"
-                    value={newOccupation}
-                    onChange={(e) => setNewOccupation(e.target.value)}
-                    placeholder="e.g. Teacher"
-                    className="mt-1.5 w-full rounded-xl border border-zinc-800 bg-zinc-950 px-4 py-2.5 text-sm text-white placeholder-zinc-600 focus:border-yellow-500 focus:outline-none"
-                  />
-                </div>
               </div>
 
               <div>
-                <label className="block text-xs font-semibold uppercase tracking-wider text-zinc-400">
-                  Biography / Summary
+                <label className="mb-2 block text-sm font-medium text-zinc-300">
+                  Role
                 </label>
-                <textarea
-                  rows={3}
-                  value={newBiography}
-                  onChange={(e) => setNewBiography(e.target.value)}
-                  placeholder="Brief summary of their story or purpose..."
-                  className="mt-1.5 w-full rounded-xl border border-zinc-800 bg-zinc-950 px-4 py-2.5 text-sm text-white placeholder-zinc-600 focus:border-yellow-500 focus:outline-none"
+                <select
+                  value={newRole}
+                  onChange={(event) =>
+                    setNewRole(event.target.value as CharacterRole)
+                  }
+                  className="w-full rounded-xl border border-zinc-700 bg-zinc-900 px-4 py-3 text-sm text-white outline-none focus:border-yellow-500"
+                >
+                  <option value="lead">Lead</option>
+                  <option value="supporting">Supporting</option>
+                  <option value="minor">Minor</option>
+                  <option value="extra">Extra</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="mb-2 block text-sm font-medium text-zinc-300">
+                  Occupation
+                </label>
+                <input
+                  value={newOccupation}
+                  onChange={(event) => setNewOccupation(event.target.value)}
+                  placeholder="e.g. Teacher"
+                  className="w-full rounded-xl border border-zinc-700 bg-zinc-900 px-4 py-3 text-sm text-white outline-none placeholder:text-zinc-600 focus:border-yellow-500"
                 />
               </div>
 
-              <div className="mt-6 flex justify-end gap-3 pt-2">
+              <div>
+                <label className="mb-2 block text-sm font-medium text-zinc-300">
+                  Biography
+                </label>
+                <textarea
+                  value={newBiography}
+                  onChange={(event) => setNewBiography(event.target.value)}
+                  placeholder="Brief character description"
+                  rows={4}
+                  className="w-full rounded-xl border border-zinc-700 bg-zinc-900 px-4 py-3 text-sm text-white outline-none placeholder:text-zinc-600 focus:border-yellow-500"
+                />
+              </div>
+
+              <div className="flex justify-end gap-3 border-t border-zinc-800 pt-5">
                 <button
                   type="button"
-                  onClick={() => setIsCreateOpen(false)}
-                  className="rounded-xl border border-zinc-800 px-4 py-2 text-sm text-zinc-300 hover:bg-zinc-800"
+                  onClick={() => setShowCreateForm(false)}
+                  className="rounded-xl border border-zinc-700 px-5 py-3 font-semibold text-zinc-300 transition hover:text-white"
                 >
                   Cancel
                 </button>
+
                 <button
                   type="submit"
                   disabled={saving || !newName.trim()}
-                  className="rounded-xl bg-yellow-500 px-5 py-2 text-sm font-semibold text-black hover:bg-yellow-400 disabled:opacity-50"
+                  className="rounded-xl bg-yellow-500 px-5 py-3 font-semibold text-black transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
                 >
-                  {saving ? "Saving..." : "Create"}
+                  {saving ? "Creating..." : "Create Character"}
                 </button>
               </div>
             </form>
           </div>
         </div>
+      )}
+
+      {selectedCharacter && (
+        <CharacterEditor
+          character={selectedCharacter}
+          saving={saving}
+          onSave={handleUpdate}
+          onCancel={() => setSelectedCharacter(null)}
+        />
       )}
     </div>
   );
