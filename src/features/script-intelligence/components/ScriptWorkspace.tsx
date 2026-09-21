@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import {
   useState,
@@ -18,6 +18,7 @@ import ScriptEditor from "./ScriptEditor";
 import ScriptImport from "./ScriptImport";
 import ScriptIntelligencePanel from "./ScriptIntelligencePanel";
 import ScriptRevisionHistory from "./ScriptRevisionHistory";
+import SceneExtractionPanel from "./SceneExtractionPanel";
 
 interface ScriptWorkspaceProps {
   productionId: string;
@@ -28,46 +29,26 @@ function ScriptWorkspaceContent({
 }: ScriptWorkspaceProps) {
   const {
     screenplay,
-
     title,
     setTitle,
-
     content,
     setContent,
-
     fileName,
-
     source,
-
     knowledge,
-
     analysis,
-
     revisions,
-
     loading,
-
     processing,
-
     saving,
-
     error,
-
     isDirty,
-
     importScript,
-
     analyseScreenplay,
-
-
     reviewScreenplay,
-
     saveScreenplay,
-
-          restoreRevision,
-
-refresh,
-
+    restoreRevision,
+    refresh,
     clear,
   } = useScriptWorkspace(
     productionId
@@ -121,7 +102,7 @@ refresh,
     }
   }
 
-    if (loading) {
+  if (loading) {
     return (
       <div className="p-10">
         <div className="rounded-3xl border border-zinc-800 bg-zinc-900 p-20 text-center">
@@ -133,41 +114,28 @@ refresh,
 
   return (
     <div className="mx-auto max-w-[1800px] space-y-8 p-8">
-
       <header className="flex flex-col gap-6 xl:flex-row xl:items-end xl:justify-between">
-
         <div className="min-w-0 flex-1">
-
           <p className="text-sm uppercase tracking-[0.3em] text-yellow-500">
             Kingdom Studio AI
           </p>
-
           <h1 className="mt-2 text-5xl font-bold">
             Screenplay
           </h1>
-
           <p className="mt-4 max-w-4xl text-zinc-400">
-            Develop the creator&apos;s
-            screenplay with professional,
-            cultural, spiritual, dialogue,
-            character, story, and
-            production intelligence while
-            preserving human creative
+            Develop the creator's screenplay with professional,
+            cultural, spiritual, dialogue, character, story, and
+            production intelligence while preserving human creative
             authority.
           </p>
-
         </div>
-
         <div className="flex flex-wrap items-center gap-3">
-
           <SaveStatus />
-
           {isDirty && (
             <div className="rounded-xl border border-yellow-500/30 bg-yellow-500/10 px-4 py-3 text-sm text-yellow-400">
               Unsaved changes
             </div>
           )}
-
           <button
             type="button"
             disabled={
@@ -176,9 +144,7 @@ refresh,
               !content.trim() ||
               !isDirty
             }
-            onClick={
-              handleSave
-            }
+            onClick={handleSave}
             className="rounded-xl bg-yellow-500 px-6 py-3 font-semibold text-black transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
           >
             {saving
@@ -187,45 +153,29 @@ refresh,
                 ? "Save Revision"
                 : "Save Screenplay"}
           </button>
-
         </div>
-
       </header>
 
       <section className="rounded-3xl border border-zinc-800 bg-zinc-900 p-6">
-
         <label
           htmlFor="screenplay-title"
           className="text-xs uppercase tracking-[0.3em] text-zinc-500"
         >
           Screenplay Title
         </label>
-
         <input
           id="screenplay-title"
           value={title}
-          disabled={
-            processing ||
-            saving
-          }
-          onChange={(event) =>
-            setTitle(
-              event.target.value
-            )
-          }
+          disabled={processing || saving}
+          onChange={(event) => setTitle(event.target.value)}
           className="mt-3 w-full border-none bg-transparent text-3xl font-bold outline-none placeholder:text-zinc-700 disabled:opacity-50"
           placeholder="Untitled Screenplay"
         />
-
       </section>
 
       <ScriptImport
-        processing={
-          processing
-        }
-        onImport={
-          importScript
-        }
+        processing={processing}
+        onImport={importScript}
       />
 
       {error && (
@@ -235,66 +185,40 @@ refresh,
       )}
 
       <div className="flex flex-wrap gap-3">
-
         {fileName && (
           <div className="rounded-xl border border-zinc-700 px-4 py-3 text-sm text-zinc-400">
             Source: {fileName}
           </div>
         )}
-
         {screenplay && (
           <div className="rounded-xl border border-zinc-700 px-4 py-3 text-sm text-zinc-400">
-            Version{" "}
-            {screenplay.version}
+            Version {screenplay.version}
           </div>
         )}
-
         <button
           type="button"
-          onClick={() =>
-            setIntelligenceOpen(
-              (current) =>
-                !current
-            )
-          }
+          onClick={() => setIntelligenceOpen((current) => !current)}
           className="rounded-xl border border-zinc-700 px-5 py-3 transition hover:border-yellow-500"
         >
-          {intelligenceOpen
-            ? "Hide Intelligence"
-            : "Show Intelligence"}
+          {intelligenceOpen ? "Hide Intelligence" : "Show Intelligence"}
         </button>
-
         <button
           type="button"
-          onClick={() =>
-            setHistoryOpen(
-              (current) =>
-                !current
-            )
-          }
+          onClick={() => setHistoryOpen((current) => !current)}
           className="rounded-xl border border-zinc-700 px-5 py-3 transition hover:border-yellow-500"
         >
-          {historyOpen
-            ? "Hide History"
-            : `Revision History (${revisions.length})`}
+          {historyOpen ? "Hide History" : `Revision History (${revisions.length})`}
         </button>
-
-        {(content ||
-          analysis ||
-          knowledge) && (
+        {(content || analysis || knowledge) && (
           <button
             type="button"
             onClick={clear}
-            disabled={
-              processing ||
-              saving
-            }
+            disabled={processing || saving}
             className="rounded-xl border border-zinc-700 px-5 py-3 text-zinc-300 transition hover:border-red-500 hover:text-red-400 disabled:opacity-50"
           >
             Clear Workspace
           </button>
         )}
-
       </div>
 
       <div
@@ -304,126 +228,63 @@ refresh,
             : "grid gap-8"
         }
       >
-
         <ScriptEditor
           value={content}
-          onChange={
-            setContent
-          }
-          disabled={
-            processing ||
-            saving
-          }
+          onChange={setContent}
+          disabled={processing || saving}
         />
-
         {intelligenceOpen && (
           <ScriptIntelligencePanel
-  analysis={analysis}
-  processing={processing}
-  onAnalyse={handleAnalyse}
-          onReview={reviewScreenplay}
-        />
+            analysis={analysis}
+            processing={processing}
+            onAnalyse={handleAnalyse}
+            onReview={reviewScreenplay}
+          />
         )}
-
       </div>
+
+      <SceneExtractionPanel
+        productionId={productionId}
+        screenplay={content}
+      />
 
       {historyOpen && (
         <ScriptRevisionHistory
-          revisions={
-            revisions
-          }
-          currentVersion={
-            screenplay?.version
-          }
+          revisions={revisions}
+          currentVersion={screenplay?.version}
           restoring={restoring}
-          onRestore={
-            handleRestore
-          }
+          onRestore={handleRestore}
         />
       )}
 
       {knowledge && (
         <section className="rounded-3xl border border-zinc-800 bg-zinc-900 p-8">
-
           <p className="text-xs uppercase tracking-[0.3em] text-yellow-500">
             Production Knowledge
           </p>
-
           <h2 className="mt-2 text-2xl font-bold">
             Script Context Extracted
           </h2>
-
           <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-
             <div className="rounded-2xl bg-zinc-950 p-5">
-
-              <p className="text-sm text-zinc-500">
-                Characters
-              </p>
-
-              <p className="mt-2 text-3xl font-bold">
-                {
-                  knowledge
-                    .characters
-                    .length
-                }
-              </p>
-
+              <p className="text-sm text-zinc-500">Characters</p>
+              <p className="mt-2 text-3xl font-bold">{knowledge.characters.length}</p>
             </div>
-
             <div className="rounded-2xl bg-zinc-950 p-5">
-
-              <p className="text-sm text-zinc-500">
-                Scenes
-              </p>
-
-              <p className="mt-2 text-3xl font-bold">
-                {
-                  knowledge
-                    .scenes
-                    .length
-                }
-              </p>
-
+              <p className="text-sm text-zinc-500">Scenes</p>
+              <p className="mt-2 text-3xl font-bold">{knowledge.scenes.length}</p>
             </div>
-
             <div className="rounded-2xl bg-zinc-950 p-5">
-
-              <p className="text-sm text-zinc-500">
-                Acts
-              </p>
-
-              <p className="mt-2 text-3xl font-bold">
-                {
-                  knowledge
-                    .screenplay
-                    .acts
-                }
-              </p>
-
+              <p className="text-sm text-zinc-500">Acts</p>
+              <p className="mt-2 text-3xl font-bold">{knowledge.screenplay.acts}</p>
             </div>
-
             <div className="rounded-2xl bg-zinc-950 p-5">
-
-              <p className="text-sm text-zinc-500">
-                Source
-              </p>
-
-              <p className="mt-2 text-lg font-semibold uppercase">
-                {
-                  knowledge
-                    .screenplay
-                    .source
-                }
-              </p>
-
+              <p className="text-sm text-zinc-500">Source</p>
+              <p className="mt-2 text-lg font-semibold uppercase">{knowledge.screenplay.source}</p>
             </div>
-
           </div>
-
         </section>
       )}
-
     </div>
   );
 }
@@ -433,13 +294,7 @@ export default function ScriptWorkspace({
 }: ScriptWorkspaceProps) {
   return (
     <SaveProvider>
-      <ScriptWorkspaceContent
-        productionId={
-          productionId
-        }
-      />
+      <ScriptWorkspaceContent productionId={productionId} />
     </SaveProvider>
   );
 }
-
-
