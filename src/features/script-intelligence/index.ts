@@ -4,6 +4,8 @@ export * from "./types/script-document";
 
 export * from "./types/screenplay";
 
+export * from "./types/scene-proposal";
+
 export * from "./services/script-intelligence.service";
 
 export * from "./services/script-pipeline.service";

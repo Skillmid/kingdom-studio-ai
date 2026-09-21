@@ -17,3 +17,7 @@ export {
 export {
   default as ScriptRevisionHistory,
 } from "./ScriptRevisionHistory";
+
+export {
+  default as SceneExtractionPanel,
+} from "./SceneExtractionPanel";
