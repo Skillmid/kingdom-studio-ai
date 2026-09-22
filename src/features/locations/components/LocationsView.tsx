@@ -17,10 +17,12 @@ export function LocationsView({ productionId }: LocationsViewProps) {
     locations,
     loading,
     saving,
+    syncing,
     error,
     createLocation,
     updateLocation,
     deleteLocation,
+    syncFromScreenplay,
   } = useLocations(productionId);
 
   const [formOpen, setFormOpen] = useState(false);
@@ -39,6 +41,26 @@ export function LocationsView({ productionId }: LocationsViewProps) {
     setFormMode("edit");
     setSelectedLocation(location);
     setFormOpen(true);
+  }
+
+  async function handleSyncFromScreenplay() {
+    try {
+      const result = await syncFromScreenplay();
+
+      if (result.totalExtracted === 0) {
+        setNotification("No screenplay locations were found.");
+      } else if (result.createdCount === 0) {
+        setNotification(
+          `Screenplay analysed: ${result.totalExtracted} location${result.totalExtracted === 1 ? "" : "s"} found. All are already in the Location Bible.`
+        );
+      } else {
+        setNotification(
+          `Added ${result.createdCount} new location${result.createdCount === 1 ? "" : "s"} from the screenplay.`
+        );
+      }
+    } catch {
+      // Hook exposes error state.
+    }
   }
 
   async function handleSubmit(values: {
@@ -79,13 +101,29 @@ export function LocationsView({ productionId }: LocationsViewProps) {
           </p>
         </div>
 
-        <button
-          type="button"
-          onClick={openCreate}
-          className="rounded-xl bg-yellow-500 px-4 py-3 text-sm font-semibold text-black transition hover:opacity-90"
-        >
-          Add Location
-        </button>
+        <div className="flex flex-col gap-2 sm:flex-row">
+          <button
+            type="button"
+            onClick={handleSyncFromScreenplay}
+            disabled={syncing}
+            className="rounded-xl border border-yellow-500/50 bg-yellow-500/10 px-4 py-3 text-sm font-semibold text-yellow-400 transition hover:bg-yellow-500/20 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {syncing ? "Syncing..." : "Sync from Screenplay"}
+          </button>
+
+          <button
+            type="button"
+            onClick={openCreate}
+            className="rounded-xl bg-yellow-500 px-4 py-3 text-sm font-semibold text-black transition hover:opacity-90"
+          >
+            Add Location
+          </button>
+        </div>
+      </div>
+
+      <div className="rounded-xl border border-zinc-800 bg-zinc-950/70 px-4 py-3 text-sm text-zinc-400">
+        <span className="font-semibold text-white">Screenplay-driven workflow:</span>{" "}
+        sync scene headings into the Location Bible, then open and refine each location manually. Existing locations are never duplicated or overwritten.
       </div>
 
       {error && (
