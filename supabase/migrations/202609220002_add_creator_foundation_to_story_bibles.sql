@@ -2,16 +2,16 @@
 -- Creator Foundation fields for Story Bible
 -- Keeps the filmmaker's burden and human problem available to every downstream AI workflow.
 
-alter table public.story_bibles
-  add column if not exists burden text,
-  add column if not exists truth text,
-  add column if not exists human_problem text;
+ALTER TABLE IF EXISTS public.story_bibles
+  ADD COLUMN IF NOT EXISTS burden TEXT,
+  ADD COLUMN IF NOT EXISTS truth TEXT,
+  ADD COLUMN IF NOT EXISTS human_problem TEXT;
 
-comment on column public.story_bibles.burden is
-  'The burden or conviction the filmmaker feels compelled to communicate.';
+COMMENT ON COLUMN public.story_bibles.burden IS
+  'The burden or conviction the filmmaker feels compelled to communicate through the story.';
 
-comment on column public.story_bibles.truth is
+COMMENT ON COLUMN public.story_bibles.truth IS
   'The truth the filmmaker wants the audience to encounter through the story.';
 
-comment on column public.story_bibles.human_problem is
+COMMENT ON COLUMN public.story_bibles.human_problem IS
   'The real human struggle through which the truth is dramatized.';
