@@ -2,6 +2,8 @@
 
 import { useEffect, useMemo, useState } from "react";
 
+import type { Location } from "@/features/locations/types/location";
+
 import type { Scene, SceneStatus } from "../types/scene";
 import { sceneSchema } from "../validation/scene.schema";
 
@@ -11,6 +13,8 @@ interface SceneFormDialogProps {
   productionId: string;
   nextNumber: number;
   scene?: Scene | null;
+  locations: Location[];
+  locationsLoading?: boolean;
   saving?: boolean;
   onClose: () => void;
   onSubmit: (values: {
@@ -19,6 +23,7 @@ interface SceneFormDialogProps {
     heading: string;
     summary?: string;
     characterIds: string[];
+    locationId?: string;
     status: SceneStatus;
     progress: number;
   }) => Promise<void>;
@@ -36,6 +41,8 @@ export default function SceneFormDialog({
   productionId,
   nextNumber,
   scene,
+  locations,
+  locationsLoading = false,
   saving = false,
   onClose,
   onSubmit,
@@ -43,6 +50,7 @@ export default function SceneFormDialog({
   const [number, setNumber] = useState(String(nextNumber));
   const [heading, setHeading] = useState("");
   const [summary, setSummary] = useState("");
+  const [locationId, setLocationId] = useState("");
   const [status, setStatus] = useState<SceneStatus>("draft");
   const [progress, setProgress] = useState("0");
   const [fieldError, setFieldError] = useState<string | null>(null);
@@ -56,12 +64,14 @@ export default function SceneFormDialog({
       setNumber(String(scene.number));
       setHeading(scene.heading);
       setSummary(scene.summary ?? "");
+      setLocationId(scene.locationId ?? "");
       setStatus(scene.status);
       setProgress(String(scene.progress));
     } else {
       setNumber(String(nextNumber));
       setHeading("");
       setSummary("");
+      setLocationId("");
       setStatus("draft");
       setProgress("0");
     }
@@ -89,7 +99,7 @@ export default function SceneFormDialog({
       heading,
       summary: summary.trim() ? summary.trim() : undefined,
       characterIds: scene?.characterIds ?? [],
-      locationId: scene?.locationId,
+      locationId: locationId || undefined,
       status,
       progress: Number.isFinite(parsedProgress) ? parsedProgress : NaN,
     };
@@ -108,6 +118,7 @@ export default function SceneFormDialog({
       heading: result.data.heading,
       summary: result.data.summary,
       characterIds: result.data.characterIds,
+      locationId: result.data.locationId,
       status: result.data.status,
       progress: result.data.progress,
     });
@@ -179,6 +190,32 @@ export default function SceneFormDialog({
               className="w-full rounded-xl border border-zinc-700 bg-zinc-900 px-4 py-3 text-sm text-white outline-none placeholder:text-zinc-600 focus:border-yellow-500"
               autoFocus
             />
+          </div>
+
+          <div>
+            <label className="mb-2 block text-sm font-medium text-zinc-300">
+              Location
+            </label>
+            <select
+              value={locationId}
+              onChange={(event) => setLocationId(event.target.value)}
+              disabled={locationsLoading}
+              className="w-full rounded-xl border border-zinc-700 bg-zinc-900 px-4 py-3 text-sm text-white outline-none focus:border-yellow-500 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              <option value="">
+                {locationsLoading ? "Loading locations..." : "No location selected"}
+              </option>
+              {locations.map((location) => (
+                <option key={location.id} value={location.id}>
+                  {location.name}
+                </option>
+              ))}
+            </select>
+            {!locationsLoading && locations.length === 0 && (
+              <p className="mt-2 text-xs text-zinc-500">
+                Create a location first from the Locations section.
+              </p>
+            )}
           </div>
 
           <div>
