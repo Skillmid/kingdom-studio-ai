@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 
+import { characterRepository } from "@/features/characters/repositories/character.repository";
 import { locationRepository } from "@/features/locations/repositories/location.repository";
 import { sceneExtractor } from "@/features/import-engine/extractors/scene.extractor";
 import { screenplayRepository } from "@/features/script-intelligence/repositories/screenplay.repository";
@@ -11,11 +12,18 @@ import type { Scene } from "../types/scene";
 
 function normaliseLocationName(value: string): string {
   return value
-    .replace(/\s+-\s+(?:DAY|NIGHT|MORNING|AFTERNOON|EVENING|DAWN|DUSK|LATER|CONTINUOUS|SAME)\s*$/i, "")
-    .replace(/\s+(?:DAY|NIGHT|MORNING|AFTERNOON|EVENING|DAWN|DUSK|LATER|CONTINUOUS|SAME)\s*$/i, "")
+    .replace(/\s+-\s+(?:DAY|NIGHT|MORNING|AFTERNOON|EVENING|DAWN|DUSK|LATER|CONTINUOUS|SAME|SUNSET|SUNRISE)\s*$/i, "")
+    .replace(/\s+(?:DAY|NIGHT|MORNING|AFTERNOON|EVENING|DAWN|DUSK|LATER|CONTINUOUS|SAME|SUNSET|SUNRISE)\s*$/i, "")
     .replace(/\s+/g, " ")
     .trim()
     .toLowerCase();
+}
+
+function matchCharacterIds(sourceText: string, characters: Array<{ id: string; name: string }>) {
+  const source = sourceText.toLowerCase();
+  return characters
+    .filter((character) => character.name.trim().length > 1 && source.includes(character.name.trim().toLowerCase()))
+    .map((character) => character.id);
 }
 
 export function useScenes(productionId: string) {
@@ -35,12 +43,9 @@ export function useScenes(productionId: string) {
     try {
       setLoading(true);
       setError(null);
-      const data = await sceneRepository.getByProductionId(productionId);
-      setScenes(data);
+      setScenes(await sceneRepository.getByProductionId(productionId));
     } catch (err) {
-      setError(
-        err instanceof Error ? err.message : "Failed to load scenes."
-      );
+      setError(err instanceof Error ? err.message : "Failed to load scenes.");
     } finally {
       setLoading(false);
     }
@@ -54,17 +59,11 @@ export function useScenes(productionId: string) {
     try {
       setSaving(true);
       setError(null);
-
-      const created = await sceneRepository.create({
-        ...scene,
-        productionId,
-      });
-
+      const created = await sceneRepository.create({ ...scene, productionId });
       setScenes((current) => [...current, created]);
       return created;
     } catch (err) {
-      const message = err instanceof Error ? err.message : "Failed to create scene.";
-      setError(message);
+      setError(err instanceof Error ? err.message : "Failed to create scene.");
       throw err;
     } finally {
       setSaving(false);
@@ -75,15 +74,11 @@ export function useScenes(productionId: string) {
     try {
       setSaving(true);
       setError(null);
-
       const updated = await sceneRepository.update(id, updates);
-      setScenes((current) =>
-        current.map((scene) => (scene.id === id ? updated : scene))
-      );
+      setScenes((current) => current.map((scene) => (scene.id === id ? updated : scene)));
       return updated;
     } catch (err) {
-      const message = err instanceof Error ? err.message : "Failed to update scene.";
-      setError(message);
+      setError(err instanceof Error ? err.message : "Failed to update scene.");
       throw err;
     } finally {
       setSaving(false);
@@ -94,12 +89,10 @@ export function useScenes(productionId: string) {
     try {
       setSaving(true);
       setError(null);
-
       await sceneRepository.delete(id);
       setScenes((current) => current.filter((scene) => scene.id !== id));
     } catch (err) {
-      const message = err instanceof Error ? err.message : "Failed to delete scene.";
-      setError(message);
+      setError(err instanceof Error ? err.message : "Failed to delete scene.");
       throw err;
     } finally {
       setSaving(false);
@@ -110,49 +103,37 @@ export function useScenes(productionId: string) {
     createdCount: number;
     totalExtracted: number;
     linkedLocationCount: number;
+    linkedCharacterCount: number;
   }> {
-    if (!productionId) {
-      throw new Error("Production ID is required.");
-    }
+    if (!productionId) throw new Error("Production ID is required.");
 
     setSyncing(true);
     setError(null);
 
     try {
       const screenplay = await screenplayRepository.getByProductionId(productionId);
-
       if (!screenplay || !screenplay.content.trim()) {
-        throw new Error(
-          "No screenplay content found for this production. Save or import a script first."
-        );
+        throw new Error("No screenplay content found for this production. Save or import a script first.");
       }
 
       const extracted = await sceneExtractor.extract(screenplay.content);
       if (extracted.length === 0) {
-        return { createdCount: 0, totalExtracted: 0, linkedLocationCount: 0 };
+        return { createdCount: 0, totalExtracted: 0, linkedLocationCount: 0, linkedCharacterCount: 0 };
       }
 
-      // Query both tables at sync time so repeated syncs are safe even if the
-      // user has multiple tabs open or the screen was stale.
-      const [existingScenes, existingLocations] = await Promise.all([
+      const [existingScenes, existingLocations, existingCharacters] = await Promise.all([
         sceneRepository.getByProductionId(productionId),
         locationRepository.getByProductionId(productionId),
+        characterRepository.getByProductionId(productionId),
       ]);
 
-      const existingNumbers = new Set(
-        existingScenes.map((scene) => scene.number)
-      );
+      const existingNumbers = new Set(existingScenes.map((scene) => scene.number));
       const locationIds = new Map(
-        existingLocations.map((location) => [
-          normaliseLocationName(location.name),
-          location.id,
-        ])
+        existingLocations.map((location) => [normaliseLocationName(location.name), location.id])
       );
 
       const newScenes = extracted.filter((scene) => {
-        if (existingNumbers.has(scene.number)) {
-          return false;
-        }
+        if (existingNumbers.has(scene.number)) return false;
         existingNumbers.add(scene.number);
         return true;
       });
@@ -163,29 +144,35 @@ export function useScenes(productionId: string) {
           createdCount: 0,
           totalExtracted: extracted.length,
           linkedLocationCount: extracted.filter((scene) =>
-            scene.locationName
-              ? locationIds.has(normaliseLocationName(scene.locationName))
-              : false
+            scene.locationName ? locationIds.has(normaliseLocationName(scene.locationName)) : false
           ).length,
+          linkedCharacterCount: existingScenes.reduce((count, scene) => count + scene.characterIds.length, 0),
         };
       }
 
       let linkedLocationCount = 0;
+      let linkedCharacterCount = 0;
+
       const toInsert: Partial<Scene>[] = newScenes.map((scene) => {
         const locationId = scene.locationName
           ? locationIds.get(normaliseLocationName(scene.locationName))
           : undefined;
+        const characterIds = matchCharacterIds(scene.sourceText, existingCharacters);
 
-        if (locationId) {
-          linkedLocationCount += 1;
-        }
+        if (locationId) linkedLocationCount += 1;
+        linkedCharacterCount += characterIds.length;
 
         return {
           productionId,
           number: scene.number,
           heading: scene.heading,
+          sceneType: scene.sceneType,
+          timeOfDay: scene.timeOfDay,
           summary: scene.summary || undefined,
-          characterIds: [],
+          action: scene.action || undefined,
+          dialogue: scene.dialogue || undefined,
+          sourceText: scene.sourceText || undefined,
+          characterIds,
           locationId,
           status: "draft",
           progress: 10,
@@ -199,11 +186,10 @@ export function useScenes(productionId: string) {
         createdCount: created.length,
         totalExtracted: extracted.length,
         linkedLocationCount,
+        linkedCharacterCount,
       };
     } catch (err) {
-      const message =
-        err instanceof Error ? err.message : "Failed to sync scenes from screenplay.";
-      setError(message);
+      setError(err instanceof Error ? err.message : "Failed to sync scenes from screenplay.");
       throw err;
     } finally {
       setSyncing(false);
