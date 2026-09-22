@@ -44,10 +44,7 @@ export function ScenesView({ productionId }: ScenesViewProps) {
   );
 
   const nextNumber = useMemo(() => {
-    if (orderedScenes.length === 0) {
-      return 1;
-    }
-
+    if (orderedScenes.length === 0) return 1;
     return Math.max(...orderedScenes.map((scene) => scene.number)) + 1;
   }, [orderedScenes]);
 
@@ -76,11 +73,17 @@ export function ScenesView({ productionId }: ScenesViewProps) {
         setNotification("No screenplay scene headings were found.");
       } else if (result.createdCount === 0) {
         setNotification(
-          `Screenplay analysed: ${result.totalExtracted} scene${result.totalExtracted === 1 ? "" : "s"} found. All are already in Scene Planner.`
+          `Screenplay analysed: ${result.totalExtracted} scene${result.totalExtracted === 1 ? "" : "s"} found. All are already in Scene Planner.` +
+            (result.linkedLocationCount > 0
+              ? ` ${result.linkedLocationCount} scene${result.linkedLocationCount === 1 ? "" : "s"} match existing locations.`
+              : "")
         );
       } else {
         setNotification(
-          `Added ${result.createdCount} new scene${result.createdCount === 1 ? "" : "s"} from the screenplay.`
+          `Added ${result.createdCount} new scene${result.createdCount === 1 ? "" : "s"} from the screenplay.` +
+            (result.linkedLocationCount > 0
+              ? ` Linked ${result.linkedLocationCount} scene${result.linkedLocationCount === 1 ? "" : "s"} to existing locations.`
+              : "")
         );
       }
     } catch {
@@ -100,28 +103,10 @@ export function ScenesView({ productionId }: ScenesViewProps) {
   }) {
     try {
       if (formMode === "edit" && selectedScene) {
-        await updateScene(selectedScene.id, {
-          productionId: values.productionId,
-          number: values.number,
-          heading: values.heading,
-          summary: values.summary,
-          characterIds: values.characterIds,
-          locationId: values.locationId,
-          status: values.status,
-          progress: values.progress,
-        });
+        await updateScene(selectedScene.id, values);
         setNotification("Scene saved.");
       } else {
-        await createScene({
-          productionId: values.productionId,
-          number: values.number,
-          heading: values.heading,
-          summary: values.summary,
-          characterIds: values.characterIds,
-          locationId: values.locationId,
-          status: values.status,
-          progress: values.progress,
-        });
+        await createScene(values);
         setNotification("Scene created.");
       }
 
@@ -226,10 +211,7 @@ export function ScenesView({ productionId }: ScenesViewProps) {
         loading={saving}
         onClose={() => setSceneToDelete(null)}
         onDelete={async () => {
-          if (!sceneToDelete) {
-            return;
-          }
-
+          if (!sceneToDelete) return;
           await deleteScene(sceneToDelete.id);
           setNotification("Scene deleted.");
         }}
