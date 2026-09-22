@@ -9,12 +9,39 @@
 -- =====================================================
 
 -- -----------------------------------------------------
--- Story Bible creator-foundation fields
+-- Story Bible foundation fields
 -- -----------------------------------------------------
 ALTER TABLE IF EXISTS public.story_bibles
     ADD COLUMN IF NOT EXISTS burden TEXT,
     ADD COLUMN IF NOT EXISTS truth TEXT,
-    ADD COLUMN IF NOT EXISTS human_problem TEXT;
+    ADD COLUMN IF NOT EXISTS human_problem TEXT,
+    ADD COLUMN IF NOT EXISTS title TEXT,
+    ADD COLUMN IF NOT EXISTS logline TEXT,
+    ADD COLUMN IF NOT EXISTS synopsis TEXT,
+    ADD COLUMN IF NOT EXISTS theme TEXT,
+    ADD COLUMN IF NOT EXISTS core_message TEXT,
+    ADD COLUMN IF NOT EXISTS scripture_foundation TEXT,
+    ADD COLUMN IF NOT EXISTS kingdom_objective TEXT,
+    ADD COLUMN IF NOT EXISTS target_audience TEXT,
+    ADD COLUMN IF NOT EXISTS genre TEXT,
+    ADD COLUMN IF NOT EXISTS tone TEXT,
+    ADD COLUMN IF NOT EXISTS language TEXT,
+    ADD COLUMN IF NOT EXISTS visual_style TEXT,
+    ADD COLUMN IF NOT EXISTS aspect_ratio TEXT,
+    ADD COLUMN IF NOT EXISTS duration_minutes INTEGER,
+    ADD COLUMN IF NOT EXISTS universe TEXT,
+    ADD COLUMN IF NOT EXISTS time_period TEXT,
+    ADD COLUMN IF NOT EXISTS primary_location TEXT,
+    ADD COLUMN IF NOT EXISTS beginning TEXT,
+    ADD COLUMN IF NOT EXISTS conflict TEXT,
+    ADD COLUMN IF NOT EXISTS midpoint TEXT,
+    ADD COLUMN IF NOT EXISTS climax TEXT,
+    ADD COLUMN IF NOT EXISTS ending TEXT,
+    ADD COLUMN IF NOT EXISTS ai_context TEXT,
+    ADD COLUMN IF NOT EXISTS ai_rules TEXT,
+    ADD COLUMN IF NOT EXISTS forbidden_elements TEXT,
+    ADD COLUMN IF NOT EXISTS preferred_vocabulary TEXT,
+    ADD COLUMN IF NOT EXISTS visual_consistency TEXT;
 
 -- -----------------------------------------------------
 -- Scenes
