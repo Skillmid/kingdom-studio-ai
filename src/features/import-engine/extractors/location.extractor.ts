@@ -1,4 +1,7 @@
-import { parseSceneHeading } from "../scene-heading";
+import {
+  parseSceneHeading,
+  splitScreenplayLines,
+} from "../scene-heading";
 
 export interface LocationExtraction {
   name: string;
@@ -15,11 +18,8 @@ export class LocationExtractor {
 
     const locations = new Map<string, LocationExtraction>();
 
-    for (const line of screenplay.split(/\r?\n/)) {
-      const trimmed = line.trim();
-      if (!trimmed) continue;
-
-      const heading = parseSceneHeading(trimmed);
+    for (const line of splitScreenplayLines(screenplay)) {
+      const heading = parseSceneHeading(line);
       if (!heading) continue;
 
       const key = heading.locationName.toLowerCase();
