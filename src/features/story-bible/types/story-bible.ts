@@ -9,6 +9,12 @@ export interface StoryBible {
 
   synopsis: string | null;
 
+  burden: string | null;
+
+  truth: string | null;
+
+  human_problem: string | null;
+
   theme: string | null;
 
   core_message: string | null;
