@@ -20,26 +20,49 @@ const SCREENPLAY_TRANSITIONS = new Set([
   "CONTINUED",
   "SCENE START",
   "SCENE END",
+  "MONTAGE",
+  "TITLE CARD",
+  "END TITLE CARD",
 ]);
 
 const NON_CHARACTER_PATTERNS = [
-  /^(INT\.|EXT\.|EXTERIOR|INTERIOR|INT\/EXT|EXT\/INT)\b/i,
+  // Standard screenplay scene headings, including title-case headings.
+  /^(INT|EXT|INTERIOR|EXTERIOR|INT\/EXT|EXT\/INT|I\/E)\s*(\.|\/|-|–|—)\s*/i,
   /^SCENE\s+\d+/i,
   /^ACT\s+[IVXLCDM\d]+/i,
   /^EPISODE\s+\d+/i,
   /^PAGE\s+\d+/i,
+  /^(TITLE|SUBJECT|LOCATION|TIME|SETTING)\s*:/i,
   /^\(.*\)$/,
 ];
+
+const SCREENPLAY_CHARACTER_LABELS = new Set([
+  "V.O.",
+  "O.S.",
+  "O.C.",
+  "CONT'D",
+  "CONT’D",
+]);
 
 function sanitizeCharacterName(rawName: string): string {
   return rawName
     .replace(/\s*\([^)]*\)\s*$/g, "")
-    .replace(/^["'\s]+|["'\s]+$/g, "")
+    .replace(/^["'\s]+|["'\s:]+$/g, "")
     .replace(/^(MR\.|MS\.|MRS\.|DR\.|REV\.|PASTOR|EVANGELIST)\s+/i, "")
     .trim();
 }
 
-function isValidCharacterCue(line: string): boolean {
+function isSceneHeading(line: string): boolean {
+  const trimmed = line.trim();
+
+  if (!trimmed) {
+    return false;
+  }
+
+  return NON_CHARACTER_PATTERNS.some((pattern) => pattern.test(trimmed));
+}
+
+function isValidCharacterCue(line: string, nextMeaningfulLine?: string): boolean {
   const trimmed = line.trim();
 
   if (!trimmed || trimmed.length < 2 || trimmed.length > 35) {
@@ -50,10 +73,12 @@ function isValidCharacterCue(line: string): boolean {
     return false;
   }
 
-  for (const pattern of NON_CHARACTER_PATTERNS) {
-    if (pattern.test(trimmed)) {
-      return false;
-    }
+  if (SCREENPLAY_CHARACTER_LABELS.has(trimmed.toUpperCase())) {
+    return false;
+  }
+
+  if (isSceneHeading(trimmed)) {
+    return false;
   }
 
   const baseName = sanitizeCharacterName(trimmed);
@@ -61,12 +86,43 @@ function isValidCharacterCue(line: string): boolean {
     return false;
   }
 
+  if (/[.!?]$/.test(baseName)) {
+    return false;
+  }
+
+  // The safest screenplay signal is an uppercase character cue. This also
+  // prevents indented scene headings such as "Ext. University Campus" from
+  // being mistaken for characters.
   const isAllUpper =
     baseName === baseName.toUpperCase() && /[A-Z]/.test(baseName);
-  const isPaddedHeader =
-    /^\s{10,30}[A-Z]/.test(line) && !line.includes(":");
 
-  return (isAllUpper || isPaddedHeader) && !/[.!?]$/.test(baseName);
+  if (isAllUpper) {
+    return true;
+  }
+
+  // Support plain-text scripts that use "David:" or "David (V.O.)" rather
+  // than conventional uppercase screenplay formatting, but only when the
+  // following meaningful line looks like dialogue/parenthetical content.
+  const hasExplicitCueMarker = /:\s*$/.test(trimmed);
+  if (hasExplicitCueMarker && nextMeaningfulLine) {
+    return true;
+  }
+
+  return false;
+}
+
+function getNextMeaningfulLine(lines: string[], index: number): string | undefined {
+  for (let i = index + 1; i < lines.length; i++) {
+    const candidate = lines[i].trim();
+
+    if (!candidate) {
+      continue;
+    }
+
+    return candidate;
+  }
+
+  return undefined;
 }
 
 export class CharacterExtractor {
@@ -79,37 +135,33 @@ export class CharacterExtractor {
     const characterCounts = new Map<string, number>();
     const characterDescriptions = new Map<string, string>();
 
-    let lastDetectedCharacter: string | null = null;
-
     for (let i = 0; i < lines.length; i++) {
       const line = lines[i];
       const trimmed = line.trim();
+      const nextMeaningfulLine = getNextMeaningfulLine(lines, i);
 
-      if (isValidCharacterCue(line)) {
+      if (isValidCharacterCue(line, nextMeaningfulLine)) {
         const charName = sanitizeCharacterName(trimmed).toUpperCase();
+
+        if (!charName) {
+          continue;
+        }
 
         const currentCount = characterCounts.get(charName) ?? 0;
         characterCounts.set(charName, currentCount + 1);
-        lastDetectedCharacter = charName;
 
         if (i > 0 && !characterDescriptions.has(charName)) {
           const prevLine = lines[i - 1].trim();
+
           if (
             prevLine &&
-            !isValidCharacterCue(lines[i - 1]) &&
+            !isValidCharacterCue(lines[i - 1], trimmed) &&
             !prevLine.startsWith("(") &&
             prevLine.length > 20
           ) {
-            characterDescriptions.set(
-              charName,
-              prevLine.slice(0, 150)
-            );
+            characterDescriptions.set(charName, prevLine.slice(0, 150));
           }
         }
-      } else if (trimmed.startsWith("(") && trimmed.endsWith(")")) {
-        continue;
-      } else if (trimmed.length === 0) {
-        lastDetectedCharacter = null;
       }
     }
 
