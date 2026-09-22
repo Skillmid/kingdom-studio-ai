@@ -2,6 +2,8 @@
 
 import { useMemo, useState } from "react";
 
+import { useLocations } from "@/features/locations/hooks/use-locations";
+
 import { useScenes } from "../hooks/use-scenes";
 import type { Scene } from "../types/scene";
 import DeleteSceneDialog from "./DeleteSceneDialog";
@@ -22,6 +24,11 @@ export function ScenesView({ productionId }: ScenesViewProps) {
     updateScene,
     deleteScene,
   } = useScenes(productionId);
+  const {
+    locations,
+    loading: locationsLoading,
+    error: locationsError,
+  } = useLocations(productionId);
 
   const [formOpen, setFormOpen] = useState(false);
   const [formMode, setFormMode] = useState<"create" | "edit">("create");
@@ -42,6 +49,11 @@ export function ScenesView({ productionId }: ScenesViewProps) {
     return Math.max(...orderedScenes.map((scene) => scene.number)) + 1;
   }, [orderedScenes]);
 
+  const locationNames = useMemo(
+    () => new Map(locations.map((location) => [location.id, location.name])),
+    [locations],
+  );
+
   function openCreate() {
     setFormMode("create");
     setSelectedScene(null);
@@ -60,6 +72,7 @@ export function ScenesView({ productionId }: ScenesViewProps) {
     heading: string;
     summary?: string;
     characterIds: string[];
+    locationId?: string;
     status: Scene["status"];
     progress: number;
   }) {
@@ -71,7 +84,7 @@ export function ScenesView({ productionId }: ScenesViewProps) {
           heading: values.heading,
           summary: values.summary,
           characterIds: values.characterIds,
-          locationId: selectedScene.locationId,
+          locationId: values.locationId,
           status: values.status,
           progress: values.progress,
         });
@@ -83,6 +96,7 @@ export function ScenesView({ productionId }: ScenesViewProps) {
           heading: values.heading,
           summary: values.summary,
           characterIds: values.characterIds,
+          locationId: values.locationId,
           status: values.status,
           progress: values.progress,
         });
@@ -125,6 +139,12 @@ export function ScenesView({ productionId }: ScenesViewProps) {
         </div>
       )}
 
+      {locationsError && (
+        <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-300">
+          Locations could not be loaded. Scenes can still be managed without a location.
+        </div>
+      )}
+
       {notification && (
         <div className="flex items-center justify-between rounded-xl border border-zinc-800 bg-zinc-900 px-4 py-3 text-sm text-zinc-300">
           <span>{notification}</span>
@@ -143,6 +163,7 @@ export function ScenesView({ productionId }: ScenesViewProps) {
         loading={loading}
         onEdit={openEdit}
         onDelete={setSceneToDelete}
+        locationNames={locationNames}
       />
 
       <SceneFormDialog
@@ -151,6 +172,8 @@ export function ScenesView({ productionId }: ScenesViewProps) {
         productionId={productionId}
         nextNumber={nextNumber}
         scene={selectedScene}
+        locations={locations}
+        locationsLoading={locationsLoading}
         saving={saving}
         onClose={() => {
           setFormOpen(false);
