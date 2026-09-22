@@ -37,7 +37,7 @@ export class SceneExtractor {
       if (heading) {
         flush();
 
-        const explicitNumber = trimmed.match(/^(?:SCENE\s*#?\s*)?(\d+)[\s.)-]+/i);
+        const explicitNumber = trimmed.match(/^(?:SCENE\s*#?\s*)?(\d+)[\s:.)-]+/i);
         const number = explicitNumber ? Number(explicitNumber[1]) : nextNumber;
 
         current = {
