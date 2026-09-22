@@ -26,7 +26,6 @@ const SCREENPLAY_TRANSITIONS = new Set([
 ]);
 
 const NON_CHARACTER_PATTERNS = [
-  // Standard screenplay scene headings, including title-case headings.
   /^(INT|EXT|INTERIOR|EXTERIOR|INT\/EXT|EXT\/INT|I\/E)\s*(\.|\/|-|–|—)\s*/i,
   /^SCENE\s+\d+/i,
   /^ACT\s+[IVXLCDM\d]+/i,
@@ -62,6 +61,22 @@ function isSceneHeading(line: string): boolean {
   return NON_CHARACTER_PATTERNS.some((pattern) => pattern.test(trimmed));
 }
 
+function isLikelyDocumentTitle(line: string, index: number, firstMeaningfulIndex: number): boolean {
+  if (index !== firstMeaningfulIndex) {
+    return false;
+  }
+
+  const trimmed = line.trim();
+  if (!trimmed || trimmed.length > 80 || isSceneHeading(trimmed)) {
+    return false;
+  }
+
+  // Screenplay documents commonly begin with a title in title case. Do not
+  // treat that document title as a character cue merely because it is short.
+  const words = trimmed.split(/\s+/);
+  return words.length >= 2 && words.length <= 8 && !/:$/.test(trimmed);
+}
+
 function isValidCharacterCue(line: string, nextMeaningfulLine?: string): boolean {
   const trimmed = line.trim();
 
@@ -90,9 +105,7 @@ function isValidCharacterCue(line: string, nextMeaningfulLine?: string): boolean
     return false;
   }
 
-  // The safest screenplay signal is an uppercase character cue. This also
-  // prevents indented scene headings such as "Ext. University Campus" from
-  // being mistaken for characters.
+  // The safest screenplay signal is an uppercase character cue.
   const isAllUpper =
     baseName === baseName.toUpperCase() && /[A-Z]/.test(baseName);
 
@@ -101,8 +114,7 @@ function isValidCharacterCue(line: string, nextMeaningfulLine?: string): boolean
   }
 
   // Support plain-text scripts that use "David:" or "David (V.O.)" rather
-  // than conventional uppercase screenplay formatting, but only when the
-  // following meaningful line looks like dialogue/parenthetical content.
+  // than conventional uppercase screenplay formatting.
   const hasExplicitCueMarker = /:\s*$/.test(trimmed);
   if (hasExplicitCueMarker && nextMeaningfulLine) {
     return true;
@@ -132,6 +144,7 @@ export class CharacterExtractor {
     }
 
     const lines = screenplay.split(/\r?\n/);
+    const firstMeaningfulIndex = lines.findIndex((line) => line.trim().length > 0);
     const characterCounts = new Map<string, number>();
     const characterDescriptions = new Map<string, string>();
 
@@ -140,27 +153,31 @@ export class CharacterExtractor {
       const trimmed = line.trim();
       const nextMeaningfulLine = getNextMeaningfulLine(lines, i);
 
-      if (isValidCharacterCue(line, nextMeaningfulLine)) {
-        const charName = sanitizeCharacterName(trimmed).toUpperCase();
+      if (
+        isLikelyDocumentTitle(line, i, firstMeaningfulIndex) ||
+        !isValidCharacterCue(line, nextMeaningfulLine)
+      ) {
+        continue;
+      }
 
-        if (!charName) {
-          continue;
-        }
+      const charName = sanitizeCharacterName(trimmed).toUpperCase();
+      if (!charName) {
+        continue;
+      }
 
-        const currentCount = characterCounts.get(charName) ?? 0;
-        characterCounts.set(charName, currentCount + 1);
+      const currentCount = characterCounts.get(charName) ?? 0;
+      characterCounts.set(charName, currentCount + 1);
 
-        if (i > 0 && !characterDescriptions.has(charName)) {
-          const prevLine = lines[i - 1].trim();
+      if (i > 0 && !characterDescriptions.has(charName)) {
+        const prevLine = lines[i - 1].trim();
 
-          if (
-            prevLine &&
-            !isValidCharacterCue(lines[i - 1], trimmed) &&
-            !prevLine.startsWith("(") &&
-            prevLine.length > 20
-          ) {
-            characterDescriptions.set(charName, prevLine.slice(0, 150));
-          }
+        if (
+          prevLine &&
+          !isValidCharacterCue(lines[i - 1], trimmed) &&
+          !prevLine.startsWith("(") &&
+          prevLine.length > 20
+        ) {
+          characterDescriptions.set(charName, prevLine.slice(0, 150));
         }
       }
     }
