@@ -1,22 +1,10 @@
+import { parseSceneHeading } from "../scene-heading";
+
 export interface ExtractedScene {
   number: number;
   heading: string;
   summary: string;
   locationName?: string;
-}
-
-const SCENE_HEADING_REGEX =
-  /^(?:\d+[\s.)-]+)?(?:INT\.|EXT\.|INTERIOR|EXTERIOR|INT\/EXT|EXT\/INT|I\/E)\s*(?:-|–|—|:)?\s*(.+)$/i;
-
-function extractLocationName(heading: string): string | undefined {
-  const match = heading.match(SCENE_HEADING_REGEX);
-  if (!match?.[1]) return undefined;
-
-  return match[1]
-    .replace(/\s+-\s+(?:DAY|NIGHT|MORNING|AFTERNOON|EVENING|DAWN|DUSK|LATER|CONTINUOUS|SAME)\s*$/i, "")
-    .replace(/\s+(?:DAY|NIGHT|MORNING|AFTERNOON|EVENING|DAWN|DUSK|LATER|CONTINUOUS|SAME)\s*$/i, "")
-    .replace(/\s+/g, " ")
-    .trim();
 }
 
 export class SceneExtractor {
@@ -44,19 +32,19 @@ export class SceneExtractor {
 
     for (const line of lines) {
       const trimmed = line.trim();
-      const headingMatch = trimmed.match(SCENE_HEADING_REGEX);
+      const heading = parseSceneHeading(trimmed);
 
-      if (headingMatch) {
+      if (heading) {
         flush();
 
-        const explicitNumber = trimmed.match(/^(\d+)[\s.)-]+/);
+        const explicitNumber = trimmed.match(/^(?:SCENE\s*#?\s*)?(\d+)[\s.)-]+/i);
         const number = explicitNumber ? Number(explicitNumber[1]) : nextNumber;
 
         current = {
           number,
-          heading: trimmed,
+          heading: heading.heading,
           summary: "",
-          locationName: extractLocationName(trimmed),
+          locationName: heading.locationName,
         };
 
         nextNumber = Math.max(nextNumber, number + 1);
@@ -65,8 +53,6 @@ export class SceneExtractor {
 
       if (!current || !trimmed) continue;
 
-      // Keep action/description lines as the initial scene summary while
-      // ignoring screenplay character cues and parentheticals.
       if (/^\(?[A-Z][A-Z0-9 .'-]{1,35}\)?$/.test(trimmed)) continue;
       if (/^\(.*\)$/.test(trimmed)) continue;
       if (/^(FADE IN|FADE OUT|CUT TO|DISSOLVE TO|SMASH CUT TO)\b/i.test(trimmed)) continue;
