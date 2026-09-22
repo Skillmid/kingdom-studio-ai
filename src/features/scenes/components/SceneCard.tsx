@@ -4,6 +4,7 @@ import type { Scene, SceneStatus } from "../types/scene";
 
 interface SceneCardProps {
   scene: Scene;
+  locationName?: string;
   onEdit: (scene: Scene) => void;
   onDelete: (scene: Scene) => void;
 }
@@ -29,6 +30,7 @@ function formatStatus(status: SceneStatus) {
 
 export default function SceneCard({
   scene,
+  locationName,
   onEdit,
   onDelete,
 }: SceneCardProps) {
@@ -50,6 +52,17 @@ export default function SceneCard({
           {formatStatus(scene.status)}
         </span>
       </div>
+
+      {locationName && (
+        <div className="mt-4 rounded-xl border border-zinc-800 bg-zinc-950/70 px-3 py-2">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-zinc-500">
+            Location
+          </p>
+          <p className="mt-1 truncate text-sm font-medium text-zinc-200">
+            {locationName}
+          </p>
+        </div>
+      )}
 
       <p className="mt-4 line-clamp-3 text-sm leading-6 text-zinc-400">
         {scene.summary?.trim() || "No summary yet."}
