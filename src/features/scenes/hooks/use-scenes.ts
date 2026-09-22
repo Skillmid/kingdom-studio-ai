@@ -2,11 +2,21 @@
 
 import { useCallback, useEffect, useState } from "react";
 
+import { locationRepository } from "@/features/locations/repositories/location.repository";
 import { sceneExtractor } from "@/features/import-engine/extractors/scene.extractor";
 import { screenplayRepository } from "@/features/script-intelligence/repositories/screenplay.repository";
 
 import { sceneRepository } from "../repositories/scene.repository";
 import type { Scene } from "../types/scene";
+
+function normaliseLocationName(value: string): string {
+  return value
+    .replace(/\s+-\s+(?:DAY|NIGHT|MORNING|AFTERNOON|EVENING|DAWN|DUSK|LATER|CONTINUOUS|SAME)\s*$/i, "")
+    .replace(/\s+(?:DAY|NIGHT|MORNING|AFTERNOON|EVENING|DAWN|DUSK|LATER|CONTINUOUS|SAME)\s*$/i, "")
+    .replace(/\s+/g, " ")
+    .trim()
+    .toLowerCase();
+}
 
 export function useScenes(productionId: string) {
   const [scenes, setScenes] = useState<Scene[]>([]);
@@ -25,15 +35,11 @@ export function useScenes(productionId: string) {
     try {
       setLoading(true);
       setError(null);
-
       const data = await sceneRepository.getByProductionId(productionId);
-
       setScenes(data);
     } catch (err) {
       setError(
-        err instanceof Error
-          ? err.message
-          : "Failed to load scenes."
+        err instanceof Error ? err.message : "Failed to load scenes."
       );
     } finally {
       setLoading(false);
@@ -55,14 +61,9 @@ export function useScenes(productionId: string) {
       });
 
       setScenes((current) => [...current, created]);
-
       return created;
     } catch (err) {
-      const message =
-        err instanceof Error
-          ? err.message
-          : "Failed to create scene.";
-
+      const message = err instanceof Error ? err.message : "Failed to create scene.";
       setError(message);
       throw err;
     } finally {
@@ -70,29 +71,18 @@ export function useScenes(productionId: string) {
     }
   }
 
-  async function updateScene(
-    id: string,
-    updates: Partial<Scene>
-  ) {
+  async function updateScene(id: string, updates: Partial<Scene>) {
     try {
       setSaving(true);
       setError(null);
 
       const updated = await sceneRepository.update(id, updates);
-
       setScenes((current) =>
-        current.map((scene) =>
-          scene.id === id ? updated : scene
-        )
+        current.map((scene) => (scene.id === id ? updated : scene))
       );
-
       return updated;
     } catch (err) {
-      const message =
-        err instanceof Error
-          ? err.message
-          : "Failed to update scene.";
-
+      const message = err instanceof Error ? err.message : "Failed to update scene.";
       setError(message);
       throw err;
     } finally {
@@ -106,16 +96,9 @@ export function useScenes(productionId: string) {
       setError(null);
 
       await sceneRepository.delete(id);
-
-      setScenes((current) =>
-        current.filter((scene) => scene.id !== id)
-      );
+      setScenes((current) => current.filter((scene) => scene.id !== id));
     } catch (err) {
-      const message =
-        err instanceof Error
-          ? err.message
-          : "Failed to delete scene.";
-
+      const message = err instanceof Error ? err.message : "Failed to delete scene.";
       setError(message);
       throw err;
     } finally {
@@ -126,6 +109,7 @@ export function useScenes(productionId: string) {
   async function syncFromScreenplay(): Promise<{
     createdCount: number;
     totalExtracted: number;
+    linkedLocationCount: number;
   }> {
     if (!productionId) {
       throw new Error("Production ID is required.");
@@ -135,8 +119,7 @@ export function useScenes(productionId: string) {
     setError(null);
 
     try {
-      const screenplay =
-        await screenplayRepository.getByProductionId(productionId);
+      const screenplay = await screenplayRepository.getByProductionId(productionId);
 
       if (!screenplay || !screenplay.content.trim()) {
         throw new Error(
@@ -145,42 +128,81 @@ export function useScenes(productionId: string) {
       }
 
       const extracted = await sceneExtractor.extract(screenplay.content);
-      const existingNumbers = new Set(scenes.map((scene) => scene.number));
-      const newScenes = extracted.filter(
-        (scene) => !existingNumbers.has(scene.number)
+      if (extracted.length === 0) {
+        return { createdCount: 0, totalExtracted: 0, linkedLocationCount: 0 };
+      }
+
+      // Query both tables at sync time so repeated syncs are safe even if the
+      // user has multiple tabs open or the screen was stale.
+      const [existingScenes, existingLocations] = await Promise.all([
+        sceneRepository.getByProductionId(productionId),
+        locationRepository.getByProductionId(productionId),
+      ]);
+
+      const existingNumbers = new Set(
+        existingScenes.map((scene) => scene.number)
+      );
+      const locationIds = new Map(
+        existingLocations.map((location) => [
+          normaliseLocationName(location.name),
+          location.id,
+        ])
       );
 
+      const newScenes = extracted.filter((scene) => {
+        if (existingNumbers.has(scene.number)) {
+          return false;
+        }
+        existingNumbers.add(scene.number);
+        return true;
+      });
+
       if (newScenes.length === 0) {
+        setScenes(existingScenes);
         return {
           createdCount: 0,
           totalExtracted: extracted.length,
+          linkedLocationCount: extracted.filter((scene) =>
+            scene.locationName
+              ? locationIds.has(normaliseLocationName(scene.locationName))
+              : false
+          ).length,
         };
       }
 
-      const toInsert: Partial<Scene>[] = newScenes.map((scene) => ({
-        productionId,
-        number: scene.number,
-        heading: scene.heading,
-        summary: scene.summary || undefined,
-        characterIds: [],
-        status: "draft",
-        progress: 10,
-      }));
+      let linkedLocationCount = 0;
+      const toInsert: Partial<Scene>[] = newScenes.map((scene) => {
+        const locationId = scene.locationName
+          ? locationIds.get(normaliseLocationName(scene.locationName))
+          : undefined;
+
+        if (locationId) {
+          linkedLocationCount += 1;
+        }
+
+        return {
+          productionId,
+          number: scene.number,
+          heading: scene.heading,
+          summary: scene.summary || undefined,
+          characterIds: [],
+          locationId,
+          status: "draft",
+          progress: 10,
+        };
+      });
 
       const created = await sceneRepository.createMany(toInsert);
-
-      setScenes((current) => [...current, ...created]);
+      setScenes([...existingScenes, ...created]);
 
       return {
         createdCount: created.length,
         totalExtracted: extracted.length,
+        linkedLocationCount,
       };
     } catch (err) {
       const message =
-        err instanceof Error
-          ? err.message
-          : "Failed to sync scenes from screenplay.";
-
+        err instanceof Error ? err.message : "Failed to sync scenes from screenplay.";
       setError(message);
       throw err;
     } finally {
