@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useSave } from "@/platform/save";
 import { useStoryBible } from "../hooks/use-story-bible";
+import type { StoryBibleScreenplayProposal } from "../services/story-bible-screenplay-sync.service";
 import StoryBibleProgress from "./StoryBibleProgress";
 import StoryBibleOverview from "./StoryBibleOverview";
 import StoryBibleCreatorFoundation from "./StoryBibleCreatorFoundation";
@@ -10,6 +11,7 @@ import StoryBibleKingdomVision from "./StoryBibleKingdomVision";
 import StoryBibleNarrative from "./StoryBibleNarrative";
 import StoryBibleProductionDetails from "./StoryBibleProductionDetails";
 import StoryBibleAIContext from "./StoryBibleAIContext";
+import StoryBibleScreenplaySyncPanel from "./StoryBibleScreenplaySyncPanel";
 
 interface StoryBibleEditorProps { productionId: string; }
 
@@ -33,9 +35,23 @@ const defaultForm: StoryBibleForm = {
 };
 
 export default function StoryBibleEditor({ productionId }: StoryBibleEditorProps) {
-  const { storyBible, loading, saving, error, save } = useStoryBible(productionId);
+  const {
+    storyBible,
+    loading,
+    saving,
+    syncing,
+    error,
+    save,
+    syncFromScreenplay,
+  } = useStoryBible(productionId);
+
   const { runSave } = useSave();
   const [form, setForm] = useState<StoryBibleForm>(defaultForm);
+  const [syncProposal, setSyncProposal] = useState<StoryBibleScreenplayProposal | null>(null);
+  const [syncSource, setSyncSource] = useState<{
+    title: string;
+    version: number;
+  } | null>(null);
 
   useEffect(() => {
     if (!storyBible) return;
@@ -62,10 +78,80 @@ export default function StoryBibleEditor({ productionId }: StoryBibleEditorProps
     try { await runSave(async () => { await save(form); }); } catch { /* state handled by hooks */ }
   }
 
+  async function handleSync() {
+    try {
+      const result = await syncFromScreenplay();
+      setSyncProposal(result.proposal);
+      setSyncSource({
+        title: result.screenplayTitle,
+        version: result.screenplayVersion,
+      });
+    } catch {
+      // Hook exposes the error.
+    }
+  }
+
+  function applySyncProposal() {
+    if (!syncProposal) {
+      return;
+    }
+
+    setForm((current) => {
+      const next = { ...current };
+
+      for (const [key, value] of Object.entries(syncProposal)) {
+        if (value === undefined || value === null) {
+          continue;
+        }
+
+        if (key in next) {
+          (next as Record<string, string | number>)[key] = value as string | number;
+        }
+      }
+
+      return next;
+    });
+
+    setSyncProposal(null);
+    setSyncSource(null);
+  }
+
+  function discardSyncProposal() {
+    setSyncProposal(null);
+    setSyncSource(null);
+  }
+
   if (loading) return <div className="rounded-3xl border border-zinc-800 bg-zinc-900 p-20 text-center">Loading Story Bible...</div>;
 
   return (
     <div className="space-y-8">
+      <div className="flex flex-col gap-4 rounded-3xl border border-zinc-800 bg-zinc-900 p-5 lg:flex-row lg:items-center lg:justify-between">
+        <div>
+          <p className="text-xs uppercase tracking-[0.3em] text-yellow-500">Screenplay-driven foundation</p>
+          <p className="mt-2 text-sm text-zinc-400">
+            Let AI propose Story Bible values from the screenplay. You remain the final creative authority.
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={handleSync}
+          disabled={syncing || saving}
+          className="shrink-0 rounded-xl border border-yellow-500/50 bg-yellow-500/10 px-5 py-3 text-sm font-semibold text-yellow-400 transition hover:bg-yellow-500 hover:text-black disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          {syncing ? "Analysing Screenplay..." : "Sync from Screenplay"}
+        </button>
+      </div>
+
+      {syncProposal && syncSource && (
+        <StoryBibleScreenplaySyncPanel
+          proposal={syncProposal}
+          screenplayTitle={syncSource.title}
+          screenplayVersion={syncSource.version}
+          onApply={applySyncProposal}
+          onCancel={discardSyncProposal}
+        />
+      )}
+
       {error && <div className="rounded-2xl border border-red-500/40 bg-red-500/10 p-5 text-sm text-red-400">{error}</div>}
 
       <StoryBibleProgress title={form.title} logline={form.logline} synopsis={form.synopsis} theme={form.theme} scripture={form.scripture_foundation} genre={form.genre} beginning={form.beginning} conflict={form.conflict} climax={form.climax} aiContext={form.ai_context} />
