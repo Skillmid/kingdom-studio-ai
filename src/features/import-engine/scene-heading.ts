@@ -9,7 +9,7 @@ const TIME_OF_DAY_PATTERN =
   /(?:^|\s)(DAY|NIGHT|MORNING|AFTERNOON|EVENING|DAWN|DUSK|LATER|CONTINUOUS|SAME(?:\s+TIME)?)(?:\s*)$/i;
 
 const SCENE_PREFIX_PATTERN =
-  /^(INT\.?|EXT\.?|INTERIOR|EXTERIOR|INT\s*\/\s*EXT|EXT\s*\/\s*INT|I\s*\/\s*E)\s*(?:[-–—:]\s*)?(.+)$/i;
+  /^(INT\s*\/\s*EXT|EXT\s*\/\s*INT|I\s*\/\s*E|INT\.?|EXT\.?|INTERIOR|EXTERIOR)\s*(?:[-–—:]\s*)?(.+)$/i;
 
 function cleanHeadingLine(value: string): string {
   let line = value
@@ -28,7 +28,7 @@ function cleanHeadingLine(value: string): string {
 
   line = line
     .replace(/^SCENE\s*#?\s*\d+\s*[:.)-]\s*/i, "")
-    .replace(/^\d+\s*[.)-]\s*(?=(?:INT\.?|EXT\.?|INTERIOR|EXTERIOR|I\s*\/\s*E))/i, "")
+    .replace(/^\d+\s*[.)-]\s*(?=(?:INT\.?|EXT\.?|INTERIOR|EXTERIOR|INT\s*\/\s*EXT|EXT\s*\/\s*INT|I\s*\/\s*E))/i, "")
     .trim();
 
   return line;
