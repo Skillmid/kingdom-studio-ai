@@ -25,10 +25,7 @@ export function useCharacters(productionId: string) {
       setLoading(true);
       setError(null);
 
-      const data = await characterRepository.getByProductionId(
-        productionId
-      );
-
+      const data = await characterRepository.getByProductionId(productionId);
       setCharacters(data);
     } catch (err) {
       setError(
@@ -56,7 +53,6 @@ export function useCharacters(productionId: string) {
       });
 
       setCharacters((current) => [...current, created]);
-
       return created;
     } catch (err) {
       const message =
@@ -68,10 +64,7 @@ export function useCharacters(productionId: string) {
     }
   }
 
-  async function updateCharacter(
-    id: string,
-    updates: Partial<Character>
-  ) {
+  async function updateCharacter(id: string, updates: Partial<Character>) {
     try {
       setSaving(true);
       setError(null);
@@ -101,7 +94,6 @@ export function useCharacters(productionId: string) {
       setError(null);
 
       await characterRepository.delete(id);
-
       setCharacters((current) =>
         current.filter((character) => character.id !== id)
       );
@@ -127,8 +119,7 @@ export function useCharacters(productionId: string) {
     setError(null);
 
     try {
-      const screenplay =
-        await screenplayRepository.getByProductionId(productionId);
+      const screenplay = await screenplayRepository.getByProductionId(productionId);
 
       if (!screenplay || !screenplay.content.trim()) {
         throw new Error(
@@ -136,38 +127,47 @@ export function useCharacters(productionId: string) {
         );
       }
 
-      const extracted = await characterExtractor.extract(
-        screenplay.content
-      );
-
+      const extracted = await characterExtractor.extract(screenplay.content);
       if (extracted.length === 0) {
         return { createdCount: 0, totalExtracted: 0 };
       }
 
+      // Read the database again at sync time so repeated clicks/tabs cannot
+      // create duplicates from stale React state.
+      const existingCharacters = await characterRepository.getByProductionId(
+        productionId
+      );
       const existingNames = new Set(
-        characters.map((c) => c.name.trim().toLowerCase())
+        existingCharacters.map((character) =>
+          character.name.trim().toLowerCase()
+        )
       );
 
-      const newCharacters = extracted.filter(
-        (c) => !existingNames.has(c.name.trim().toLowerCase())
-      );
+      const newCharacters = extracted.filter((character) => {
+        const key = character.name.trim().toLowerCase();
+        if (existingNames.has(key)) {
+          return false;
+        }
+        existingNames.add(key);
+        return true;
+      });
 
       if (newCharacters.length === 0) {
+        setCharacters(existingCharacters);
         return { createdCount: 0, totalExtracted: extracted.length };
       }
 
-      const toInsert: Partial<Character>[] = newCharacters.map((c) => ({
+      const toInsert: Partial<Character>[] = newCharacters.map((character) => ({
         productionId,
-        name: c.name,
-        role: c.role,
+        name: character.name,
+        role: character.role,
         status: "draft",
-        biography: c.description,
+        biography: character.description,
         progress: 10,
       }));
 
       const created = await characterRepository.createMany(toInsert);
-
-      setCharacters((current) => [...current, ...created]);
+      setCharacters([...existingCharacters, ...created]);
 
       return {
         createdCount: created.length,
