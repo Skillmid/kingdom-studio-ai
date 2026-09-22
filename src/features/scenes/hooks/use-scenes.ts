@@ -1,6 +1,9 @@
-﻿"use client";
+"use client";
 
 import { useCallback, useEffect, useState } from "react";
+
+import { sceneExtractor } from "@/features/import-engine/extractors/scene.extractor";
+import { screenplayRepository } from "@/features/script-intelligence/repositories/screenplay.repository";
 
 import { sceneRepository } from "../repositories/scene.repository";
 import type { Scene } from "../types/scene";
@@ -9,6 +12,7 @@ export function useScenes(productionId: string) {
   const [scenes, setScenes] = useState<Scene[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [syncing, setSyncing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const loadScenes = useCallback(async () => {
@@ -119,6 +123,71 @@ export function useScenes(productionId: string) {
     }
   }
 
+  async function syncFromScreenplay(): Promise<{
+    createdCount: number;
+    totalExtracted: number;
+  }> {
+    if (!productionId) {
+      throw new Error("Production ID is required.");
+    }
+
+    setSyncing(true);
+    setError(null);
+
+    try {
+      const screenplay =
+        await screenplayRepository.getByProductionId(productionId);
+
+      if (!screenplay || !screenplay.content.trim()) {
+        throw new Error(
+          "No screenplay content found for this production. Save or import a script first."
+        );
+      }
+
+      const extracted = await sceneExtractor.extract(screenplay.content);
+      const existingNumbers = new Set(scenes.map((scene) => scene.number));
+      const newScenes = extracted.filter(
+        (scene) => !existingNumbers.has(scene.number)
+      );
+
+      if (newScenes.length === 0) {
+        return {
+          createdCount: 0,
+          totalExtracted: extracted.length,
+        };
+      }
+
+      const toInsert: Partial<Scene>[] = newScenes.map((scene) => ({
+        productionId,
+        number: scene.number,
+        heading: scene.heading,
+        summary: scene.summary || undefined,
+        characterIds: [],
+        status: "draft",
+        progress: 10,
+      }));
+
+      const created = await sceneRepository.createMany(toInsert);
+
+      setScenes((current) => [...current, ...created]);
+
+      return {
+        createdCount: created.length,
+        totalExtracted: extracted.length,
+      };
+    } catch (err) {
+      const message =
+        err instanceof Error
+          ? err.message
+          : "Failed to sync scenes from screenplay.";
+
+      setError(message);
+      throw err;
+    } finally {
+      setSyncing(false);
+    }
+  }
+
   async function refresh() {
     await loadScenes();
   }
@@ -127,10 +196,12 @@ export function useScenes(productionId: string) {
     scenes,
     loading,
     saving,
+    syncing,
     error,
     refresh,
     createScene,
     updateScene,
     deleteScene,
+    syncFromScreenplay,
   };
 }
