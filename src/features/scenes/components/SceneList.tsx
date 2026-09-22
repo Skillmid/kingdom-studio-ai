@@ -8,6 +8,7 @@ interface SceneListProps {
   loading?: boolean;
   onEdit: (scene: Scene) => void;
   onDelete: (scene: Scene) => void;
+  locationNames?: ReadonlyMap<string, string>;
 }
 
 export default function SceneList({
@@ -15,6 +16,7 @@ export default function SceneList({
   loading = false,
   onEdit,
   onDelete,
+  locationNames,
 }: SceneListProps) {
   if (loading) {
     return (
@@ -41,6 +43,7 @@ export default function SceneList({
         <SceneCard
           key={scene.id}
           scene={scene}
+          locationName={scene.locationId ? locationNames?.get(scene.locationId) : undefined}
           onEdit={onEdit}
           onDelete={onDelete}
         />
