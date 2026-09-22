@@ -19,10 +19,12 @@ export function ScenesView({ productionId }: ScenesViewProps) {
     scenes,
     loading,
     saving,
+    syncing,
     error,
     createScene,
     updateScene,
     deleteScene,
+    syncFromScreenplay,
   } = useScenes(productionId);
   const {
     locations,
@@ -64,6 +66,26 @@ export function ScenesView({ productionId }: ScenesViewProps) {
     setFormMode("edit");
     setSelectedScene(scene);
     setFormOpen(true);
+  }
+
+  async function handleSyncFromScreenplay() {
+    try {
+      const result = await syncFromScreenplay();
+
+      if (result.totalExtracted === 0) {
+        setNotification("No screenplay scene headings were found.");
+      } else if (result.createdCount === 0) {
+        setNotification(
+          `Screenplay analysed: ${result.totalExtracted} scene${result.totalExtracted === 1 ? "" : "s"} found. All are already in Scene Planner.`
+        );
+      } else {
+        setNotification(
+          `Added ${result.createdCount} new scene${result.createdCount === 1 ? "" : "s"} from the screenplay.`
+        );
+      }
+    } catch {
+      // Hook exposes error state.
+    }
   }
 
   async function handleSubmit(values: {
@@ -120,17 +142,33 @@ export function ScenesView({ productionId }: ScenesViewProps) {
           <h1 className="mt-2 text-3xl font-bold text-white">Scenes</h1>
           <p className="mt-2 max-w-2xl text-sm text-zinc-400">
             Plan, organize, and manage every scene in this production. Scene
-            records belong to the production and persist across reloads.
+            records can be synced from the screenplay and refined manually.
           </p>
         </div>
 
-        <button
-          type="button"
-          onClick={openCreate}
-          className="rounded-xl bg-yellow-500 px-4 py-3 text-sm font-semibold text-black transition hover:opacity-90"
-        >
-          Add Scene
-        </button>
+        <div className="flex flex-col gap-2 sm:flex-row">
+          <button
+            type="button"
+            onClick={handleSyncFromScreenplay}
+            disabled={syncing}
+            className="rounded-xl border border-yellow-500/50 bg-yellow-500/10 px-4 py-3 text-sm font-semibold text-yellow-400 transition hover:bg-yellow-500/20 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {syncing ? "Syncing..." : "Sync from Screenplay"}
+          </button>
+
+          <button
+            type="button"
+            onClick={openCreate}
+            className="rounded-xl bg-yellow-500 px-4 py-3 text-sm font-semibold text-black transition hover:opacity-90"
+          >
+            Add Scene
+          </button>
+        </div>
+      </div>
+
+      <div className="rounded-xl border border-zinc-800 bg-zinc-950/70 px-4 py-3 text-sm text-zinc-400">
+        <span className="font-semibold text-white">Screenplay-driven workflow:</span>{" "}
+        scene headings become editable Scene Planner records. Existing scenes are preserved and never overwritten by sync.
       </div>
 
       {error && (
