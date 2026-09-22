@@ -3,7 +3,7 @@
 export const sceneStatusSchema = z.enum(["draft", "in-progress", "completed"]);
 export const sceneTypeSchema = z.enum(["INT", "EXT", "BOTH"]);
 
-const optionalText = z.string().trim().max(10000).optional();
+const optionalText = z.string().trim().max(50000).optional();
 
 export const sceneSchema = z.object({
   id: z.string().uuid().optional(),
@@ -11,7 +11,7 @@ export const sceneSchema = z.object({
   number: z.number().int().min(1, { message: "Scene number must be at least 1." }),
   heading: z.string().trim().min(2, { message: "Scene heading must contain at least 2 characters." }).max(255),
   sceneType: sceneTypeSchema.default("INT"),
-  timeOfDay: z.string().trim().max(80).optional(),
+  timeOfDay: z.string().trim().max(120).optional(),
   summary: optionalText,
   action: optionalText,
   dialogue: optionalText,
@@ -21,7 +21,7 @@ export const sceneSchema = z.object({
   emotionalBeat: optionalText,
   storyBeat: optionalText,
   visualDirection: optionalText,
-  props: z.array(z.string().trim().min(1)).default([]),
+  props: z.array(z.string().trim().min(1).max(500)).default([]),
   wardrobe: optionalText,
   soundNotes: optionalText,
   continuityNotes: optionalText,
