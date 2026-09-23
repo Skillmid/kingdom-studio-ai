@@ -39,8 +39,37 @@ export function useLocations(productionId: string) {
   }, [productionId]);
 
   useEffect(() => {
-    void loadLocations();
-  }, [loadLocations]);
+    let cancelled = false;
+
+    if (!productionId) {
+      return () => {
+        cancelled = true;
+      };
+    }
+
+    locationRepository
+      .getByProductionId(productionId)
+      .then((data) => {
+        if (cancelled) return;
+        setLocations(data);
+        setError(null);
+      })
+      .catch((err) => {
+        if (cancelled) return;
+        setError(
+          err instanceof Error
+            ? err.message
+            : "Failed to load locations."
+        );
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [productionId]);
 
   async function createLocation(location: Partial<Location>) {
     try {
