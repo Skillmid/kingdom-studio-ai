@@ -3,6 +3,7 @@ import { isSceneHeading, isScreenplayTransition, toTitleCaseName } from "./scene
 const ACTION_CHARACTER_TOKEN_PATTERN = /\b[A-Z][A-Z0-9.'’-]{1,}\b/g;
 const TITLECASE_ACTION_CHARACTER_PATTERN =
   /\b[A-Z][a-z]{1,23}\b(?=\s+(?:walks|runs|stands|sits|enters|exits|looks|turns|smiles|waves|waits|watches|checks|holds|carries|opens|closes|reads|sleeps|lies|meets|hands|gives|takes|steps|moves|heads|goes|comes)\b)/g;
+const RELATION_CHARACTER_PATTERN = /\b(?:from|with|to|by)\s+([A-Z][a-z]{1,23})\b/g;
 
 const NON_CHARACTER_WORDS = new Set([
   "A", "AN", "THE", "AND", "BUT", "OR", "SO", "AS", "AT", "ON", "IN", "OF",
@@ -79,6 +80,10 @@ export function extractActionCharacterNames(actionLines: string[]): string[] {
 
     for (const match of trimmed.matchAll(TITLECASE_ACTION_CHARACTER_PATTERN)) {
       addName(names, match[0]);
+    }
+
+    for (const match of trimmed.matchAll(RELATION_CHARACTER_PATTERN)) {
+      addName(names, match[1]);
     }
   }
 
