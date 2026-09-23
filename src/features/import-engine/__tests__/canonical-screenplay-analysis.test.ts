@@ -2,10 +2,24 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 
 import { extractFromScreenplay } from "../extract-from-screenplay";
+import { validateScreenplayAnalysis } from "@/features/script-intelligence/services/screenplay-analysis.service";
 import type { ScreenplayAnalysis } from "@/features/script-intelligence/types/screenplay-analysis";
 
 const ANALYSIS: ScreenplayAnalysis = {
   schemaVersion: 1,
+  title: "The Return",
+  logline: "A man confronts the consequences of his choices.",
+  storyBible: {
+    synopsis: "A man is forced to face the consequences of his choices and seek restoration.",
+    theme: "Redemption",
+    core_message: "Restoration begins with truth.",
+    beginning: "The protagonist is introduced in a difficult situation.",
+    conflict: "He must confront the consequences of his choices.",
+    climax: "He makes the decisive choice to face the truth.",
+    ending: "He begins the journey toward restoration.",
+    genre: "Drama",
+    duration_minutes: 15,
+  },
   characters: [
     {
       name: "David",
@@ -64,4 +78,15 @@ test("canonical screenplay analysis is the source of truth", () => {
   assert.equal(extracted.locations[0]?.name, "Family House");
   assert.equal(extracted.locations[0]?.setting, "interior");
   assert.equal(extracted.scenes[0]?.sourceText.includes("TARA"), true);
+});
+
+test("canonical screenplay analysis preserves Story Bible intelligence", () => {
+  const validated = validateScreenplayAnalysis(ANALYSIS);
+
+  assert.equal(validated.storyBible.theme, "Redemption");
+  assert.equal(validated.storyBible.core_message, "Restoration begins with truth.");
+  assert.equal(validated.storyBible.duration_minutes, 15);
+  assert.equal(validated.characters[0]?.name, "David");
+  assert.equal(validated.locations[0]?.name, "Family House");
+  assert.equal(validated.scenes[0]?.locationName, "Family House");
 });
