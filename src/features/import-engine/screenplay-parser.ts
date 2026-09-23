@@ -226,14 +226,16 @@ export function parseScreenplay(screenplay: string): ParsedScreenplay {
   const lines = splitScreenplayLines(screenplay);
   const scenes: ParsedScene[] = [];
 
-  let current: ParsedScene | null = null;
   let nextNumber = 1;
   let openBeat: ParsedDialogueBeat | null = null;
 
+  const activeScene = (): ParsedScene | undefined => scenes[scenes.length - 1];
+
   const flushBeat = () => {
-    if (!current || !openBeat) return;
+    const scene = activeScene();
+    if (!scene || !openBeat) return;
     if (openBeat.dialogue.trim()) {
-      current.dialogueBeats.push({
+      scene.dialogueBeats.push({
         ...openBeat,
         dialogue: openBeat.dialogue.replace(/\s+/g, " ").trim(),
       });
@@ -241,44 +243,40 @@ export function parseScreenplay(screenplay: string): ParsedScreenplay {
     openBeat = null;
   };
 
-  const startScene = (raw: string, heading: SceneHeadingParts) => {
-    flushBeat();
-    const number = heading.sceneNumber && heading.sceneNumber > 0
-      ? heading.sceneNumber
-      : nextNumber;
-
-    current = {
-      number,
-      heading,
-      rawHeading: raw,
-      action: [],
-      dialogueBeats: [],
-      transitions: [],
-      sourceLines: [raw],
-    };
-
-    nextNumber = Math.max(nextNumber, number + 1);
-    scenes.push(current);
-  };
-
   for (let index = 0; index < lines.length; index += 1) {
     const line = lines[index];
     const heading = parseSceneHeading(line);
 
     if (heading) {
-      startScene(line, heading);
+      flushBeat();
+      const number = heading.sceneNumber && heading.sceneNumber > 0
+        ? heading.sceneNumber
+        : nextNumber;
+
+      scenes.push({
+        number,
+        heading,
+        rawHeading: line,
+        action: [],
+        dialogueBeats: [],
+        transitions: [],
+        sourceLines: [line],
+      });
+
+      nextNumber = Math.max(nextNumber, number + 1);
       continue;
     }
 
-    if (!current) {
+    const scene = activeScene();
+    if (!scene) {
       continue;
     }
 
-    current.sourceLines.push(line);
+    scene.sourceLines.push(line);
 
     if (isScreenplayTransition(line)) {
       flushBeat();
-      current.transitions.push(line);
+      scene.transitions.push(line);
       continue;
     }
 
@@ -291,7 +289,7 @@ export function parseScreenplay(screenplay: string): ParsedScreenplay {
           .filter(Boolean)
           .join(" ");
       } else {
-        current.action.push(line);
+        scene.action.push(line);
       }
       continue;
     }
@@ -322,7 +320,7 @@ export function parseScreenplay(screenplay: string): ParsedScreenplay {
     }
 
     flushBeat();
-    current.action.push(line);
+    scene.action.push(line);
   }
 
   flushBeat();
