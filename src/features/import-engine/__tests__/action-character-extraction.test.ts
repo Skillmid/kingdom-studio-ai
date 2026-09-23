@@ -82,6 +82,7 @@ I will call you later.
     "a message from",
     "david types",
     "then adds",
+    "whoever",
   ]) {
     assert.equal(names.includes(forbidden), false);
   }
