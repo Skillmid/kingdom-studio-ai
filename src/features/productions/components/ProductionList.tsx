@@ -17,7 +17,6 @@ export default function ProductionList() {
     sort,
     setSort,
     archiveProduction,
-    deleteForever,
     renameProduction,
     duplicateProduction,
   } = useProductions();

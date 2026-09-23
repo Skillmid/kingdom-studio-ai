@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
 interface RenameProductionDialogProps {
   open: boolean;
@@ -20,15 +20,19 @@ export default function RenameProductionDialog({
   const [value, setValue] =
     useState(title);
 
+  const [syncedTitle, setSyncedTitle] =
+    useState(title);
+
   const [working, setWorking] =
     useState(false);
 
   const [error, setError] =
     useState("");
 
-  useEffect(() => {
+  if (title !== syncedTitle) {
+    setSyncedTitle(title);
     setValue(title);
-  }, [title]);
+  }
 
   if (!open) {
     return null;
