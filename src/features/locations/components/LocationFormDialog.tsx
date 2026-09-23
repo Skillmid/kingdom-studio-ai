@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 
 import type { Location, LocationSetting, LocationStatus } from "../types/location";
 import { locationSchema } from "../validation/location.schema";
@@ -35,37 +35,42 @@ const SETTING_OPTIONS: Array<{ value: LocationSetting; label: string }> = [
   { value: "both", label: "Interior / Exterior" },
 ];
 
-export default function LocationFormDialog({ open, mode, productionId, location, saving = false, onClose, onSubmit }: LocationFormDialogProps) {
-  const [name, setName] = useState("");
-  const [description, setDescription] = useState("");
-  const [setting, setSetting] = useState<LocationSetting>("interior");
-  const [notes, setNotes] = useState("");
-  const [status, setStatus] = useState<LocationStatus>("draft");
-  const [progress, setProgress] = useState("0");
+export default function LocationFormDialog(props: LocationFormDialogProps) {
+  if (!props.open) return null;
+
+  const formKey =
+    props.mode === "edit" && props.location
+      ? `edit-${props.location.id}`
+      : "create";
+
+  return <LocationFormDialogFields key={formKey} {...props} />;
+}
+
+function LocationFormDialogFields({
+  mode,
+  productionId,
+  location,
+  saving = false,
+  onClose,
+  onSubmit,
+}: LocationFormDialogProps) {
+  const [name, setName] = useState(mode === "edit" && location ? location.name : "");
+  const [description, setDescription] = useState(
+    mode === "edit" && location ? location.description ?? "" : ""
+  );
+  const [setting, setSetting] = useState<LocationSetting>(
+    mode === "edit" && location ? location.setting : "interior"
+  );
+  const [notes, setNotes] = useState(mode === "edit" && location ? location.notes ?? "" : "");
+  const [status, setStatus] = useState<LocationStatus>(
+    mode === "edit" && location ? location.status : "draft"
+  );
+  const [progress, setProgress] = useState(
+    mode === "edit" && location ? String(location.progress) : "0"
+  );
   const [fieldError, setFieldError] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (!open) return;
-    if (mode === "edit" && location) {
-      setName(location.name);
-      setDescription(location.description ?? "");
-      setSetting(location.setting);
-      setNotes(location.notes ?? "");
-      setStatus(location.status);
-      setProgress(String(location.progress));
-    } else {
-      setName("");
-      setDescription("");
-      setSetting("interior");
-      setNotes("");
-      setStatus("draft");
-      setProgress("0");
-    }
-    setFieldError(null);
-  }, [open, mode, location]);
-
   const parsedProgress = useMemo(() => Number(progress), [progress]);
-  if (!open) return null;
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
