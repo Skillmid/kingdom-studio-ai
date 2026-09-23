@@ -39,10 +39,44 @@ export interface AnalyzedScene {
   sourceText: string;
 }
 
+export interface AnalyzedStoryBible {
+  title?: string;
+  logline?: string;
+  synopsis?: string;
+  burden?: string;
+  truth?: string;
+  human_problem?: string;
+  theme?: string;
+  core_message?: string;
+  scripture_foundation?: string;
+  kingdom_objective?: string;
+  target_audience?: string;
+  genre?: string;
+  tone?: string;
+  language?: string;
+  visual_style?: string;
+  aspect_ratio?: string;
+  duration_minutes?: number;
+  universe?: string;
+  time_period?: string;
+  primary_location?: string;
+  beginning?: string;
+  conflict?: string;
+  midpoint?: string;
+  climax?: string;
+  ending?: string;
+  ai_context?: string;
+  ai_rules?: string;
+  forbidden_elements?: string;
+  preferred_vocabulary?: string;
+  visual_consistency?: string;
+}
+
 export interface ScreenplayAnalysis {
   schemaVersion: 1;
   title?: string;
   logline?: string;
+  storyBible: AnalyzedStoryBible;
   characters: AnalyzedCharacter[];
   locations: AnalyzedLocation[];
   scenes: AnalyzedScene[];
