@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
 import type { Character } from "@/features/characters/types/character";
 import type { Location } from "@/features/locations/types/location";
@@ -74,8 +74,18 @@ function Field({ label, hint, children }: { label: string; hint?: string; childr
 const inputClass = "w-full rounded-xl border border-zinc-800 bg-zinc-950 px-4 py-3 text-sm text-white outline-none transition placeholder:text-zinc-600 focus:border-yellow-500/70 focus:ring-1 focus:ring-yellow-500/20";
 const textareaClass = `${inputClass} min-h-28 resize-y leading-6`;
 
-export default function SceneFormDialog({
-  open,
+export default function SceneFormDialog(props: SceneFormDialogProps) {
+  if (!props.open) return null;
+
+  const formKey =
+    props.mode === "edit" && props.scene
+      ? `edit-${props.scene.id}`
+      : `create-${props.nextNumber}`;
+
+  return <SceneFormDialogFields key={formKey} {...props} />;
+}
+
+function SceneFormDialogFields({
   mode,
   productionId,
   nextNumber,
@@ -88,95 +98,37 @@ export default function SceneFormDialog({
   onClose,
   onSubmit,
 }: SceneFormDialogProps) {
-  const [number, setNumber] = useState(String(nextNumber));
-  const [heading, setHeading] = useState("");
-  const [sceneType, setSceneType] = useState<SceneType>("INT");
-  const [timeOfDay, setTimeOfDay] = useState("");
-  const [summary, setSummary] = useState("");
-  const [action, setAction] = useState("");
-  const [dialogue, setDialogue] = useState("");
-  const [characterIds, setCharacterIds] = useState<string[]>([]);
-  const [locationId, setLocationId] = useState("");
-  const [purpose, setPurpose] = useState("");
-  const [emotionalBeat, setEmotionalBeat] = useState("");
-  const [storyBeat, setStoryBeat] = useState("");
-  const [visualDirection, setVisualDirection] = useState("");
-  const [props, setProps] = useState("");
-  const [wardrobe, setWardrobe] = useState("");
-  const [soundNotes, setSoundNotes] = useState("");
-  const [continuityNotes, setContinuityNotes] = useState("");
-  const [vfxNotes, setVfxNotes] = useState("");
-  const [productionNotes, setProductionNotes] = useState("");
-  const [aiPrompt, setAiPrompt] = useState("");
-  const [sourceText, setSourceText] = useState("");
-  const [duration, setDuration] = useState("");
-  const [status, setStatus] = useState<SceneStatus>("draft");
-  const [progress, setProgress] = useState("10");
+  const editing = mode === "edit" && scene;
+
+  const [number, setNumber] = useState(String(editing ? scene.number : nextNumber));
+  const [heading, setHeading] = useState(editing ? scene.heading : "");
+  const [sceneType, setSceneType] = useState<SceneType>(editing ? scene.sceneType : "INT");
+  const [timeOfDay, setTimeOfDay] = useState(editing ? scene.timeOfDay ?? "" : "");
+  const [summary, setSummary] = useState(editing ? scene.summary ?? "" : "");
+  const [action, setAction] = useState(editing ? scene.action ?? "" : "");
+  const [dialogue, setDialogue] = useState(editing ? scene.dialogue ?? "" : "");
+  const [characterIds, setCharacterIds] = useState<string[]>(editing ? scene.characterIds ?? [] : []);
+  const [locationId, setLocationId] = useState(editing ? scene.locationId ?? "" : "");
+  const [purpose, setPurpose] = useState(editing ? scene.purpose ?? "" : "");
+  const [emotionalBeat, setEmotionalBeat] = useState(editing ? scene.emotionalBeat ?? "" : "");
+  const [storyBeat, setStoryBeat] = useState(editing ? scene.storyBeat ?? "" : "");
+  const [visualDirection, setVisualDirection] = useState(editing ? scene.visualDirection ?? "" : "");
+  const [props, setProps] = useState(editing ? (scene.props ?? []).join(", ") : "");
+  const [wardrobe, setWardrobe] = useState(editing ? scene.wardrobe ?? "" : "");
+  const [soundNotes, setSoundNotes] = useState(editing ? scene.soundNotes ?? "" : "");
+  const [continuityNotes, setContinuityNotes] = useState(editing ? scene.continuityNotes ?? "" : "");
+  const [vfxNotes, setVfxNotes] = useState(editing ? scene.vfxNotes ?? "" : "");
+  const [productionNotes, setProductionNotes] = useState(editing ? scene.productionNotes ?? "" : "");
+  const [aiPrompt, setAiPrompt] = useState(editing ? scene.aiPrompt ?? "" : "");
+  const [sourceText, setSourceText] = useState(editing ? scene.sourceText ?? "" : "");
+  const [duration, setDuration] = useState(
+    editing && scene.estimatedDurationSeconds ? String(scene.estimatedDurationSeconds) : ""
+  );
+  const [status, setStatus] = useState<SceneStatus>(editing ? scene.status : "draft");
+  const [progress, setProgress] = useState(editing ? String(scene.progress) : "10");
   const [activeTab, setActiveTab] = useState<"story" | "production" | "ai">("story");
   const [showSource, setShowSource] = useState(false);
   const [fieldError, setFieldError] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (!open) return;
-
-    if (mode === "edit" && scene) {
-      setNumber(String(scene.number));
-      setHeading(scene.heading);
-      setSceneType(scene.sceneType);
-      setTimeOfDay(scene.timeOfDay ?? "");
-      setSummary(scene.summary ?? "");
-      setAction(scene.action ?? "");
-      setDialogue(scene.dialogue ?? "");
-      setCharacterIds(scene.characterIds ?? []);
-      setLocationId(scene.locationId ?? "");
-      setPurpose(scene.purpose ?? "");
-      setEmotionalBeat(scene.emotionalBeat ?? "");
-      setStoryBeat(scene.storyBeat ?? "");
-      setVisualDirection(scene.visualDirection ?? "");
-      setProps((scene.props ?? []).join(", "));
-      setWardrobe(scene.wardrobe ?? "");
-      setSoundNotes(scene.soundNotes ?? "");
-      setContinuityNotes(scene.continuityNotes ?? "");
-      setVfxNotes(scene.vfxNotes ?? "");
-      setProductionNotes(scene.productionNotes ?? "");
-      setAiPrompt(scene.aiPrompt ?? "");
-      setSourceText(scene.sourceText ?? "");
-      setDuration(scene.estimatedDurationSeconds ? String(scene.estimatedDurationSeconds) : "");
-      setStatus(scene.status);
-      setProgress(String(scene.progress));
-    } else {
-      setNumber(String(nextNumber));
-      setHeading("");
-      setSceneType("INT");
-      setTimeOfDay("");
-      setSummary("");
-      setAction("");
-      setDialogue("");
-      setCharacterIds([]);
-      setLocationId("");
-      setPurpose("");
-      setEmotionalBeat("");
-      setStoryBeat("");
-      setVisualDirection("");
-      setProps("");
-      setWardrobe("");
-      setSoundNotes("");
-      setContinuityNotes("");
-      setVfxNotes("");
-      setProductionNotes("");
-      setAiPrompt("");
-      setSourceText("");
-      setDuration("");
-      setStatus("draft");
-      setProgress("10");
-    }
-
-    setActiveTab("story");
-    setShowSource(false);
-    setFieldError(null);
-  }, [open, mode, scene, nextNumber]);
-
-  if (!open) return null;
 
   function toggleCharacter(id: string) {
     setCharacterIds((current) => current.includes(id) ? current.filter((item) => item !== id) : [...current, id]);
