@@ -3,8 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 
 import { characterRepository } from "../repositories/character.repository";
-import { characterExtractor } from "@/features/import-engine/extractors/character.extractor";
-import { screenplayRepository } from "@/features/script-intelligence/repositories/screenplay.repository";
+import { syncCharactersFromScreenplay } from "../services/character-screenplay-sync.service";
 import type { Character } from "../types/character";
 
 export function useCharacters(productionId: string) {
@@ -148,59 +147,12 @@ export function useCharacters(productionId: string) {
     setError(null);
 
     try {
-      const screenplay = await screenplayRepository.getByProductionId(productionId);
-
-      if (!screenplay || !screenplay.content.trim()) {
-        throw new Error(
-          "No screenplay content found for this production. Save or import a script first."
-        );
-      }
-
-      const extracted = await characterExtractor.extract(screenplay.content);
-      if (extracted.length === 0) {
-        return { createdCount: 0, totalExtracted: 0 };
-      }
-
-      // Read the database again at sync time so repeated clicks/tabs cannot
-      // create duplicates from stale React state.
-      const existingCharacters = await characterRepository.getByProductionId(
-        productionId
-      );
-      const existingNames = new Set(
-        existingCharacters.map((character) =>
-          character.name.trim().toLowerCase()
-        )
-      );
-
-      const newCharacters = extracted.filter((character) => {
-        const key = character.name.trim().toLowerCase();
-        if (existingNames.has(key)) {
-          return false;
-        }
-        existingNames.add(key);
-        return true;
-      });
-
-      if (newCharacters.length === 0) {
-        setCharacters(existingCharacters);
-        return { createdCount: 0, totalExtracted: extracted.length };
-      }
-
-      const toInsert: Partial<Character>[] = newCharacters.map((character) => ({
-        productionId,
-        name: character.name,
-        role: character.role,
-        status: "draft",
-        biography: character.description,
-        progress: 10,
-      }));
-
-      const created = await characterRepository.createMany(toInsert);
-      setCharacters([...existingCharacters, ...created]);
-
+      const result = await syncCharactersFromScreenplay(productionId);
+      const existing = await characterRepository.getByProductionId(productionId);
+      setCharacters(existing);
       return {
-        createdCount: created.length,
-        totalExtracted: extracted.length,
+        createdCount: result.createdCount,
+        totalExtracted: result.totalExtracted,
       };
     } catch (err) {
       const message =
