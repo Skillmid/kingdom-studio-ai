@@ -3,16 +3,27 @@ export type SceneHeadingParts = {
   locationName: string;
   timeOfDay?: string;
   heading: string;
+  sceneNumber?: number;
 };
 
 const TIME_OF_DAY_PATTERN =
   /(?:^|\s)(DAY|NIGHT|MORNING|AFTERNOON|EVENING|DAWN|DUSK|SUNSET|SUNRISE|CONTINUOUS|SAME(?:\s+TIME)?|(?:\d+\s+)?WEEKS?\s+LATER|(?:\d+\s+)?DAYS?\s+LATER|LATER)(?:\s*)$/i;
 
+const SCENE_NUMBER_PREFIX =
+  /^(?:SCENE\s*#?\s*)?(\d+)\s*[.):-]\s*/i;
+
+/**
+ * Screenplay instructions that must never be treated as scene headings.
+ * Matched as a class of transitions, not a single hardcoded title.
+ */
+const TRANSITION_PATTERN =
+  /^(?:(?:SMASH|MATCH|JUMP|HARD|QUICK)\s+)?(?:CUT TO|FADE IN|FADE OUT|FADE TO(?:\s+BLACK)?|DISSOLVE TO|WIPE TO|IRIS IN|IRIS OUT|INTERCUT|BACK TO(?:\s+SCENE)?|CONTINUED|CONT['’]?D|MONTAGE|END MONTAGE|SERIES OF SHOTS|TITLE CARD|SUPER|THE END)\b/i;
+
 const SCENE_PREFIX_PATTERN =
-  /^(INT\s*\/\s*EXT|EXT\s*\/\s*INT|I\s*\/\s*E|INT\.?|EXT\.?|INTERIOR|EXTERIOR)\s*(?:[-–—:]\s*)?(.+)$/i;
+  /^(INT\.?\s*\/\s*EXT\.?|EXT\.?\s*\/\s*INT\.?|I\.?\s*\/\s*E\.?|INTERIOR|EXTERIOR|INT\.|EXT\.|INT|EXT)\b\s*(?:[-–—:]\s*)?(.+)$/i;
 
 const SCENE_START_PATTERN =
-  /(?:^|\s)(?=(?:SCENE\s*#?\s*\d+\s*[:.)-]\s*|\d+\s*[.)-]\s*)?(?:INT\s*\/\s*EXT|EXT\s*\/\s*INT|I\s*\/\s*E|INT\.?|EXT\.?|INTERIOR|EXTERIOR)\b)/gi;
+  /(?:^|\s)(?=(?:SCENE\s*#?\s*\d+\s*[:.)-]\s*|\d+\s*[.)-]\s*)?(?:INT\.?\s*\/\s*EXT\.?|EXT\.?\s*\/\s*INT\.?|I\.?\s*\/\s*E\.?|INT\.|EXT\.|INTERIOR|EXTERIOR|INT|EXT)\b)/gi;
 
 function decodeBasicHtmlEntities(value: string): string {
   return value
@@ -37,7 +48,10 @@ export function splitScreenplayLines(screenplay: string): string[] {
   normalized = decodeBasicHtmlEntities(normalized);
   normalized = normalized.replace(SCENE_START_PATTERN, "\n");
 
-  return normalized.split("\n").map((line) => line.trim()).filter(Boolean);
+  return normalized
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean);
 }
 
 function cleanHeadingLine(value: string): string {
@@ -55,37 +69,103 @@ function cleanHeadingLine(value: string): string {
       .trim();
   }
 
-  return line
-    .replace(/^SCENE\s*#?\s*\d+\s*[:.)-]\s*/i, "")
-    .replace(/^\d+\s*[.)-]\s*(?=(?:INT\.?|EXT\.?|INTERIOR|EXTERIOR|INT\s*\/\s*EXT|EXT\s*\/\s*INT|I\s*\/\s*E))/i, "")
-    .trim();
+  return line;
+}
+
+export function toTitleCaseName(value: string): string {
+  return value
+    .replace(/\s+/g, " ")
+    .trim()
+    .split(" ")
+    .filter(Boolean)
+    .map((word) =>
+      word
+        .split(/([/-])/)
+        .map((part) => {
+          if (!part || part === "/" || part === "-") return part;
+          return part.charAt(0).toUpperCase() + part.slice(1).toLowerCase();
+        })
+        .join("")
+    )
+    .join(" ");
 }
 
 function normaliseLocationName(value: string): string {
-  return value.replace(/\s+/g, " ").replace(/[\s-–—:]+$/, "").trim();
+  const cleaned = value
+    .replace(/\s+/g, " ")
+    .replace(/[\s-–—:]+$/, "")
+    .trim();
+
+  return toTitleCaseName(cleaned);
+}
+
+export function isScreenplayTransition(value: string): boolean {
+  const cleaned = cleanHeadingLine(value)
+    .replace(/^[\d.\s]+/, "")
+    .replace(/[-–—:\s]+$/g, "")
+    .trim();
+
+  if (!cleaned) return false;
+
+  return TRANSITION_PATTERN.test(cleaned);
+}
+
+function extractLeadingSceneNumber(value: string): {
+  sceneNumber?: number;
+  remainder: string;
+} {
+  const match = value.match(SCENE_NUMBER_PREFIX);
+  if (!match) {
+    return { remainder: value };
+  }
+
+  return {
+    sceneNumber: Number(match[1]),
+    remainder: value.slice(match[0].length).trim(),
+  };
 }
 
 export function parseSceneHeading(value: string): SceneHeadingParts | null {
   const cleaned = cleanHeadingLine(value);
-  const match = cleaned.match(SCENE_PREFIX_PATTERN);
+  if (!cleaned) return null;
+
+  if (isScreenplayTransition(cleaned)) {
+    return null;
+  }
+
+  const numbered = extractLeadingSceneNumber(cleaned);
+  const candidate = numbered.remainder;
+  const match = candidate.match(SCENE_PREFIX_PATTERN);
   if (!match?.[1] || !match[2]) return null;
 
-  const prefixRaw = match[1].toUpperCase().replace(/\s/g, "");
+  const prefixRaw = match[1].toUpperCase().replace(/[\s.]/g, "");
   const prefix: SceneHeadingParts["prefix"] =
-    prefixRaw.startsWith("INT/EXT") || prefixRaw.startsWith("EXT/INT") || prefixRaw === "I/E"
+    prefixRaw.startsWith("INT/EXT") ||
+    prefixRaw.startsWith("EXT/INT") ||
+    prefixRaw === "I/E"
       ? "BOTH"
       : prefixRaw.startsWith("EXT") || prefixRaw === "EXTERIOR"
         ? "EXT"
         : "INT";
 
-  const remainder = match[2].trim();
+  const remainder = match[2].trim().replace(/^[./–—-]+\s*/, "");
   const timeMatch = remainder.match(TIME_OF_DAY_PATTERN);
   const timeOfDay = timeMatch?.[1]?.replace(/\s+/g, " ").toUpperCase();
-  const locationName = normaliseLocationName(timeMatch ? remainder.slice(0, timeMatch.index).trim() : remainder);
+  const locationName = normaliseLocationName(
+    timeMatch ? remainder.slice(0, timeMatch.index).trim() : remainder
+  );
 
-  if (!locationName || locationName.length < 2 || locationName.length > 120) return null;
+  if (!locationName || locationName.length < 2 || locationName.length > 120) {
+    return null;
+  }
 
-  return { prefix, locationName, timeOfDay, heading: cleaned };
+  return {
+    prefix,
+    locationName,
+    timeOfDay,
+    heading: candidate,
+    sceneNumber: numbered.sceneNumber,
+  };
 }
 
 export function isSceneHeading(value: string): boolean {

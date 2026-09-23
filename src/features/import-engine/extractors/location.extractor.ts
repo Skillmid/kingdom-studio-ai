@@ -1,7 +1,4 @@
-import {
-  parseSceneHeading,
-  splitScreenplayLines,
-} from "../scene-heading";
+import { parseScreenplay } from "../screenplay-parser";
 
 export interface LocationExtraction {
   name: string;
@@ -10,26 +7,25 @@ export interface LocationExtraction {
   sourceHeading: string;
 }
 
+function settingFromPrefix(
+  prefix: "INT" | "EXT" | "BOTH"
+): LocationExtraction["setting"] {
+  if (prefix === "BOTH") return "both";
+  if (prefix === "EXT") return "exterior";
+  return "interior";
+}
+
 export class LocationExtractor {
   async extract(screenplay: string): Promise<LocationExtraction[]> {
-    if (!screenplay?.trim()) {
-      return [];
-    }
+    if (!screenplay?.trim()) return [];
 
+    const { scenes } = parseScreenplay(screenplay);
     const locations = new Map<string, LocationExtraction>();
 
-    for (const line of splitScreenplayLines(screenplay)) {
-      const heading = parseSceneHeading(line);
-      if (!heading) continue;
-
-      const key = heading.locationName.toLowerCase();
+    for (const scene of scenes) {
+      const key = scene.heading.locationName.toLowerCase();
+      const setting = settingFromPrefix(scene.heading.prefix);
       const existing = locations.get(key);
-      const setting: LocationExtraction["setting"] =
-        heading.prefix === "BOTH"
-          ? "both"
-          : heading.prefix === "EXT"
-            ? "exterior"
-            : "interior";
 
       if (existing) {
         existing.occurrences += 1;
@@ -38,10 +34,10 @@ export class LocationExtractor {
         }
       } else {
         locations.set(key, {
-          name: heading.locationName,
+          name: scene.heading.locationName,
           setting,
           occurrences: 1,
-          sourceHeading: heading.heading,
+          sourceHeading: scene.heading.heading,
         });
       }
     }
