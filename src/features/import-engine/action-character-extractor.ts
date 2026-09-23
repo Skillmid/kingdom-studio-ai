@@ -13,6 +13,11 @@ const NON_CHARACTER_WORDS = new Set([
   "INTERCUT", "CUT", "FADE", "DISSOLVE", "MONTAGE",
 ]);
 
+const NON_CHARACTER_TITLECASE_WORDS = new Set([
+  "She", "He", "They", "Them", "We", "Us", "You", "I", "Whoever", "Whatever",
+  "Someone", "Somebody", "Anyone", "Anybody", "Everyone", "Everybody", "Nobody",
+]);
+
 const ACTION_VERBS = new Set([
   "walks", "runs", "stands", "sits", "enters", "exits", "looks", "turns", "smiles", "waves", "waits",
   "watches", "checks", "holds", "carries", "opens", "closes", "reads", "sleeps", "lies", "meets", "hands",
@@ -23,6 +28,7 @@ function addName(names: Map<string, string>, rawName: string): void {
   const name = toTitleCaseName(rawName.trim());
   if (!name || name.length < 2 || name.length > 24 || /\d/.test(name)) return;
   if (NON_CHARACTER_WORDS.has(name.toUpperCase())) return;
+  if (NON_CHARACTER_TITLECASE_WORDS.has(name)) return;
 
   const key = name.toLowerCase();
   if (!names.has(key)) names.set(key, name);
