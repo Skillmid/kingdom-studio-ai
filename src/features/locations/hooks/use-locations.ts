@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 
-import { locationExtractor } from "@/features/import-engine/extractors/location.extractor";
+import { extractFromScreenplay } from "@/features/import-engine/extract-from-screenplay";
 import { screenplayRepository } from "@/features/script-intelligence/repositories/screenplay.repository";
 
 import { locationRepository } from "../repositories/location.repository";
@@ -25,14 +25,9 @@ export function useLocations(productionId: string) {
     try {
       setLoading(true);
       setError(null);
-      const data = await locationRepository.getByProductionId(productionId);
-      setLocations(data);
+      setLocations(await locationRepository.getByProductionId(productionId));
     } catch (err) {
-      setError(
-        err instanceof Error
-          ? err.message
-          : "Failed to load locations."
-      );
+      setError(err instanceof Error ? err.message : "Failed to load locations.");
     } finally {
       setLoading(false);
     }
@@ -40,12 +35,7 @@ export function useLocations(productionId: string) {
 
   useEffect(() => {
     let cancelled = false;
-
-    if (!productionId) {
-      return () => {
-        cancelled = true;
-      };
-    }
+    if (!productionId) return () => { cancelled = true; };
 
     locationRepository
       .getByProductionId(productionId)
@@ -56,37 +46,24 @@ export function useLocations(productionId: string) {
       })
       .catch((err) => {
         if (cancelled) return;
-        setError(
-          err instanceof Error
-            ? err.message
-            : "Failed to load locations."
-        );
+        setError(err instanceof Error ? err.message : "Failed to load locations.");
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
       });
 
-    return () => {
-      cancelled = true;
-    };
+    return () => { cancelled = true; };
   }, [productionId]);
 
   async function createLocation(location: Partial<Location>) {
     try {
       setSaving(true);
       setError(null);
-
-      const created = await locationRepository.create({
-        ...location,
-        productionId,
-      });
-
+      const created = await locationRepository.create({ ...location, productionId });
       setLocations((current) => [...current, created]);
       return created;
     } catch (err) {
-      const message =
-        err instanceof Error ? err.message : "Failed to create location.";
-      setError(message);
+      setError(err instanceof Error ? err.message : "Failed to create location.");
       throw err;
     } finally {
       setSaving(false);
@@ -97,20 +74,11 @@ export function useLocations(productionId: string) {
     try {
       setSaving(true);
       setError(null);
-
       const updated = await locationRepository.update(id, updates);
-
-      setLocations((current) =>
-        current.map((location) =>
-          location.id === id ? updated : location
-        )
-      );
-
+      setLocations((current) => current.map((location) => location.id === id ? updated : location));
       return updated;
     } catch (err) {
-      const message =
-        err instanceof Error ? err.message : "Failed to update location.";
-      setError(message);
+      setError(err instanceof Error ? err.message : "Failed to update location.");
       throw err;
     } finally {
       setSaving(false);
@@ -121,62 +89,37 @@ export function useLocations(productionId: string) {
     try {
       setSaving(true);
       setError(null);
-
       await locationRepository.delete(id);
-      setLocations((current) =>
-        current.filter((location) => location.id !== id)
-      );
+      setLocations((current) => current.filter((location) => location.id !== id));
     } catch (err) {
-      const message =
-        err instanceof Error ? err.message : "Failed to delete location.";
-      setError(message);
+      setError(err instanceof Error ? err.message : "Failed to delete location.");
       throw err;
     } finally {
       setSaving(false);
     }
   }
 
-  async function syncFromScreenplay(): Promise<{
-    createdCount: number;
-    totalExtracted: number;
-  }> {
-    if (!productionId) {
-      throw new Error("Production ID is required.");
-    }
+  async function syncFromScreenplay(): Promise<{ createdCount: number; totalExtracted: number }> {
+    if (!productionId) throw new Error("Production ID is required.");
 
     setSyncing(true);
     setError(null);
 
     try {
       const screenplay = await screenplayRepository.getByProductionId(productionId);
-
       if (!screenplay || !screenplay.content.trim()) {
-        throw new Error(
-          "No screenplay content found for this production. Save or import a script first."
-        );
+        throw new Error("No screenplay content found for this production. Save or import a script first.");
       }
 
-      const extracted = await locationExtractor.extract(screenplay.content);
-      if (extracted.length === 0) {
-        return { createdCount: 0, totalExtracted: 0 };
-      }
+      const extracted = extractFromScreenplay(screenplay.content, screenplay.analysis).locations;
+      if (extracted.length === 0) return { createdCount: 0, totalExtracted: 0 };
 
-      // Query the database at sync time instead of relying only on the current
-      // React state. This keeps repeated syncs and multiple open tabs idempotent.
-      const existingLocations = await locationRepository.getByProductionId(
-        productionId
-      );
-      const existingNames = new Set(
-        existingLocations.map((location) =>
-          location.name.trim().toLowerCase()
-        )
-      );
+      const existingLocations = await locationRepository.getByProductionId(productionId);
+      const existingNames = new Set(existingLocations.map((location) => location.name.trim().toLowerCase()));
 
       const newLocations = extracted.filter((location) => {
         const key = location.name.trim().toLowerCase();
-        if (existingNames.has(key)) {
-          return false;
-        }
+        if (existingNames.has(key)) return false;
         existingNames.add(key);
         return true;
       });
@@ -198,16 +141,9 @@ export function useLocations(productionId: string) {
 
       const created = await locationRepository.createMany(toInsert);
       setLocations([...existingLocations, ...created]);
-
-      return {
-        createdCount: created.length,
-        totalExtracted: extracted.length,
-      };
+      return { createdCount: created.length, totalExtracted: extracted.length };
     } catch (err) {
-      const message =
-        err instanceof Error
-          ? err.message
-          : "Failed to sync locations from screenplay.";
+      const message = err instanceof Error ? err.message : "Failed to sync locations from screenplay.";
       setError(message);
       throw err;
     } finally {
@@ -215,9 +151,7 @@ export function useLocations(productionId: string) {
     }
   }
 
-  async function refresh() {
-    await loadLocations();
-  }
+  async function refresh() { await loadLocations(); }
 
   return {
     locations,
