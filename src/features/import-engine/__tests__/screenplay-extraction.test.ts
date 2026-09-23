@@ -166,7 +166,14 @@ test("extracts only spoken characters and normalizes cue variants", async () => 
   const characters = await characterExtractor.extract(SAMPLE_SCREENPLAY);
   const names = characters.map((character) => character.name).sort();
 
-  assert.deepEqual(names, ["Conductor", "David", "Femi", "Mum", "Tara", "Woman"]);
+  assert.deepEqual(names, [
+    "Conductor",
+    "David",
+    "Femi",
+    "Mum",
+    "Tara",
+    "Woman",
+  ]);
 
   const david = characters.find((character) => character.name === "David");
   assert.ok(david);
@@ -205,7 +212,10 @@ test("extracts physical locations and ignores transitions", async () => {
     "School Gate",
   ]);
 
-  assert.equal(locations.some((location) => /ercut|intercut|cut to|fade/i.test(location.name)), false);
+  assert.equal(
+    locations.some((location) => /ercut|intercut|cut to|fade/i.test(location.name)),
+    false
+  );
 
   const familyHouse = locations.find((location) => location.name === "Family House");
   assert.ok(familyHouse);
@@ -238,9 +248,11 @@ test("extracts eleven real scenes and scene-level character appearances", async 
     "Another Message Follows",
     "His Eyes Fall On",
     "Proverbs 10:9",
+    "His Phone Displays An Email",
     "A Message From Femi",
     "David Types",
     "Then Adds",
+    "Intercut",
   ].map((name) => name.toLowerCase());
 
   for (const name of allAppearances) {
