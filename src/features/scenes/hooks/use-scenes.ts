@@ -19,10 +19,16 @@ function normaliseLocationName(value: string): string {
     .toLowerCase();
 }
 
-function matchCharacterIds(sourceText: string, characters: Array<{ id: string; name: string }>) {
-  const source = sourceText.toLowerCase();
+function matchCharacterIds(
+  characterNames: string[] | undefined,
+  characters: Array<{ id: string; name: string }>
+) {
+  const names = new Set(
+    (characterNames ?? []).map((name) => name.trim().toLowerCase()).filter(Boolean)
+  );
+
   return characters
-    .filter((character) => character.name.trim().length > 1 && source.includes(character.name.trim().toLowerCase()))
+    .filter((character) => names.has(character.name.trim().toLowerCase()))
     .map((character) => character.id);
 }
 
@@ -182,7 +188,7 @@ export function useScenes(productionId: string) {
         const locationId = scene.locationName
           ? locationIds.get(normaliseLocationName(scene.locationName))
           : undefined;
-        const characterIds = matchCharacterIds(scene.sourceText, existingCharacters);
+        const characterIds = matchCharacterIds(scene.characterNames, existingCharacters);
 
         if (locationId) linkedLocationCount += 1;
         linkedCharacterCount += characterIds.length;
