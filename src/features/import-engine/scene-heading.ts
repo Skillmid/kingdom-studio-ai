@@ -49,9 +49,9 @@ function cleanHeadingLine(value: string): string {
   for (let i = 0; i < 3; i += 1) {
     line = line
       .replace(/^\s*(?:#{1,6}|>|[-*•])\s*/g, "")
-      .replace(/^\s*\*\*(.+)\*\*\s*$/s, "$1")
-      .replace(/^\s*__(.+)__\s*$/s, "$1")
-      .replace(/^\s*`(.+)`\s*$/s, "$1")
+      .replace(/^\s*\*\*([\s\S]+)\*\*\s*$/, "$1")
+      .replace(/^\s*__([\s\S]+)__\s*$/, "$1")
+      .replace(/^\s*`([\s\S]+)`\s*$/, "$1")
       .trim();
   }
 
