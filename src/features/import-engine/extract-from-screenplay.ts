@@ -1,3 +1,4 @@
+import { extractActionCharacterNames } from "./action-character-extractor";
 import { parseScreenplay } from "./screenplay-parser";
 
 export interface ExtractedCharacter {
@@ -39,6 +40,9 @@ function assignRole(
   maxDialogue: number
 ): ExtractedCharacter["role"] {
   if (index === 0 || count >= maxDialogue * 0.5) return "lead";
+  // A named character who is present in action but never speaks is still a
+  // real story character, not an extra or false-positive cue.
+  if (count === 0) return "supporting";
   if (index < 5 || count >= maxDialogue * 0.2) return "supporting";
   if (count >= 2) return "minor";
   return "extra";
@@ -52,10 +56,47 @@ export function extractFromScreenplay(screenplay: string): ScreenplayExtraction 
   const parsed = parseScreenplay(screenplay);
   const maxDialogue = parsed.characters[0]?.dialogueCount ?? 0;
 
-  const characters = parsed.characters.map((character, index) => {
+  const actionCharacterNames = new Map<string, string>();
+  for (const scene of parsed.scenes) {
+    for (const name of extractActionCharacterNames(scene.action)) {
+      actionCharacterNames.set(name.toLowerCase(), name);
+    }
+  }
+
+  const characterMap = new Map<
+    string,
+    { name: string; dialogueCount: number; extensions: string[] }
+  >();
+
+  for (const character of parsed.characters) {
+    characterMap.set(character.name.toLowerCase(), character);
+  }
+
+  for (const name of actionCharacterNames.values()) {
+    const key = name.toLowerCase();
+    if (!characterMap.has(key)) {
+      characterMap.set(key, {
+        name,
+        dialogueCount: 0,
+        extensions: [],
+      });
+    }
+  }
+
+  const parsedCharacters = Array.from(characterMap.values()).sort(
+    (a, b) =>
+      b.dialogueCount - a.dialogueCount || a.name.localeCompare(b.name)
+  );
+
+  const characters = parsedCharacters.map((character, index) => {
     const extensionNote = character.extensions.length
       ? ` Cue variants include ${character.extensions.join(", ")}.`
       : "";
+
+    const presenceNote =
+      character.dialogueCount === 0
+        ? " Present in screenplay action but has no dialogue cue."
+        : "";
 
     return {
       name: character.name,
@@ -63,7 +104,7 @@ export function extractFromScreenplay(screenplay: string): ScreenplayExtraction 
       dialogueCount: character.dialogueCount,
       description: `Appears in screenplay with ${character.dialogueCount} dialogue cue${
         character.dialogueCount === 1 ? "" : "s"
-      }.${extensionNote}`,
+      }.${presenceNote}${extensionNote}`,
     };
   });
 
@@ -101,6 +142,14 @@ export function extractFromScreenplay(screenplay: string): ScreenplayExtraction 
       .replace(/\s+/g, " ")
       .trim();
 
+    const dialogueNames = scene.dialogueBeats.map((beat) => beat.character);
+    const actionNames = extractActionCharacterNames(scene.action);
+    const characterNames = Array.from(
+      new Map(
+        [...dialogueNames, ...actionNames].map((name) => [name.toLowerCase(), name])
+      ).values()
+    );
+
     return {
       number: scene.number,
       heading: scene.heading.heading,
@@ -111,9 +160,7 @@ export function extractFromScreenplay(screenplay: string): ScreenplayExtraction 
       dialogue,
       sourceText: scene.sourceLines.join("\n").trim(),
       locationName: scene.heading.locationName,
-      characterNames: Array.from(
-        new Set(scene.dialogueBeats.map((beat) => beat.character))
-      ),
+      characterNames,
     };
   });
 
