@@ -71,6 +71,23 @@ const FUNCTION_WORDS = new Set([
   "next",
   "later",
   "meanwhile",
+  "she",
+  "he",
+  "they",
+  "them",
+  "we",
+  "us",
+  "you",
+  "i",
+  "whoever",
+  "whatever",
+  "someone",
+  "somebody",
+  "anyone",
+  "anybody",
+  "everyone",
+  "everybody",
+  "nobody",
 ]);
 
 const ACTION_TOKENS = new Set([
