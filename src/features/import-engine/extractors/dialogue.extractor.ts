@@ -10,6 +10,7 @@ export class DialogueExtractor {
   async analyze(
     screenplay: string
   ): Promise<DialogueMetrics> {
+    void screenplay;
     console.log(
       "Analyzing dialogue..."
     );

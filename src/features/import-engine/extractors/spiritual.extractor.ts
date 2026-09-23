@@ -12,6 +12,7 @@ export class SpiritualExtractor {
   async extract(
     screenplay: string
   ): Promise<SpiritualExtraction> {
+    void screenplay;
     console.log(
       "Extracting spiritual context..."
     );

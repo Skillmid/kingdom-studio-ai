@@ -28,7 +28,6 @@ export function useAI() {
     useState<string | null>(null);
 
   async function generate({
-    action,
     context,
     content,
   }: GenerateOptions) {
