@@ -15,7 +15,7 @@ export default function AIDirectorCard() {
           </h2>
 
           <p className="mt-5 max-w-3xl text-lg leading-8 text-zinc-300">
-            I'm here to help you develop stories, create memorable
+            I&apos;m here to help you develop stories, create memorable
             characters, plan cinematic scenes, generate production assets,
             and guide every step of your filmmaking journey.
           </p>

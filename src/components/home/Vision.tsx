@@ -33,8 +33,8 @@ export default function Vision() {
         <div className="mt-16 rounded-3xl border border-yellow-500/20 bg-zinc-950 p-10">
 
           <blockquote className="text-2xl font-semibold leading-relaxed text-white md:text-3xl">
-            "Technology should never replace the storyteller.
-            It should empower the storyteller."
+            &ldquo;Technology should never replace the storyteller.
+            It should empower the storyteller.&rdquo;
           </blockquote>
 
           <p className="mt-6 text-yellow-500">

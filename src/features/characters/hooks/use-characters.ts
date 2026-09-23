@@ -39,8 +39,37 @@ export function useCharacters(productionId: string) {
   }, [productionId]);
 
   useEffect(() => {
-    void loadCharacters();
-  }, [loadCharacters]);
+    let cancelled = false;
+
+    if (!productionId) {
+      return () => {
+        cancelled = true;
+      };
+    }
+
+    characterRepository
+      .getByProductionId(productionId)
+      .then((data) => {
+        if (cancelled) return;
+        setCharacters(data);
+        setError(null);
+      })
+      .catch((err) => {
+        if (cancelled) return;
+        setError(
+          err instanceof Error
+            ? err.message
+            : "Failed to load characters."
+        );
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [productionId]);
 
   async function createCharacter(character: Partial<Character>) {
     try {

@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import {
   useCallback,
@@ -77,18 +77,8 @@ export function useScriptWorkspace(productionId: string) {
     []
   );
 
-  const load = useCallback(async () => {
-    if (!productionId) {
-      setLoading(false);
-      return;
-    }
-
-    setLoading(true);
-    setError(null);
-
-    try {
-      const existing = await screenplayRepository.getByProductionId(productionId);
-
+  const applyScreenplay = useCallback(
+    async (existing: Screenplay | null) => {
       if (!existing) {
         setScreenplay(null);
         setContent("");
@@ -114,6 +104,22 @@ export function useScriptWorkspace(productionId: string) {
       setAnalysis(null);
 
       await loadRevisions(existing.id);
+    },
+    [loadRevisions]
+  );
+
+  const load = useCallback(async () => {
+    if (!productionId) {
+      setLoading(false);
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+
+    try {
+      const existing = await screenplayRepository.getByProductionId(productionId);
+      await applyScreenplay(existing);
     } catch (err) {
       setError(
         err instanceof Error ? err.message : "Unable to load screenplay."
@@ -121,11 +127,38 @@ export function useScriptWorkspace(productionId: string) {
     } finally {
       setLoading(false);
     }
-  }, [productionId, loadRevisions]);
+  }, [productionId, applyScreenplay]);
 
   useEffect(() => {
-    void load();
-  }, [load]);
+    let cancelled = false;
+
+    if (!productionId) {
+      return () => {
+        cancelled = true;
+      };
+    }
+
+    screenplayRepository
+      .getByProductionId(productionId)
+      .then(async (existing) => {
+        if (cancelled) return;
+        await applyScreenplay(existing);
+        setError(null);
+      })
+      .catch((err) => {
+        if (cancelled) return;
+        setError(
+          err instanceof Error ? err.message : "Unable to load screenplay."
+        );
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [productionId, applyScreenplay]);
 
   const importScript = useCallback(
     async (input: ImportScriptInput) => {

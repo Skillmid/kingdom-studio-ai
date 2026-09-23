@@ -53,8 +53,31 @@ export function useProductions() {
   }, []);
 
   useEffect(() => {
-    refresh();
-  }, [refresh]);
+    let cancelled = false;
+
+    productionRepository
+      .getAllIncludingArchived()
+      .then((result) => {
+        if (cancelled) return;
+        setProductions(result);
+        setError(null);
+      })
+      .catch((error) => {
+        if (cancelled) return;
+        setError(
+          error instanceof Error
+            ? error.message
+            : "Unable to load productions."
+        );
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   async function renameProduction(
     id: string,

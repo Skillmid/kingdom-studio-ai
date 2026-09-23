@@ -34,7 +34,6 @@ function ScriptWorkspaceContent({
     content,
     setContent,
     fileName,
-    source,
     knowledge,
     analysis,
     revisions,
@@ -48,7 +47,6 @@ function ScriptWorkspaceContent({
     reviewScreenplay,
     saveScreenplay,
     restoreRevision,
-    refresh,
     clear,
   } = useScriptWorkspace(
     productionId
@@ -123,7 +121,7 @@ function ScriptWorkspaceContent({
             Screenplay
           </h1>
           <p className="mt-4 max-w-4xl text-zinc-400">
-            Develop the creator's screenplay with professional,
+            Develop the creator&apos;s screenplay with professional,
             cultural, spiritual, dialogue, character, story, and
             production intelligence while preserving human creative
             authority.

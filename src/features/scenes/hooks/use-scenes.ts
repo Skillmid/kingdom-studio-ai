@@ -52,8 +52,33 @@ export function useScenes(productionId: string) {
   }, [productionId]);
 
   useEffect(() => {
-    void loadScenes();
-  }, [loadScenes]);
+    let cancelled = false;
+
+    if (!productionId) {
+      return () => {
+        cancelled = true;
+      };
+    }
+
+    sceneRepository
+      .getByProductionId(productionId)
+      .then((data) => {
+        if (cancelled) return;
+        setScenes(data);
+        setError(null);
+      })
+      .catch((err) => {
+        if (cancelled) return;
+        setError(err instanceof Error ? err.message : "Failed to load scenes.");
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [productionId]);
 
   async function createScene(scene: Partial<Scene>) {
     try {

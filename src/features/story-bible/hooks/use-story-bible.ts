@@ -67,8 +67,37 @@ export function useStoryBible(
   }, [productionId]);
 
   useEffect(() => {
-    void refresh();
-  }, [refresh]);
+    let cancelled = false;
+
+    if (!productionId) {
+      return () => {
+        cancelled = true;
+      };
+    }
+
+    storyBibleRepository
+      .getByProductionId(productionId)
+      .then((result) => {
+        if (cancelled) return;
+        setStoryBible(result);
+        setError(null);
+      })
+      .catch((error) => {
+        if (cancelled) return;
+        setError(
+          error instanceof Error
+            ? error.message
+            : "Unable to load Story Bible."
+        );
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [productionId]);
 
   async function save(values: StoryBibleDTO) {
     setSaving(true);

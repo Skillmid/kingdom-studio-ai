@@ -32,7 +32,7 @@ export default function ProductionOverview({
         </h2>
 
         <p className="mt-6 text-lg leading-8 text-zinc-400">
-          Every Kingdom production begins by seeking God's direction.
+          Every Kingdom production begins by seeking God&apos;s direction.
           Define the mission, biblical foundation, audience,
           scripture, purpose, and desired transformation before
           writing your screenplay.

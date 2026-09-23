@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useSave } from "@/platform/save";
 import { useStoryBible } from "../hooks/use-story-bible";
 import type { StoryBibleScreenplayProposal } from "../services/story-bible-screenplay-sync.service";
@@ -47,28 +47,31 @@ export default function StoryBibleEditor({ productionId }: StoryBibleEditorProps
 
   const { runSave } = useSave();
   const [form, setForm] = useState<StoryBibleForm>(defaultForm);
+  const [syncedStoryBible, setSyncedStoryBible] = useState(storyBible);
   const [syncProposal, setSyncProposal] = useState<StoryBibleScreenplayProposal | null>(null);
   const [syncSource, setSyncSource] = useState<{
     title: string;
     version: number;
   } | null>(null);
 
-  useEffect(() => {
-    if (!storyBible) return;
-    setForm({
-      title: storyBible.title ?? "", logline: storyBible.logline ?? "", synopsis: storyBible.synopsis ?? "",
-      burden: storyBible.burden ?? "", truth: storyBible.truth ?? "", human_problem: storyBible.human_problem ?? "",
-      theme: storyBible.theme ?? "", core_message: storyBible.core_message ?? "", scripture_foundation: storyBible.scripture_foundation ?? "",
-      kingdom_objective: storyBible.kingdom_objective ?? "", genre: storyBible.genre ?? "", target_audience: storyBible.target_audience ?? "",
-      tone: storyBible.tone ?? "", language: storyBible.language ?? "English", visual_style: storyBible.visual_style ?? "",
-      aspect_ratio: storyBible.aspect_ratio ?? "16:9", duration_minutes: storyBible.duration_minutes ?? 10,
-      universe: storyBible.universe ?? "", time_period: storyBible.time_period ?? "", primary_location: storyBible.primary_location ?? "",
-      beginning: storyBible.beginning ?? "", conflict: storyBible.conflict ?? "", midpoint: storyBible.midpoint ?? "",
-      climax: storyBible.climax ?? "", ending: storyBible.ending ?? "", ai_context: storyBible.ai_context ?? "",
-      ai_rules: storyBible.ai_rules ?? "", forbidden_elements: storyBible.forbidden_elements ?? "",
-      preferred_vocabulary: storyBible.preferred_vocabulary ?? "", visual_consistency: storyBible.visual_consistency ?? "",
-    });
-  }, [storyBible]);
+  if (storyBible !== syncedStoryBible) {
+    setSyncedStoryBible(storyBible);
+    if (storyBible) {
+      setForm({
+        title: storyBible.title ?? "", logline: storyBible.logline ?? "", synopsis: storyBible.synopsis ?? "",
+        burden: storyBible.burden ?? "", truth: storyBible.truth ?? "", human_problem: storyBible.human_problem ?? "",
+        theme: storyBible.theme ?? "", core_message: storyBible.core_message ?? "", scripture_foundation: storyBible.scripture_foundation ?? "",
+        kingdom_objective: storyBible.kingdom_objective ?? "", genre: storyBible.genre ?? "", target_audience: storyBible.target_audience ?? "",
+        tone: storyBible.tone ?? "", language: storyBible.language ?? "English", visual_style: storyBible.visual_style ?? "",
+        aspect_ratio: storyBible.aspect_ratio ?? "16:9", duration_minutes: storyBible.duration_minutes ?? 10,
+        universe: storyBible.universe ?? "", time_period: storyBible.time_period ?? "", primary_location: storyBible.primary_location ?? "",
+        beginning: storyBible.beginning ?? "", conflict: storyBible.conflict ?? "", midpoint: storyBible.midpoint ?? "",
+        climax: storyBible.climax ?? "", ending: storyBible.ending ?? "", ai_context: storyBible.ai_context ?? "",
+        ai_rules: storyBible.ai_rules ?? "", forbidden_elements: storyBible.forbidden_elements ?? "",
+        preferred_vocabulary: storyBible.preferred_vocabulary ?? "", visual_consistency: storyBible.visual_consistency ?? "",
+      });
+    }
+  }
 
   function update<K extends keyof StoryBibleForm>(key: K, value: StoryBibleForm[K]) {
     setForm((current) => ({ ...current, [key]: value }));

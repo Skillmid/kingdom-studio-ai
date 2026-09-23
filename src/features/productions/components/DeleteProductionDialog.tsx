@@ -59,7 +59,7 @@ export default function DeleteProductionDialog({
         </h2>
 
         <p className="mt-5 leading-7 text-zinc-400">
-          You're about to archive
+          You&apos;re about to archive
           <span className="font-semibold text-white">
             {" "}
             {productionTitle}

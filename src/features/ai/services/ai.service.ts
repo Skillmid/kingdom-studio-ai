@@ -9,6 +9,7 @@ export class AIService {
   async generate(
     request: AIRequest
   ): Promise<AIResponse> {
+    void request;
     const model =
       ModelRouter.getDefaultModel();
 

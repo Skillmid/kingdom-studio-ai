@@ -29,7 +29,21 @@ export default function ArchivedProductions() {
   }
 
   useEffect(() => {
-    load();
+    let cancelled = false;
+
+    productionRepository
+      .getArchived()
+      .then((result) => {
+        if (cancelled) return;
+        setProductions(result);
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   async function restore(

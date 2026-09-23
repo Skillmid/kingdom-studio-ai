@@ -12,6 +12,7 @@ export class CulturalExtractor {
   async extract(
     screenplay: string
   ): Promise<CulturalExtraction> {
+    void screenplay;
     console.log(
       "Extracting cultural context..."
     );
