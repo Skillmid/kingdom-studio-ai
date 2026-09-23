@@ -4,9 +4,9 @@ import { validateScreenplayAnalysis } from "@/features/script-intelligence/servi
 
 const DEFAULT_MODEL = process.env.OPENROUTER_SCREENPLAY_MODEL || "openrouter/free";
 
-const SYSTEM_PROMPT = `You are the screenplay-structure engine for Kingdom Studio AI.
+const SYSTEM_PROMPT = `You are the canonical screenplay intelligence engine for Kingdom Studio AI.
 
-Read the COMPLETE screenplay as a professional script analyst. Your job is to identify what is actually present in the screenplay and return a canonical production breakdown.
+Read the COMPLETE screenplay as a professional script analyst. One analysis powers the production workspace: Story Bible, Characters, Locations and Scenes. Identify what is actually present, then make carefully grounded narrative inferences only for Story Bible fields that require interpretation.
 
 NON-NEGOTIABLE RULES:
 1. Never rewrite or improve the screenplay.
@@ -20,15 +20,52 @@ NON-NEGOTIABLE RULES:
 9. Keep scene numbers in screenplay order. If the screenplay has no explicit number, assign sequential numbers beginning at 1.
 10. A location is the physical setting named by a scene heading, not every place mentioned in action or dialogue.
 11. Scene characterNames must contain every character physically present or explicitly participating in that scene, including action-only characters, but must not contain people merely mentioned in dialogue unless the screenplay clearly establishes their presence.
-12. Evidence must quote short, exact excerpts from the screenplay and must explain why an entity was identified. Do not create evidence that is not in the screenplay.
-13. Preserve the story's wording in sourceText, action and dialogue. Do not summarize those fields except where a field is explicitly a summary.
+12. Evidence must quote short, exact excerpts from the screenplay. Do not create evidence that is not in the screenplay.
+13. Preserve the story's wording in sourceText, action and dialogue. Do not summarize those fields.
 14. If uncertain whether an uppercase phrase is a character, prefer leaving it out rather than inventing a character.
+15. Story Bible fields must be grounded in the complete screenplay. Extract direct facts where available and infer only what is strongly supported by the story.
+16. Never manufacture a Scripture reference. If the screenplay has no supported biblical foundation, leave scripture_foundation empty.
+17. Do not invent creator-specific burden, truth, or kingdom objective. If those ideas are not reasonably supported by the screenplay, leave them empty.
+18. Narrative beats must describe the actual story, not generic screenplay advice.
+19. AI context, rules and visual consistency must be practical production guidance derived from observable story details, characters, locations, tone and style.
 
 RETURN ONLY valid JSON matching this shape:
 {
   "schemaVersion": 1,
   "title": "string or omitted",
   "logline": "string or omitted",
+  "storyBible": {
+    "title": "string or omitted",
+    "logline": "string or omitted",
+    "synopsis": "string or omitted",
+    "burden": "string or omitted",
+    "truth": "string or omitted",
+    "human_problem": "string or omitted",
+    "theme": "string or omitted",
+    "core_message": "string or omitted",
+    "scripture_foundation": "string or omitted",
+    "kingdom_objective": "string or omitted",
+    "target_audience": "string or omitted",
+    "genre": "string or omitted",
+    "tone": "string or omitted",
+    "language": "string or omitted",
+    "visual_style": "string or omitted",
+    "aspect_ratio": "string or omitted",
+    "duration_minutes": 0,
+    "universe": "string or omitted",
+    "time_period": "string or omitted",
+    "primary_location": "string or omitted",
+    "beginning": "string or omitted",
+    "conflict": "string or omitted",
+    "midpoint": "string or omitted",
+    "climax": "string or omitted",
+    "ending": "string or omitted",
+    "ai_context": "string or omitted",
+    "ai_rules": "string or omitted",
+    "forbidden_elements": "string or omitted",
+    "preferred_vocabulary": "string or omitted",
+    "visual_consistency": "string or omitted"
+  },
   "characters": [
     {
       "name": "string",
@@ -84,7 +121,7 @@ function extractJson(text: string): unknown {
 async function callOpenRouter(apiKey: string, screenplay: string, repair = false) {
   const userPrompt = repair
     ? `Return ONLY valid JSON. Repair the previous screenplay analysis so it exactly matches the required schema. Do not add facts that are not supported by the screenplay.\n\nSCREENPLAY:\n${screenplay}`
-    : `Analyze this complete screenplay and return the canonical JSON structure described in your instructions. Pay special attention to distinguishing real characters introduced in action from uppercase action phrases, notifications, messages, Bible verses, labels and transitions.\n\nSCREENPLAY:\n${screenplay}`;
+    : `Analyze this complete screenplay and return the canonical JSON structure described in your instructions. Pay special attention to the distinction between extracted facts and grounded Story Bible inferences.\n\nSCREENPLAY:\n${screenplay}`;
 
   const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
     method: "POST",
@@ -99,7 +136,7 @@ async function callOpenRouter(apiKey: string, screenplay: string, repair = false
         { role: "user", content: userPrompt },
       ],
       temperature: 0.1,
-      max_tokens: 12000,
+      max_tokens: 16000,
     }),
   });
 
