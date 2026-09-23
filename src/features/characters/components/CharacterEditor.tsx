@@ -1,6 +1,6 @@
-﻿"use client";
+"use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import type { Character, CharacterRole, CharacterStatus } from "../types/character";
 
 interface CharacterEditorProps {
@@ -58,10 +58,12 @@ export default function CharacterEditor({
   onCancel,
 }: CharacterEditorProps) {
   const [form, setForm] = useState<Partial<Character>>({ ...character });
+  const [syncedCharacter, setSyncedCharacter] = useState(character);
 
-  useEffect(() => {
+  if (character !== syncedCharacter) {
+    setSyncedCharacter(character);
     setForm({ ...character });
-  }, [character]);
+  }
 
   function update<K extends keyof Character>(key: K, value: Character[K]) {
     setForm((current) => ({
