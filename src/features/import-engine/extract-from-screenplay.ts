@@ -48,7 +48,9 @@ function assignRole(
   return "extra";
 }
 
-function fromCanonicalAnalysis(analysis: ScreenplayAnalysis): ScreenplayExtraction {
+function fromCanonicalAnalysis(
+  analysis: ScreenplayAnalysis
+): ScreenplayExtraction {
   const sortedCharacters = [...analysis.characters].sort(
     (a, b) => b.dialogueCount - a.dialogueCount || a.name.localeCompare(b.name)
   );
@@ -100,7 +102,13 @@ function fromCanonicalAnalysis(analysis: ScreenplayAnalysis): ScreenplayExtracti
         dialogue,
         sourceText: scene.sourceText.trim(),
         locationName: scene.locationName,
-        characterNames: Array.from(new Set(scene.characterNames.map((name) => name.trim()).filter(Boolean))),
+        characterNames: Array.from(
+          new Set(
+            scene.characterNames
+              .map((name) => name.trim())
+              .filter(Boolean)
+          )
+        ),
       };
     });
 
@@ -128,14 +136,23 @@ export function extractFromScreenplay(
     }
   }
 
-  const characterMap = new Map<string, { name: string; dialogueCount: number; extensions: string[] }>();
+  const characterMap = new Map<
+    string,
+    { name: string; dialogueCount: number; extensions: string[] }
+  >();
+
   for (const character of parsed.characters) {
     characterMap.set(character.name.toLowerCase(), character);
   }
+
   for (const name of actionCharacterNames.values()) {
     const key = name.toLowerCase();
     if (!characterMap.has(key)) {
-      characterMap.set(key, { name, dialogueCount: 0, extensions: [] });
+      characterMap.set(key, {
+        name,
+        dialogueCount: 0,
+        extensions: [],
+      });
     }
   }
 
@@ -147,17 +164,20 @@ export function extractFromScreenplay(
     name: character.name,
     role: assignRole(index, character.dialogueCount, maxDialogue),
     dialogueCount: character.dialogueCount,
-    description: `Appears in screenplay with ${character.dialogueCount} dialogue cue${character.dialogueCount === 1 ? "" : "s"}.${
-      character.dialogueCount === 0 ? " Present in screenplay action but has no dialogue cue." : ""
-    }`,
+    description: `Appears in screenplay with ${character.dialogueCount} dialogue cue${character.dialogueCount === 1 ? "" : "s"}.${character.dialogueCount === 0 ? " Present in screenplay action but has no dialogue cue." : ""}`,
   }));
 
   const locationMap = new Map<string, LocationExtraction>();
   for (const scene of parsed.scenes) {
     const key = scene.heading.locationName.toLowerCase();
     const setting: LocationExtraction["setting"] =
-      scene.heading.prefix === "BOTH" ? "both" : scene.heading.prefix === "EXT" ? "exterior" : "interior";
+      scene.heading.prefix === "BOTH"
+        ? "both"
+        : scene.heading.prefix === "EXT"
+          ? "exterior"
+          : "interior";
     const existing = locationMap.get(key);
+
     if (existing) {
       existing.occurrences += 1;
       if (existing.setting !== setting) existing.setting = "both";
@@ -174,14 +194,23 @@ export function extractFromScreenplay(
   const scenes = parsed.scenes.map((scene) => {
     const action = scene.action.join(" ").replace(/\s+/g, " ").trim();
     const dialogue = scene.dialogueBeats
-      .map((beat) => `${beat.character}:${beat.parenthetical ? ` ${beat.parenthetical}` : ""} ${beat.dialogue}`.trim())
+      .map(
+        (beat) =>
+          `${beat.character}:${beat.parenthetical ? ` ${beat.parenthetical}` : ""} ${beat.dialogue}`.trim()
+      )
       .join(" ")
       .replace(/\s+/g, " ")
       .trim();
+
     const dialogueNames = scene.dialogueBeats.map((beat) => beat.character);
     const actionNames = extractActionCharacterNames(scene.action);
     const characterNames = Array.from(
-      new Map([...dialogueNames, ...actionNames].map((name) => [name.toLowerCase(), name])).values()
+      new Map(
+        [...dialogueNames, ...actionNames].map((name) => [
+          name.toLowerCase(),
+          name,
+        ])
+      ).values()
     );
 
     return {
