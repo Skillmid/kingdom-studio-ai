@@ -89,7 +89,10 @@ function normaliseScene(value: unknown): AnalyzedScene | null {
             parenthetical: cleanString(source.parenthetical) || undefined,
           };
         })
-        .filter(Boolean)
+        .filter(
+          (beat): beat is { character: string; dialogue: string; parenthetical?: string } =>
+            Boolean(beat)
+        )
     : [];
 
   return {
@@ -112,13 +115,19 @@ export function validateScreenplayAnalysis(input: unknown): ScreenplayAnalysis {
 
   const source = input as Record<string, unknown>;
   const characters = Array.isArray(source.characters)
-    ? source.characters.map(normaliseCharacter).filter((item): item is AnalyzedCharacter => Boolean(item))
+    ? source.characters
+        .map(normaliseCharacter)
+        .filter((item): item is AnalyzedCharacter => Boolean(item))
     : [];
   const locations = Array.isArray(source.locations)
-    ? source.locations.map(normaliseLocation).filter((item): item is AnalyzedLocation => Boolean(item))
+    ? source.locations
+        .map(normaliseLocation)
+        .filter((item): item is AnalyzedLocation => Boolean(item))
     : [];
   const scenes = Array.isArray(source.scenes)
-    ? source.scenes.map(normaliseScene).filter((item): item is AnalyzedScene => Boolean(item))
+    ? source.scenes
+        .map(normaliseScene)
+        .filter((item): item is AnalyzedScene => Boolean(item))
     : [];
 
   if (scenes.length === 0 && characters.length === 0 && locations.length === 0) {
@@ -145,9 +154,6 @@ export async function analyzeScreenplay(content: string): Promise<ScreenplayAnal
   });
 
   const data = (await response.json()) as { analysis?: unknown; error?: string };
-  if (!response.ok) {
-    throw new Error(data.error || "Unable to analyse screenplay.");
-  }
-
+  if (!response.ok) throw new Error(data.error || "Unable to analyse screenplay.");
   return validateScreenplayAnalysis(data.analysis);
 }
