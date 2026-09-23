@@ -66,6 +66,27 @@ function normaliseLocation(value: unknown): AnalyzedLocation | null {
   return { name, setting, sourceHeading, sceneNumbers };
 }
 
+type NormalizedDialogueBeat = {
+  character: string;
+  dialogue: string;
+  parenthetical?: string;
+};
+
+function normaliseDialogueBeat(value: unknown): NormalizedDialogueBeat | null {
+  if (!value || typeof value !== "object") return null;
+  const source = value as Record<string, unknown>;
+  const character = cleanString(source.character);
+  const dialogue = cleanString(source.dialogue);
+  if (!character || !dialogue) return null;
+
+  const parenthetical = cleanString(source.parenthetical);
+  return {
+    character,
+    dialogue,
+    ...(parenthetical ? { parenthetical } : {}),
+  };
+}
+
 function normaliseScene(value: unknown): AnalyzedScene | null {
   if (!value || typeof value !== "object") return null;
   const item = value as Record<string, unknown>;
@@ -77,22 +98,8 @@ function normaliseScene(value: unknown): AnalyzedScene | null {
   const sceneType = item.sceneType === "EXT" || item.sceneType === "BOTH" ? item.sceneType : "INT";
   const dialogue = Array.isArray(item.dialogue)
     ? item.dialogue
-        .map((beat) => {
-          if (!beat || typeof beat !== "object") return null;
-          const source = beat as Record<string, unknown>;
-          const character = cleanString(source.character);
-          const text = cleanString(source.dialogue);
-          if (!character || !text) return null;
-          return {
-            character,
-            dialogue: text,
-            parenthetical: cleanString(source.parenthetical) || undefined,
-          };
-        })
-        .filter(
-          (beat): beat is { character: string; dialogue: string; parenthetical?: string } =>
-            Boolean(beat)
-        )
+        .map(normaliseDialogueBeat)
+        .filter((beat): beat is NormalizedDialogueBeat => beat !== null)
     : [];
 
   return {
