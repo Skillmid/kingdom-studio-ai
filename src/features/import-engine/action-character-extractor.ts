@@ -1,27 +1,31 @@
 import { isSceneHeading, isScreenplayTransition, toTitleCaseName } from "./scene-heading";
 
 const ACTION_CHARACTER_TOKEN_PATTERN = /\b[A-Z][A-Z0-9.'’-]{1,}\b/g;
-const TITLECASE_ACTION_CHARACTER_PATTERN = /\b[A-Z][a-z]{1,23}\b(?=\s+(?:walks|runs|stands|sits|enters|exits|looks|turns|smiles|waves|waits|watches|checks|holds|carries|opens|closes|reads|sleeps|lies|meets|hands|gives|takes|steps|moves|heads|goes|comes)\b)/g;
-const RELATION_CHARACTER_PATTERN = /\b(?:from|with|to|by)\s+([A-Z][a-z]{1,23})\b/g;
+const TITLECASE_ACTION_CHARACTER_PATTERN =
+  /\b[A-Z][a-z]{1,23}\b(?=\s+(?:walks|runs|stands|sits|enters|exits|looks|turns|smiles|waves|waits|watches|checks|holds|carries|opens|closes|reads|sleeps|lies|meets|hands|gives|takes|steps|moves|heads|goes|comes)\b)/g;
 
 const NON_CHARACTER_WORDS = new Set([
-  "A", "AN", "THE", "AND", "BUT", "OR", "SO", "AS", "AT", "ON", "IN", "OF", "TO", "FROM",
-  "WITH", "WITHOUT", "HIS", "HER", "THEIR", "ITS", "THIS", "THAT", "THESE", "THOSE", "ANOTHER",
-  "THEN", "NEXT", "LATER", "MEANWHILE", "TYPES", "ADDS", "APPEARS", "FOLLOWS", "DISPLAYS", "LOOKS",
-  "WALKS", "ENTERS", "EXITS", "FALLS", "READS", "WRITES", "OPENS", "CLOSES", "PICKS", "HOLDS", "SEES",
-  "HEARS", "TURNS", "GRABS", "CHECKS", "PROVERBS", "EMAIL", "PHONE", "MESSAGE", "NOTIFICATION",
-  "INTERCUT", "CUT", "FADE", "DISSOLVE", "MONTAGE",
+  "A", "AN", "THE", "AND", "BUT", "OR", "SO", "AS", "AT", "ON", "IN", "OF",
+  "TO", "FROM", "WITH", "WITHOUT", "HIS", "HER", "THEIR", "ITS", "THIS",
+  "THAT", "THESE", "THOSE", "ANOTHER", "THEN", "NEXT", "LATER", "MEANWHILE",
+  "TYPES", "ADDS", "APPEARS", "FOLLOWS", "DISPLAYS", "LOOKS", "WALKS",
+  "ENTERS", "EXITS", "FALLS", "READS", "WRITES", "OPENS", "CLOSES", "PICKS",
+  "HOLDS", "SEES", "HEARS", "TURNS", "GRABS", "CHECKS", "PROVERBS", "EMAIL",
+  "PHONE", "MESSAGE", "NOTIFICATION", "INTERCUT", "CUT", "FADE", "DISSOLVE",
+  "MONTAGE",
 ]);
 
 const NON_CHARACTER_TITLECASE_WORDS = new Set([
-  "She", "He", "They", "Them", "We", "Us", "You", "I", "Whoever", "Whatever",
-  "Someone", "Somebody", "Anyone", "Anybody", "Everyone", "Everybody", "Nobody",
+  "She", "He", "They", "Them", "We", "Us", "You", "I",
+  "Whoever", "Whatever", "Someone", "Somebody", "Anyone", "Anybody",
+  "Everyone", "Everybody", "Nobody",
 ]);
 
 const ACTION_VERBS = new Set([
-  "walks", "runs", "stands", "sits", "enters", "exits", "looks", "turns", "smiles", "waves", "waits",
-  "watches", "checks", "holds", "carries", "opens", "closes", "reads", "sleeps", "lies", "meets", "hands",
-  "gives", "takes", "steps", "moves", "heads", "goes", "comes",
+  "walks", "runs", "stands", "sits", "enters", "exits", "looks", "turns",
+  "smiles", "waves", "waits", "watches", "checks", "holds", "carries",
+  "opens", "closes", "reads", "sleeps", "lies", "meets", "hands", "gives",
+  "takes", "steps", "moves", "heads", "goes", "comes",
 ]);
 
 function addName(names: Map<string, string>, rawName: string): void {
@@ -51,14 +55,14 @@ function isLikelyActionCharacterToken(line: string, token: string, index: number
     "i"
   ).test(after);
 
-  return introducedAfterComma || introducedAfterFrom || introducedAfterTo || startsLine || followedByAge || followedByAction;
+  return introducedAfterComma || introducedAfterFrom || introducedAfterTo ||
+    startsLine || followedByAge || followedByAction;
 }
 
 /**
  * Finds named characters introduced or mentioned in screenplay action.
- * This is only a legacy fallback. New screenplays should use the canonical
- * AI screenplay analysis, but the fallback must still understand common
- * screenplay introductions such as "TARA, 16, ..." and "a message from Femi".
+ * This is a legacy fallback. Canonical AI screenplay analysis is the primary
+ * path for current screenplays.
  */
 export function extractActionCharacterNames(actionLines: string[]): string[] {
   const names = new Map<string, string>();
@@ -75,10 +79,6 @@ export function extractActionCharacterNames(actionLines: string[]): string[] {
 
     for (const match of trimmed.matchAll(TITLECASE_ACTION_CHARACTER_PATTERN)) {
       addName(names, match[0]);
-    }
-
-    for (const match of trimmed.matchAll(RELATION_CHARACTER_PATTERN)) {
-      addName(names, match[1]);
     }
   }
 
