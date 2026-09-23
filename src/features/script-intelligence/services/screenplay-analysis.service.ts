@@ -2,6 +2,7 @@ import type {
   AnalyzedCharacter,
   AnalyzedLocation,
   AnalyzedScene,
+  AnalyzedStoryBible,
   ScreenplayAnalysis,
 } from "../types/screenplay-analysis";
 
@@ -115,6 +116,56 @@ function normaliseScene(value: unknown): AnalyzedScene | null {
   };
 }
 
+function normaliseStoryBible(value: unknown): AnalyzedStoryBible {
+  if (!value || typeof value !== "object") return {};
+
+  const source = value as Record<string, unknown>;
+  const fields = [
+    "title",
+    "logline",
+    "synopsis",
+    "burden",
+    "truth",
+    "human_problem",
+    "theme",
+    "core_message",
+    "scripture_foundation",
+    "kingdom_objective",
+    "target_audience",
+    "genre",
+    "tone",
+    "language",
+    "visual_style",
+    "aspect_ratio",
+    "universe",
+    "time_period",
+    "primary_location",
+    "beginning",
+    "conflict",
+    "midpoint",
+    "climax",
+    "ending",
+    "ai_context",
+    "ai_rules",
+    "forbidden_elements",
+    "preferred_vocabulary",
+    "visual_consistency",
+  ] as const;
+
+  const result: AnalyzedStoryBible = {};
+  for (const field of fields) {
+    const value = cleanString(source[field]);
+    if (value) result[field] = value;
+  }
+
+  const duration = Number(source.duration_minutes);
+  if (Number.isFinite(duration) && duration > 0) {
+    result.duration_minutes = Math.round(duration);
+  }
+
+  return result;
+}
+
 export function validateScreenplayAnalysis(input: unknown): ScreenplayAnalysis {
   if (!input || typeof input !== "object") {
     throw new Error("AI returned an invalid screenplay analysis.");
@@ -145,6 +196,7 @@ export function validateScreenplayAnalysis(input: unknown): ScreenplayAnalysis {
     schemaVersion: 1,
     title: cleanString(source.title) || undefined,
     logline: cleanString(source.logline) || undefined,
+    storyBible: normaliseStoryBible(source.storyBible),
     characters,
     locations,
     scenes,
