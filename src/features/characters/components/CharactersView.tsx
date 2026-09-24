@@ -24,8 +24,12 @@ export function CharactersView({ productionId }: CharactersViewProps) {
     syncFromScreenplay,
   } = useCharacters(productionId);
 
-  const [selectedCharacter, setSelectedCharacter] =
-    useState<Character | null>(null);
+  const [selectedCharacterId, setSelectedCharacterId] = useState<string | null>(
+    null
+  );
+  const selectedCharacter =
+    characters.find((character) => character.id === selectedCharacterId) ??
+    null;
   const [newName, setNewName] = useState("");
   const [newRole, setNewRole] = useState<CharacterRole>("supporting");
   const [newOccupation, setNewOccupation] = useState("");
@@ -97,8 +101,7 @@ export function CharactersView({ productionId }: CharactersViewProps) {
       return;
     }
 
-    const updated = await updateCharacter(selectedCharacter.id, updates);
-    setSelectedCharacter(updated);
+    await updateCharacter(selectedCharacter.id, updates);
     setNotification("Character profile saved successfully.");
   }
 
@@ -163,7 +166,7 @@ export function CharactersView({ productionId }: CharactersViewProps) {
       <CharacterList
         characters={characters}
         loading={loading}
-        onOpen={setSelectedCharacter}
+        onOpen={(character) => setSelectedCharacterId(character.id)}
       />
 
       {showCreateForm && (
@@ -269,12 +272,13 @@ export function CharactersView({ productionId }: CharactersViewProps) {
 
       {selectedCharacter && (
         <CharacterEditor
+          key={`${selectedCharacter.id}:${selectedCharacter.updatedAt}:${selectedCharacter.progress}`}
           character={selectedCharacter}
           saving={saving}
           aiSyncing={aiSyncing}
           onSave={handleUpdate}
           onAISync={handleAISync}
-          onCancel={() => setSelectedCharacter(null)}
+          onCancel={() => setSelectedCharacterId(null)}
         />
       )}
     </div>
