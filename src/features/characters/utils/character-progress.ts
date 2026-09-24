@@ -43,6 +43,28 @@ export const FACTUAL_CHARACTER_FIELDS = [
   "hairColor",
 ] as const satisfies readonly CharacterProfileField[];
 
+const UNKNOWN_FIELD_PATTERN =
+  /^(unknown|n\/a|n\.a\.|na|none|not specified|unspecified|not stated|not given|-)$/i;
+
+const EXTRACTION_STUB_PATTERN =
+  /\bSpeaks\s+\d+\s+time|\bAppears in screenplay|\bPresent in screenplay action|\bEvidence:/i;
+
+export function isUnknownFieldValue(value: string | null | undefined): boolean {
+  if (!value || !value.trim()) {
+    return true;
+  }
+
+  return UNKNOWN_FIELD_PATTERN.test(value.trim());
+}
+
+export function isExtractionStub(value: string | null | undefined): boolean {
+  if (!value || !value.trim() || isUnknownFieldValue(value)) {
+    return true;
+  }
+
+  return EXTRACTION_STUB_PATTERN.test(value);
+}
+
 export function isFilledCharacterField(
   value: string | number | null | undefined
 ): boolean {
@@ -50,17 +72,11 @@ export function isFilledCharacterField(
     return Number.isFinite(value);
   }
 
-  return typeof value === "string" && value.trim().length > 0;
-}
-
-export function isExtractionStub(value: string | null | undefined): boolean {
-  if (!value || !value.trim()) {
-    return true;
+  if (typeof value !== "string" || value.trim().length === 0) {
+    return false;
   }
 
-  return /(Speaks\s+\d+\s+time|Appears in screenplay|Present in screenplay action|Evidence:)/i.test(
-    value
-  );
+  return !isUnknownFieldValue(value) && !isExtractionStub(value);
 }
 
 export function calculateCharacterProgress(
