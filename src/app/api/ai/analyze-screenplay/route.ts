@@ -28,6 +28,11 @@ NON-NEGOTIABLE RULES:
 17. Do not invent creator-specific burden, truth, or kingdom objective. If those ideas are not reasonably supported by the screenplay, leave them empty.
 18. Narrative beats must describe the actual story, not generic screenplay advice.
 19. AI context, rules and visual consistency must be practical production guidance derived from observable story details, characters, locations, tone and style.
+20. Keep screenplay facts separate from interpretation. The Story Bible may contain both, but the review metadata MUST explicitly identify which statements are direct facts, which are grounded interpretations, and which important story questions remain unresolved.
+21. Do not state an interpretation as an established fact. For example, if a character may be involved in a crime but the screenplay does not confirm it, describe the uncertainty rather than declaring the character guilty or involved.
+22. The storyBibleReview.facts list must contain concise statements directly supported by the screenplay. Do not put inferred conclusions in this list.
+23. The storyBibleReview.interpretations list may contain concise creative or narrative readings, but each must be strongly supported by observable screenplay evidence and must not contradict ambiguity in the source.
+24. The storyBibleReview.uncertainties list must preserve meaningful unresolved questions, ambiguity, or withheld information that downstream creative tools should not accidentally resolve.
 
 RETURN ONLY valid JSON matching this shape:
 {
@@ -65,6 +70,11 @@ RETURN ONLY valid JSON matching this shape:
     "forbidden_elements": "string or omitted",
     "preferred_vocabulary": "string or omitted",
     "visual_consistency": "string or omitted"
+  },
+  "storyBibleReview": {
+    "facts": ["directly supported screenplay fact"],
+    "interpretations": ["clearly labeled grounded interpretation"],
+    "uncertainties": ["important unresolved question or ambiguity"]
   },
   "characters": [
     {
@@ -120,8 +130,8 @@ function extractJson(text: string): unknown {
 
 async function callOpenRouter(apiKey: string, screenplay: string, repair = false) {
   const userPrompt = repair
-    ? `Return ONLY valid JSON. Repair the previous screenplay analysis so it exactly matches the required schema. Do not add facts that are not supported by the screenplay.\n\nSCREENPLAY:\n${screenplay}`
-    : `Analyze this complete screenplay and return the canonical JSON structure described in your instructions. Pay special attention to the distinction between extracted facts and grounded Story Bible inferences.\n\nSCREENPLAY:\n${screenplay}`;
+    ? `Return ONLY valid JSON. Repair the previous screenplay analysis so it exactly matches the required schema. Do not add facts that are not supported by the screenplay. Preserve ambiguity and separate facts from interpretations in storyBibleReview.\n\nSCREENPLAY:\n${screenplay}`
+    : `Analyze this complete screenplay and return the canonical JSON structure described in your instructions. Pay special attention to the distinction between extracted facts, grounded Story Bible inferences, and unresolved story questions.\n\nSCREENPLAY:\n${screenplay}`;
 
   const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
     method: "POST",
