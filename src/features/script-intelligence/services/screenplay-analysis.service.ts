@@ -4,6 +4,7 @@ import type {
   AnalyzedScene,
   AnalyzedStoryBible,
   ScreenplayAnalysis,
+  StoryBibleReview,
 } from "../types/screenplay-analysis";
 
 function cleanString(value: unknown): string {
@@ -166,6 +167,19 @@ function normaliseStoryBible(value: unknown): AnalyzedStoryBible {
   return result;
 }
 
+function normaliseStoryBibleReview(value: unknown): StoryBibleReview {
+  if (!value || typeof value !== "object") {
+    return { facts: [], interpretations: [], uncertainties: [] };
+  }
+
+  const source = value as Record<string, unknown>;
+  return {
+    facts: cleanStringArray(source.facts),
+    interpretations: cleanStringArray(source.interpretations),
+    uncertainties: cleanStringArray(source.uncertainties),
+  };
+}
+
 export function validateScreenplayAnalysis(input: unknown): ScreenplayAnalysis {
   if (!input || typeof input !== "object") {
     throw new Error("AI returned an invalid screenplay analysis.");
@@ -197,6 +211,7 @@ export function validateScreenplayAnalysis(input: unknown): ScreenplayAnalysis {
     title: cleanString(source.title) || undefined,
     logline: cleanString(source.logline) || undefined,
     storyBible: normaliseStoryBible(source.storyBible),
+    storyBibleReview: normaliseStoryBibleReview(source.storyBibleReview),
     characters,
     locations,
     scenes,
