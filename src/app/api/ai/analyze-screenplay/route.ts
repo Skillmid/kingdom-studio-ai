@@ -3,6 +3,8 @@ import { NextResponse } from "next/server";
 import { validateScreenplayAnalysis } from "@/features/script-intelligence/services/screenplay-analysis.service";
 
 const DEFAULT_MODEL = process.env.OPENROUTER_SCREENPLAY_MODEL || "openrouter/free";
+const OPENAI_MODEL = process.env.OPENAI_SCREENPLAY_MODEL || "gpt-4o-mini";
+const GEMINI_MODEL = process.env.GEMINI_SCREENPLAY_MODEL || "gemini-2.5-flash";
 
 const SYSTEM_PROMPT = `You are the canonical screenplay intelligence engine for Kingdom Studio AI.
 
@@ -128,54 +130,200 @@ function extractJson(text: string): unknown {
   }
 }
 
-async function callOpenRouter(apiKey: string, screenplay: string, repair = false) {
-  const userPrompt = repair
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+type ProviderResult = {
+  text: string;
+  provider: "openrouter" | "openai" | "gemini";
+  model: string;
+};
+
+function buildUserPrompt(screenplay: string, repair: boolean) {
+  return repair
     ? `Return ONLY valid JSON. Repair the previous screenplay analysis so it exactly matches the required schema. Do not add facts that are not supported by the screenplay. Preserve ambiguity and separate facts from interpretations in storyBibleReview.\n\nSCREENPLAY:\n${screenplay}`
     : `Analyze this complete screenplay and return the canonical JSON structure described in your instructions. Pay special attention to the distinction between extracted facts, grounded Story Bible inferences, and unresolved story questions.\n\nSCREENPLAY:\n${screenplay}`;
+}
 
-  const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+async function callOpenRouter(
+  apiKey: string,
+  screenplay: string,
+  repair = false,
+  model = DEFAULT_MODEL
+): Promise<ProviderResult> {
+  const userPrompt = buildUserPrompt(screenplay, repair);
+
+  for (let attempt = 1; attempt <= 2; attempt++) {
+    const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model,
+        messages: [
+          { role: "system", content: SYSTEM_PROMPT },
+          { role: "user", content: userPrompt },
+        ],
+        temperature: 0.1,
+        max_tokens: 16000,
+      }),
+    });
+
+    const data = (await response.json()) as {
+      choices?: Array<{ message?: { content?: string | null }; finish_reason?: string | null }>;
+      error?: { message?: string };
+    };
+
+    if (!response.ok) {
+      throw new Error(data.error?.message || `OpenRouter failed with status ${response.status}.`);
+    }
+
+    const content = data.choices?.[0]?.message?.content?.trim();
+    if (content) return { text: content, provider: "openrouter", model };
+
+    console.warn(
+      `[Screenplay AI] Empty OpenRouter response from ${model} (attempt ${attempt}/2, finish_reason=${data.choices?.[0]?.finish_reason ?? "unknown"}).`
+    );
+
+    if (attempt < 2) await sleep(1000);
+  }
+
+  throw new Error(`OpenRouter model ${model} returned an empty screenplay analysis.`);
+}
+
+async function callOpenAI(
+  apiKey: string,
+  screenplay: string,
+  repair = false,
+  model = OPENAI_MODEL
+): Promise<ProviderResult> {
+  const response = await fetch("https://api.openai.com/v1/chat/completions", {
     method: "POST",
     headers: {
       Authorization: `Bearer ${apiKey}`,
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      model: DEFAULT_MODEL,
+      model,
       messages: [
         { role: "system", content: SYSTEM_PROMPT },
-        { role: "user", content: userPrompt },
+        { role: "user", content: buildUserPrompt(screenplay, repair) },
       ],
       temperature: 0.1,
       max_tokens: 16000,
+      response_format: { type: "json_object" },
     }),
   });
 
   const data = (await response.json()) as {
-    choices?: Array<{ message?: { content?: string } }>;
+    choices?: Array<{ message?: { content?: string | null } }>;
     error?: { message?: string };
   };
 
   if (!response.ok) {
-    throw new Error(data.error?.message || "OpenRouter screenplay analysis failed.");
+    throw new Error(data.error?.message || `OpenAI failed with status ${response.status}.`);
   }
 
-  const text = data.choices?.[0]?.message?.content;
-  if (!text) throw new Error("The AI model returned an empty screenplay analysis.");
-  return text;
+  const content = data.choices?.[0]?.message?.content?.trim();
+  if (!content) throw new Error(`OpenAI model ${model} returned an empty screenplay analysis.`);
+
+  return { text: content, provider: "openai", model };
+}
+
+async function callGemini(
+  apiKey: string,
+  screenplay: string,
+  repair = false,
+  model = GEMINI_MODEL
+): Promise<ProviderResult> {
+  const response = await fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(apiKey)}`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        systemInstruction: { parts: [{ text: SYSTEM_PROMPT }] },
+        contents: [
+          {
+            role: "user",
+            parts: [{ text: buildUserPrompt(screenplay, repair) }],
+          },
+        ],
+        generationConfig: {
+          temperature: 0.1,
+          maxOutputTokens: 16000,
+          responseMimeType: "application/json",
+        },
+      }),
+    }
+  );
+
+  const data = (await response.json()) as {
+    candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }>;
+    error?: { message?: string };
+  };
+
+  if (!response.ok) {
+    throw new Error(data.error?.message || `Gemini failed with status ${response.status}.`);
+  }
+
+  const content = data.candidates?.[0]?.content?.parts
+    ?.map((part) => part.text || "")
+    .join("")
+    .trim();
+
+  if (!content) throw new Error(`Gemini model ${model} returned an empty screenplay analysis.`);
+
+  return { text: content, provider: "gemini", model };
+}
+
+async function analyzeWithFallbacks(
+  screenplay: string,
+  repair = false
+): Promise<ProviderResult> {
+  const failures: string[] = [];
+
+  const openRouterKey = process.env.OPENROUTER_API_KEY;
+  if (openRouterKey) {
+    try {
+      return await callOpenRouter(openRouterKey, screenplay, repair);
+    } catch (error) {
+      failures.push(`OpenRouter: ${error instanceof Error ? error.message : String(error)}`);
+      console.warn("[Screenplay AI] OpenRouter failed; trying next provider.", error);
+    }
+  }
+
+  const openAIKey = process.env.OPENAI_API_KEY;
+  if (openAIKey) {
+    try {
+      return await callOpenAI(openAIKey, screenplay, repair);
+    } catch (error) {
+      failures.push(`OpenAI: ${error instanceof Error ? error.message : String(error)}`);
+      console.warn("[Screenplay AI] OpenAI failed; trying Gemini.", error);
+    }
+  }
+
+  const geminiKey = process.env.GEMINI_API_KEY;
+  if (geminiKey) {
+    try {
+      return await callGemini(geminiKey, screenplay, repair);
+    } catch (error) {
+      failures.push(`Gemini: ${error instanceof Error ? error.message : String(error)}`);
+      console.warn("[Screenplay AI] Gemini failed.", error);
+    }
+  }
+
+  throw new Error(
+    `All configured screenplay AI providers failed. ${failures.join(" | ")}`
+  );
 }
 
 export async function POST(request: Request) {
   try {
-    const apiKey = process.env.OPENROUTER_API_KEY;
-    if (!apiKey) {
-      return NextResponse.json(
-        { error: "OpenRouter API key is not configured." },
-        { status: 500 }
-      );
-    }
-
     const body = (await request.json()) as { screenplay?: string };
     const screenplay = body.screenplay?.trim();
+
     if (!screenplay) {
       return NextResponse.json(
         { error: "Screenplay content is required." },
@@ -183,20 +331,35 @@ export async function POST(request: Request) {
       );
     }
 
-    let raw = await callOpenRouter(apiKey, screenplay);
+    if (
+      !process.env.OPENROUTER_API_KEY &&
+      !process.env.OPENAI_API_KEY &&
+      !process.env.GEMINI_API_KEY
+    ) {
+      return NextResponse.json(
+        { error: "No screenplay AI provider is configured." },
+        { status: 500 }
+      );
+    }
+
+    let result = await analyzeWithFallbacks(screenplay);
     let parsed: unknown;
 
     try {
-      parsed = extractJson(raw);
-      parsed = validateScreenplayAnalysis(parsed);
-    } catch {
-      raw = await callOpenRouter(apiKey, screenplay, true);
-      parsed = validateScreenplayAnalysis(extractJson(raw));
+      parsed = validateScreenplayAnalysis(extractJson(result.text));
+    } catch (error) {
+      console.warn(
+        `[Screenplay AI] ${result.provider}/${result.model} returned invalid analysis. Trying repair through the provider chain.`,
+        error
+      );
+      result = await analyzeWithFallbacks(screenplay, true);
+      parsed = validateScreenplayAnalysis(extractJson(result.text));
     }
 
     return NextResponse.json({
       analysis: parsed,
-      model: DEFAULT_MODEL,
+      provider: result.provider,
+      model: result.model,
     });
   } catch (error) {
     console.error("Screenplay analysis error:", error);
