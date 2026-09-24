@@ -16,9 +16,11 @@ export function CharactersView({ productionId }: CharactersViewProps) {
     loading,
     saving,
     syncing,
+    aiSyncing,
     error,
     createCharacter,
     updateCharacter,
+    syncCharacterWithAI,
     syncFromScreenplay,
   } = useCharacters(productionId);
 
@@ -87,6 +89,10 @@ export function CharactersView({ productionId }: CharactersViewProps) {
     const updated = await updateCharacter(selectedCharacter.id, updates);
     setSelectedCharacter(updated);
     setNotification("Character profile saved successfully.");
+  }
+
+  async function handleAISync(character: Character) {
+    return syncCharacterWithAI(character);
   }
 
   return (
@@ -254,7 +260,9 @@ export function CharactersView({ productionId }: CharactersViewProps) {
         <CharacterEditor
           character={selectedCharacter}
           saving={saving}
+          aiSyncing={aiSyncing}
           onSave={handleUpdate}
+          onAISync={handleAISync}
           onCancel={() => setSelectedCharacter(null)}
         />
       )}
