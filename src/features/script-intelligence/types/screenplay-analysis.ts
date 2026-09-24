@@ -39,6 +39,12 @@ export interface AnalyzedScene {
   sourceText: string;
 }
 
+export interface StoryBibleReview {
+  facts: string[];
+  interpretations: string[];
+  uncertainties: string[];
+}
+
 export interface AnalyzedStoryBible {
   title?: string;
   logline?: string;
@@ -77,6 +83,7 @@ export interface ScreenplayAnalysis {
   title?: string;
   logline?: string;
   storyBible: AnalyzedStoryBible;
+  storyBibleReview: StoryBibleReview;
   characters: AnalyzedCharacter[];
   locations: AnalyzedLocation[];
   scenes: AnalyzedScene[];
