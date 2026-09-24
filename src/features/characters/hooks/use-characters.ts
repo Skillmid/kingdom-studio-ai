@@ -6,6 +6,10 @@ import { characterRepository } from "../repositories/character.repository";
 import { syncCharacterProfileWithAI } from "../services/character-ai-sync.service";
 import { syncCharactersFromScreenplay } from "../services/character-screenplay-sync.service";
 import type { Character } from "../types/character";
+import {
+  calculateCharacterProgress,
+  characterStatusFromProgress,
+} from "../utils/character-progress";
 
 export function useCharacters(productionId: string) {
   const [characters, setCharacters] = useState<Character[]>([]);
@@ -77,9 +81,12 @@ export function useCharacters(productionId: string) {
       setSaving(true);
       setError(null);
 
+      const progress = calculateCharacterProgress(character);
       const created = await characterRepository.create({
         ...character,
         productionId,
+        progress,
+        status: character.status ?? characterStatusFromProgress(progress),
       });
 
       setCharacters((current) => [...current, created]);
@@ -99,10 +106,20 @@ export function useCharacters(productionId: string) {
       setSaving(true);
       setError(null);
 
-      const updated = await characterRepository.update(id, updates);
+      const current = characters.find((character) => character.id === id);
+      const progress = calculateCharacterProgress({
+        ...current,
+        ...updates,
+      });
 
-      setCharacters((current) =>
-        current.map((character) =>
+      const updated = await characterRepository.update(id, {
+        ...updates,
+        progress,
+        status: updates.status ?? characterStatusFromProgress(progress),
+      });
+
+      setCharacters((currentCharacters) =>
+        currentCharacters.map((character) =>
           character.id === id ? updated : character
         )
       );
@@ -123,7 +140,13 @@ export function useCharacters(productionId: string) {
     setError(null);
 
     try {
-      return await syncCharacterProfileWithAI(productionId, character);
+      const otherCharacterNames = characters
+        .map((item) => item.name)
+        .filter((name) => name.trim().toLowerCase() !== character.name.trim().toLowerCase());
+
+      return await syncCharacterProfileWithAI(productionId, character, {
+        otherCharacterNames,
+      });
     } catch (err) {
       const message =
         err instanceof Error
@@ -157,7 +180,10 @@ export function useCharacters(productionId: string) {
 
   async function syncFromScreenplay(): Promise<{
     createdCount: number;
+    profiledCount: number;
+    failedCount: number;
     totalExtracted: number;
+    failed: Array<{ name: string; error: string }>;
   }> {
     if (!productionId) {
       throw new Error("Production ID is required.");
@@ -172,7 +198,10 @@ export function useCharacters(productionId: string) {
       setCharacters(existing);
       return {
         createdCount: result.createdCount,
+        profiledCount: result.profiledCount,
+        failedCount: result.failedCount,
         totalExtracted: result.totalExtracted,
+        failed: result.failed,
       };
     } catch (err) {
       const message =
