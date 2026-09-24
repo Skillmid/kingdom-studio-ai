@@ -2,52 +2,26 @@ import { screenplayRepository } from "@/features/script-intelligence/repositorie
 import type { ScreenplayAnalysis } from "@/features/script-intelligence/types/screenplay-analysis";
 import { storyBibleRepository } from "@/features/story-bible/repositories/story-bible.repository";
 
-import type { Character } from "../types/character";
+import type { Character, CharacterRole } from "../types/character";
 import {
   CHARACTER_PROFILE_FIELDS,
   type CharacterProfileField,
 } from "../utils/character-progress";
+import {
+  extractJson,
+  parseCharacterAIProfile,
+} from "../utils/parse-character-ai-profile";
 
 export type CharacterAISyncResult = Partial<Character>;
 
 export interface CharacterAISyncContext {
   otherCharacterNames?: string[];
   extractionDescription?: string;
-}
-
-function extractJson(text: string): unknown {
-  const trimmed = text.trim();
-  const fenced = trimmed.match(/```(?:json)?\s*([\s\S]*?)\s*```/i);
-  const candidate = fenced?.[1]?.trim() || trimmed;
-
-  try {
-    return JSON.parse(candidate);
-  } catch {
-    const first = candidate.indexOf("{");
-    const last = candidate.lastIndexOf("}");
-    if (first >= 0 && last > first) {
-      return JSON.parse(candidate.slice(first, last + 1));
-    }
-    throw new Error("AI did not return valid character profile JSON.");
-  }
+  extractedRole?: CharacterRole;
 }
 
 function cleanResult(value: unknown): CharacterAISyncResult {
-  if (!value || typeof value !== "object" || Array.isArray(value)) {
-    throw new Error("AI returned an invalid character profile.");
-  }
-
-  const source = value as Record<string, unknown>;
-  const result: CharacterAISyncResult = {};
-
-  for (const field of CHARACTER_PROFILE_FIELDS) {
-    const candidate = source[field];
-    if (typeof candidate === "string" && candidate.trim()) {
-      result[field] = candidate.trim();
-    }
-  }
-
-  return result;
+  return parseCharacterAIProfile(value);
 }
 
 function compactStoryBible(storyBible: Record<string, unknown> | null) {
@@ -122,9 +96,11 @@ NON-NEGOTIABLE RULES:
 8. Catchphrases may only quote words this character actually speaks.
 9. Preserve mystery. Do not decide guilt, secret senders, or endings the screenplay leaves unresolved.
 10. If a field is unknown, omit it. Do not write "unknown", "not specified", or "N/A".
-11. Return ONLY valid JSON with the optional keys listed below.
+11. Propose "role" as one of: lead, supporting, minor, extra. Do not use dialogue count as the only authority. A character with fewer lines can still be a lead if the story is about them.
+12. Return ONLY valid JSON using camelCase keys.
 
 Optional keys:
+- role
 ${CHARACTER_PROFILE_FIELDS.map((field) => `- ${field}`).join("\n")}`;
 }
 
@@ -163,6 +139,9 @@ export async function syncCharacterProfileWithAI(
 
 CURRENT PROFILE:
 ${JSON.stringify(existingProfile, null, 2)}
+
+EXTRACTED ROLE (cue-count heuristic only, refine if the story says otherwise):
+${context.extractedRole || character.role}
 
 EXTRACTION NOTE:
 ${context.extractionDescription || "None."}
