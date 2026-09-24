@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 
 import { characterRepository } from "../repositories/character.repository";
+import { syncCharacterProfileWithAI } from "../services/character-ai-sync.service";
 import { syncCharactersFromScreenplay } from "../services/character-screenplay-sync.service";
 import type { Character } from "../types/character";
 
@@ -11,6 +12,7 @@ export function useCharacters(productionId: string) {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [syncing, setSyncing] = useState(false);
+  const [aiSyncing, setAiSyncing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const loadCharacters = useCallback(async () => {
@@ -116,6 +118,24 @@ export function useCharacters(productionId: string) {
     }
   }
 
+  async function syncCharacterWithAI(character: Character) {
+    setAiSyncing(true);
+    setError(null);
+
+    try {
+      return await syncCharacterProfileWithAI(productionId, character);
+    } catch (err) {
+      const message =
+        err instanceof Error
+          ? err.message
+          : "Failed to sync character profile with AI.";
+      setError(message);
+      throw err;
+    } finally {
+      setAiSyncing(false);
+    }
+  }
+
   async function deleteCharacter(id: string) {
     try {
       setSaving(true);
@@ -175,10 +195,12 @@ export function useCharacters(productionId: string) {
     loading,
     saving,
     syncing,
+    aiSyncing,
     error,
     refresh,
     createCharacter,
     updateCharacter,
+    syncCharacterWithAI,
     deleteCharacter,
     syncFromScreenplay,
   };
