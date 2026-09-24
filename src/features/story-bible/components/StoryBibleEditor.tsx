@@ -133,7 +133,29 @@ export default function StoryBibleEditor({ productionId }: StoryBibleEditorProps
 
       {error && <div className="rounded-2xl border border-red-500/40 bg-red-500/10 p-5 text-sm text-red-400">{error}</div>}
 
-      <StoryBibleProgress title={form.title} logline={form.logline} synopsis={form.synopsis} theme={form.theme} scripture={form.scripture_foundation} genre={form.genre} beginning={form.beginning} conflict={form.conflict} climax={form.climax} aiContext={form.ai_context} />
+      <StoryBibleProgress
+        title={form.title}
+        logline={form.logline}
+        synopsis={form.synopsis}
+        burden={form.burden}
+        truth={form.truth}
+        humanProblem={form.human_problem}
+        theme={form.theme}
+        coreMessage={form.core_message}
+        scripture={form.scripture_foundation}
+        kingdomObjective={form.kingdom_objective}
+        genre={form.genre}
+        beginning={form.beginning}
+        conflict={form.conflict}
+        midpoint={form.midpoint}
+        climax={form.climax}
+        ending={form.ending}
+        aiContext={form.ai_context}
+        aiRules={form.ai_rules}
+        forbiddenElements={form.forbidden_elements}
+        preferredVocabulary={form.preferred_vocabulary}
+        visualConsistency={form.visual_consistency}
+      />
 
       <StoryBibleOverview title={form.title} logline={form.logline} synopsis={form.synopsis} onTitleChange={(value) => update("title", value)} onLoglineChange={(value) => update("logline", value)} onSynopsisChange={(value) => update("synopsis", value)} />
 
