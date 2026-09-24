@@ -13,7 +13,7 @@ export function mergeCharacterProfile(
   proposal: Partial<Character>,
   options?: { replaceOmittedFactualFields?: boolean }
 ): Partial<Character> {
-  const replaceOmittedFactualFields = options?.replaceOmittedFactualFields ?? true;
+  const replaceOmittedFactualFields = options?.replaceOmittedFactualFields ?? false;
   const merged: Partial<Character> = {};
 
   for (const field of CHARACTER_PROFILE_FIELDS) {
@@ -21,31 +21,15 @@ export function mergeCharacterProfile(
     const next = proposal[field];
     const hasProposal = isFilledCharacterField(next);
     const hasCurrent = isFilledCharacterField(current);
+    const factual = FACTUAL_FIELD_SET.has(field);
 
-    if (hasProposal) {
-      if (!hasCurrent || isExtractionStub(current)) {
-        merged[field] = next;
-        continue;
-      }
-
-      merged[field] = current;
+    if (replaceOmittedFactualFields && factual) {
+      merged[field] = hasProposal ? String(next).trim() : "";
       continue;
     }
 
-    if (
-      replaceOmittedFactualFields &&
-      FACTUAL_FIELD_SET.has(field) &&
-      hasCurrent &&
-      isExtractionStub(current)
-    ) {
-      merged[field] = "";
-      continue;
-    }
-
-    if (replaceOmittedFactualFields && FACTUAL_FIELD_SET.has(field) && hasCurrent) {
-      // Previous bulk sync often guessed occupation from another character.
-      // If this pass cannot ground the fact, clear it.
-      merged[field] = "";
+    if (hasProposal && (!hasCurrent || isExtractionStub(current))) {
+      merged[field] = next;
       continue;
     }
 
