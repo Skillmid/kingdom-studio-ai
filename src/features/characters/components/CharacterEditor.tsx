@@ -6,7 +6,9 @@ import type { Character, CharacterRole, CharacterStatus } from "../types/charact
 interface CharacterEditorProps {
   character: Character;
   saving?: boolean;
+  aiSyncing?: boolean;
   onSave: (updates: Partial<Character>) => Promise<void>;
+  onAISync: (character: Character) => Promise<Partial<Character>>;
   onCancel: () => void;
 }
 
@@ -54,15 +56,19 @@ function Field({
 export default function CharacterEditor({
   character,
   saving = false,
+  aiSyncing = false,
   onSave,
+  onAISync,
   onCancel,
 }: CharacterEditorProps) {
   const [form, setForm] = useState<Partial<Character>>({ ...character });
   const [syncedCharacter, setSyncedCharacter] = useState(character);
+  const [aiNotice, setAiNotice] = useState<string | null>(null);
 
   if (character !== syncedCharacter) {
     setSyncedCharacter(character);
     setForm({ ...character });
+    setAiNotice(null);
   }
 
   function update<K extends keyof Character>(key: K, value: Character[K]) {
@@ -70,6 +76,22 @@ export default function CharacterEditor({
       ...current,
       [key]: value,
     }));
+    setAiNotice(null);
+  }
+
+  async function handleAISync() {
+    setAiNotice(null);
+
+    try {
+      const proposal = await onAISync(character);
+      setForm((current) => ({
+        ...current,
+        ...proposal,
+      }));
+      setAiNotice("AI proposal applied. Review the profile before saving.");
+    } catch {
+      // Parent hook exposes the error state.
+    }
   }
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
@@ -121,17 +143,34 @@ export default function CharacterEditor({
             </h2>
           </div>
 
-          <button
-            type="button"
-            onClick={onCancel}
-            disabled={saving}
-            className="rounded-xl border border-zinc-700 px-4 py-2 text-sm font-medium text-zinc-300 transition hover:border-zinc-500 hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            Close
-          </button>
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={handleAISync}
+              disabled={saving || aiSyncing}
+              className="rounded-xl border border-yellow-500/40 bg-yellow-500/10 px-4 py-2 text-sm font-semibold text-yellow-400 transition hover:bg-yellow-500/20 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {aiSyncing ? "AI Syncing..." : "AI Sync Profile"}
+            </button>
+
+            <button
+              type="button"
+              onClick={onCancel}
+              disabled={saving || aiSyncing}
+              className="rounded-xl border border-zinc-700 px-4 py-2 text-sm font-medium text-zinc-300 transition hover:border-zinc-500 hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              Close
+            </button>
+          </div>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-8 p-6">
+          {aiNotice && (
+            <div className="rounded-xl border border-yellow-500/30 bg-yellow-500/10 px-4 py-3 text-sm text-yellow-300">
+              {aiNotice}
+            </div>
+          )}
+
           <section>
             <h3 className="mb-4 text-lg font-semibold text-white">
               Basic Information
@@ -415,7 +454,7 @@ export default function CharacterEditor({
             <button
               type="button"
               onClick={onCancel}
-              disabled={saving}
+              disabled={saving || aiSyncing}
               className="rounded-xl border border-zinc-700 px-5 py-3 font-semibold text-zinc-300 transition hover:border-zinc-500 hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
             >
               Cancel
@@ -423,7 +462,7 @@ export default function CharacterEditor({
 
             <button
               type="submit"
-              disabled={saving || !form.name?.trim()}
+              disabled={saving || aiSyncing || !form.name?.trim()}
               className="rounded-xl bg-yellow-500 px-6 py-3 font-semibold text-black transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
             >
               {saving ? "Saving..." : "Save Character"}

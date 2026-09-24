@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 
 import { characterRepository } from "@/features/characters/repositories/character.repository";
 import { locationRepository } from "@/features/locations/repositories/location.repository";
-import { sceneExtractor } from "@/features/import-engine/extractors/scene.extractor";
+import { extractFromScreenplay } from "@/features/import-engine/extract-from-screenplay";
 import { screenplayRepository } from "@/features/script-intelligence/repositories/screenplay.repository";
 
 import { sceneRepository } from "../repositories/scene.repository";
@@ -19,10 +19,15 @@ function normaliseLocationName(value: string): string {
     .toLowerCase();
 }
 
-function matchCharacterIds(sourceText: string, characters: Array<{ id: string; name: string }>) {
-  const source = sourceText.toLowerCase();
+function matchCharacterIds(
+  characterNames: string[] | undefined,
+  characters: Array<{ id: string; name: string }>
+) {
+  const names = new Set(
+    (characterNames ?? []).map((name) => name.trim().toLowerCase()).filter(Boolean)
+  );
   return characters
-    .filter((character) => character.name.trim().length > 1 && source.includes(character.name.trim().toLowerCase()))
+    .filter((character) => names.has(character.name.trim().toLowerCase()))
     .map((character) => character.id);
 }
 
@@ -39,7 +44,6 @@ export function useScenes(productionId: string) {
       setLoading(false);
       return;
     }
-
     try {
       setLoading(true);
       setError(null);
@@ -53,12 +57,7 @@ export function useScenes(productionId: string) {
 
   useEffect(() => {
     let cancelled = false;
-
-    if (!productionId) {
-      return () => {
-        cancelled = true;
-      };
-    }
+    if (!productionId) return () => { cancelled = true; };
 
     sceneRepository
       .getByProductionId(productionId)
@@ -75,9 +74,7 @@ export function useScenes(productionId: string) {
         if (!cancelled) setLoading(false);
       });
 
-    return () => {
-      cancelled = true;
-    };
+    return () => { cancelled = true; };
   }, [productionId]);
 
   async function createScene(scene: Partial<Scene>) {
@@ -100,7 +97,7 @@ export function useScenes(productionId: string) {
       setSaving(true);
       setError(null);
       const updated = await sceneRepository.update(id, updates);
-      setScenes((current) => current.map((scene) => (scene.id === id ? updated : scene)));
+      setScenes((current) => current.map((scene) => scene.id === id ? updated : scene));
       return updated;
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to update scene.");
@@ -141,7 +138,7 @@ export function useScenes(productionId: string) {
         throw new Error("No screenplay content found for this production. Save or import a script first.");
       }
 
-      const extracted = await sceneExtractor.extract(screenplay.content);
+      const extracted = extractFromScreenplay(screenplay.content, screenplay.analysis).scenes;
       if (extracted.length === 0) {
         return { createdCount: 0, totalExtracted: 0, linkedLocationCount: 0, linkedCharacterCount: 0 };
       }
@@ -182,7 +179,7 @@ export function useScenes(productionId: string) {
         const locationId = scene.locationName
           ? locationIds.get(normaliseLocationName(scene.locationName))
           : undefined;
-        const characterIds = matchCharacterIds(scene.sourceText, existingCharacters);
+        const characterIds = matchCharacterIds(scene.characterNames, existingCharacters);
 
         if (locationId) linkedLocationCount += 1;
         linkedCharacterCount += characterIds.length;
@@ -221,9 +218,7 @@ export function useScenes(productionId: string) {
     }
   }
 
-  async function refresh() {
-    await loadScenes();
-  }
+  async function refresh() { await loadScenes(); }
 
   return {
     scenes,

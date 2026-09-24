@@ -49,10 +49,7 @@ export default function StoryBibleEditor({ productionId }: StoryBibleEditorProps
   const [form, setForm] = useState<StoryBibleForm>(defaultForm);
   const [syncedStoryBible, setSyncedStoryBible] = useState(storyBible);
   const [syncProposal, setSyncProposal] = useState<StoryBibleScreenplayProposal | null>(null);
-  const [syncSource, setSyncSource] = useState<{
-    title: string;
-    version: number;
-  } | null>(null);
+  const [syncSource, setSyncSource] = useState<{ title: string; version: number } | null>(null);
 
   if (storyBible !== syncedStoryBible) {
     setSyncedStoryBible(storyBible);
@@ -85,28 +82,20 @@ export default function StoryBibleEditor({ productionId }: StoryBibleEditorProps
     try {
       const result = await syncFromScreenplay();
       setSyncProposal(result.proposal);
-      setSyncSource({
-        title: result.screenplayTitle,
-        version: result.screenplayVersion,
-      });
+      setSyncSource({ title: result.screenplayTitle, version: result.screenplayVersion });
     } catch {
       // Hook exposes the error.
     }
   }
 
   function applySyncProposal() {
-    if (!syncProposal) {
-      return;
-    }
+    if (!syncProposal) return;
 
     setForm((current) => {
       const next = { ...current };
 
-      for (const [key, value] of Object.entries(syncProposal)) {
-        if (value === undefined || value === null) {
-          continue;
-        }
-
+      for (const [key, value] of Object.entries(syncProposal.fields)) {
+        if (value === undefined || value === null) continue;
         if (key in next) {
           (next as Record<string, string | number>)[key] = value as string | number;
         }
@@ -131,80 +120,54 @@ export default function StoryBibleEditor({ productionId }: StoryBibleEditorProps
       <div className="flex flex-col gap-4 rounded-3xl border border-zinc-800 bg-zinc-900 p-5 lg:flex-row lg:items-center lg:justify-between">
         <div>
           <p className="text-xs uppercase tracking-[0.3em] text-yellow-500">Screenplay-driven foundation</p>
-          <p className="mt-2 text-sm text-zinc-400">
-            Let AI propose Story Bible values from the screenplay. You remain the final creative authority.
-          </p>
+          <p className="mt-2 text-sm text-zinc-400">Let AI propose Story Bible values from the screenplay. You remain the final creative authority.</p>
         </div>
-        <button
-          type="button"
-          onClick={handleSync}
-          disabled={syncing || saving}
-          className="shrink-0 rounded-xl border border-yellow-500/50 bg-yellow-500/10 px-5 py-3 text-sm font-semibold text-yellow-400 transition hover:bg-yellow-500 hover:text-black disabled:cursor-not-allowed disabled:opacity-50"
-        >
+        <button type="button" onClick={handleSync} disabled={syncing || saving} className="shrink-0 rounded-xl border border-yellow-500/50 bg-yellow-500/10 px-5 py-3 text-sm font-semibold text-yellow-400 transition hover:bg-yellow-500 hover:text-black disabled:cursor-not-allowed disabled:opacity-50">
           {syncing ? "Analysing Screenplay..." : "Sync from Screenplay"}
         </button>
       </div>
 
       {syncProposal && syncSource && (
-        <StoryBibleScreenplaySyncPanel
-          proposal={syncProposal}
-          screenplayTitle={syncSource.title}
-          screenplayVersion={syncSource.version}
-          onApply={applySyncProposal}
-          onCancel={discardSyncProposal}
-        />
+        <StoryBibleScreenplaySyncPanel proposal={syncProposal} screenplayTitle={syncSource.title} screenplayVersion={syncSource.version} onApply={applySyncProposal} onCancel={discardSyncProposal} />
       )}
 
       {error && <div className="rounded-2xl border border-red-500/40 bg-red-500/10 p-5 text-sm text-red-400">{error}</div>}
 
-      <StoryBibleProgress title={form.title} logline={form.logline} synopsis={form.synopsis} theme={form.theme} scripture={form.scripture_foundation} genre={form.genre} beginning={form.beginning} conflict={form.conflict} climax={form.climax} aiContext={form.ai_context} />
-
-      <StoryBibleOverview
-        title={form.title} logline={form.logline} synopsis={form.synopsis}
-        onTitleChange={(value) => update("title", value)}
-        onLoglineChange={(value) => update("logline", value)}
-        onSynopsisChange={(value) => update("synopsis", value)}
+      <StoryBibleProgress
+        title={form.title}
+        logline={form.logline}
+        synopsis={form.synopsis}
+        burden={form.burden}
+        truth={form.truth}
+        humanProblem={form.human_problem}
+        theme={form.theme}
+        coreMessage={form.core_message}
+        scripture={form.scripture_foundation}
+        kingdomObjective={form.kingdom_objective}
+        genre={form.genre}
+        beginning={form.beginning}
+        conflict={form.conflict}
+        midpoint={form.midpoint}
+        climax={form.climax}
+        ending={form.ending}
+        aiContext={form.ai_context}
+        aiRules={form.ai_rules}
+        forbiddenElements={form.forbidden_elements}
+        preferredVocabulary={form.preferred_vocabulary}
+        visualConsistency={form.visual_consistency}
       />
 
-      <StoryBibleCreatorFoundation
-        burden={form.burden} truth={form.truth} humanProblem={form.human_problem}
-        onBurdenChange={(value) => update("burden", value)}
-        onTruthChange={(value) => update("truth", value)}
-        onHumanProblemChange={(value) => update("human_problem", value)}
-      />
+      <StoryBibleOverview title={form.title} logline={form.logline} synopsis={form.synopsis} onTitleChange={(value) => update("title", value)} onLoglineChange={(value) => update("logline", value)} onSynopsisChange={(value) => update("synopsis", value)} />
 
-      <StoryBibleKingdomVision
-        theme={form.theme} coreMessage={form.core_message} scriptureFoundation={form.scripture_foundation} kingdomObjective={form.kingdom_objective}
-        onThemeChange={(value) => update("theme", value)}
-        onCoreMessageChange={(value) => update("core_message", value)}
-        onScriptureFoundationChange={(value) => update("scripture_foundation", value)}
-        onKingdomObjectiveChange={(value) => update("kingdom_objective", value)}
-      />
+      <StoryBibleCreatorFoundation burden={form.burden} truth={form.truth} humanProblem={form.human_problem} onBurdenChange={(value) => update("burden", value)} onTruthChange={(value) => update("truth", value)} onHumanProblemChange={(value) => update("human_problem", value)} />
 
-      <StoryBibleNarrative
-        beginning={form.beginning} conflict={form.conflict} midpoint={form.midpoint} climax={form.climax} ending={form.ending}
-        onBeginningChange={(value) => update("beginning", value)}
-        onConflictChange={(value) => update("conflict", value)}
-        onMidpointChange={(value) => update("midpoint", value)}
-        onClimaxChange={(value) => update("climax", value)}
-        onEndingChange={(value) => update("ending", value)}
-      />
+      <StoryBibleKingdomVision theme={form.theme} coreMessage={form.core_message} scriptureFoundation={form.scripture_foundation} kingdomObjective={form.kingdom_objective} onThemeChange={(value) => update("theme", value)} onCoreMessageChange={(value) => update("core_message", value)} onScriptureFoundationChange={(value) => update("scripture_foundation", value)} onKingdomObjectiveChange={(value) => update("kingdom_objective", value)} />
 
-      <StoryBibleProductionDetails
-        genre={form.genre} targetAudience={form.target_audience} tone={form.tone} language={form.language} visualStyle={form.visual_style}
-        aspectRatio={form.aspect_ratio} durationMinutes={form.duration_minutes} universe={form.universe} timePeriod={form.time_period} primaryLocation={form.primary_location}
-        onGenreChange={(value) => update("genre", value)} onTargetAudienceChange={(value) => update("target_audience", value)} onToneChange={(value) => update("tone", value)}
-        onLanguageChange={(value) => update("language", value)} onVisualStyleChange={(value) => update("visual_style", value)} onAspectRatioChange={(value) => update("aspect_ratio", value)}
-        onDurationMinutesChange={(value) => update("duration_minutes", value)} onUniverseChange={(value) => update("universe", value)} onTimePeriodChange={(value) => update("time_period", value)}
-        onPrimaryLocationChange={(value) => update("primary_location", value)}
-      />
+      <StoryBibleNarrative beginning={form.beginning} conflict={form.conflict} midpoint={form.midpoint} climax={form.climax} ending={form.ending} onBeginningChange={(value) => update("beginning", value)} onConflictChange={(value) => update("conflict", value)} onMidpointChange={(value) => update("midpoint", value)} onClimaxChange={(value) => update("climax", value)} onEndingChange={(value) => update("ending", value)} />
 
-      <StoryBibleAIContext
-        aiContext={form.ai_context} aiRules={form.ai_rules} forbiddenElements={form.forbidden_elements} preferredVocabulary={form.preferred_vocabulary} visualConsistency={form.visual_consistency}
-        onAIContextChange={(value) => update("ai_context", value)} onAIRulesChange={(value) => update("ai_rules", value)}
-        onForbiddenElementsChange={(value) => update("forbidden_elements", value)} onPreferredVocabularyChange={(value) => update("preferred_vocabulary", value)}
-        onVisualConsistencyChange={(value) => update("visual_consistency", value)}
-      />
+      <StoryBibleProductionDetails genre={form.genre} targetAudience={form.target_audience} tone={form.tone} language={form.language} visualStyle={form.visual_style} aspectRatio={form.aspect_ratio} durationMinutes={form.duration_minutes} universe={form.universe} timePeriod={form.time_period} primaryLocation={form.primary_location} onGenreChange={(value) => update("genre", value)} onTargetAudienceChange={(value) => update("target_audience", value)} onToneChange={(value) => update("tone", value)} onLanguageChange={(value) => update("language", value)} onVisualStyleChange={(value) => update("visual_style", value)} onAspectRatioChange={(value) => update("aspect_ratio", value)} onDurationMinutesChange={(value) => update("duration_minutes", value)} onUniverseChange={(value) => update("universe", value)} onTimePeriodChange={(value) => update("time_period", value)} onPrimaryLocationChange={(value) => update("primary_location", value)} />
+
+      <StoryBibleAIContext aiContext={form.ai_context} aiRules={form.ai_rules} forbiddenElements={form.forbidden_elements} preferredVocabulary={form.preferred_vocabulary} visualConsistency={form.visual_consistency} onAIContextChange={(value) => update("ai_context", value)} onAIRulesChange={(value) => update("ai_rules", value)} onForbiddenElementsChange={(value) => update("forbidden_elements", value)} onPreferredVocabularyChange={(value) => update("preferred_vocabulary", value)} onVisualConsistencyChange={(value) => update("visual_consistency", value)} />
 
       <div className="sticky bottom-6 flex justify-end">
         <button type="button" onClick={handleSave} disabled={saving} className="rounded-2xl bg-yellow-500 px-10 py-4 font-semibold text-black shadow-xl transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50">

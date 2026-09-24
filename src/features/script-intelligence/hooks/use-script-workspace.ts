@@ -1,40 +1,16 @@
 "use client";
 
-import {
-  useCallback,
-  useEffect,
-  useState,
-} from "react";
+import { useCallback, useEffect, useState } from "react";
 
-import {
-  scriptPipeline,
-} from "../services/script-pipeline.service";
+import { scriptPipeline } from "../services/script-pipeline.service";
+import { scriptIntelligence } from "../services/script-intelligence.service";
+import { analyzeScreenplay } from "../services/screenplay-analysis.service";
+import { screenplayRepository } from "../repositories/screenplay.repository";
 
-import {
-  scriptIntelligence,
-} from "../services/script-intelligence.service";
-
-import {
-  screenplayRepository,
-} from "../repositories/screenplay.repository";
-
-import type {
-  ImportFileType,
-} from "@/features/import-engine";
-
-import type {
-  ProductionKnowledge,
-  ScreenplaySource,
-} from "@/features/production-knowledge";
-
-import type {
-  ScriptAnalysis,
-} from "../types/script-analysis";
-
-import type {
-  Screenplay,
-  ScreenplayRevision,
-} from "../types/screenplay";
+import type { ImportFileType } from "@/features/import-engine";
+import type { ProductionKnowledge, ScreenplaySource } from "@/features/production-knowledge";
+import type { ScriptAnalysis } from "../types/script-analysis";
+import type { Screenplay, ScreenplayRevision } from "../types/screenplay";
 
 interface ImportScriptInput {
   name: string;
@@ -43,9 +19,7 @@ interface ImportScriptInput {
 }
 
 function getTitleFromFileName(fileName: string) {
-  return (
-    fileName.replace(/\.[^/.]+$/, "") || "Untitled Screenplay"
-  );
+  return fileName.replace(/\.[^/.]+$/, "") || "Untitled Screenplay";
 }
 
 export function useScriptWorkspace(productionId: string) {
@@ -64,66 +38,53 @@ export function useScriptWorkspace(productionId: string) {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const isDirty =
-    content !== originalContent ||
-    title !== originalTitle;
+  const isDirty = content !== originalContent || title !== originalTitle;
 
-  const loadRevisions = useCallback(
-    async (screenplayId: string) => {
-      const result = await screenplayRepository.getRevisions(screenplayId);
-      setRevisions(result);
-      return result;
-    },
-    []
-  );
+  const loadRevisions = useCallback(async (screenplayId: string) => {
+    const result = await screenplayRepository.getRevisions(screenplayId);
+    setRevisions(result);
+    return result;
+  }, []);
 
-  const applyScreenplay = useCallback(
-    async (existing: Screenplay | null) => {
-      if (!existing) {
-        setScreenplay(null);
-        setContent("");
-        setOriginalContent("");
-        setTitle("Untitled Screenplay");
-        setOriginalTitle("Untitled Screenplay");
-        setFileName(null);
-        setSource("internal");
-        setKnowledge(null);
-        setAnalysis(null);
-        setRevisions([]);
-        return;
-      }
-
-      setScreenplay(existing);
-      setContent(existing.content);
-      setOriginalContent(existing.content);
-      setTitle(existing.title);
-      setOriginalTitle(existing.title);
-      setFileName(existing.sourceFileName);
-      setSource(existing.source);
+  const applyScreenplay = useCallback(async (existing: Screenplay | null) => {
+    if (!existing) {
+      setScreenplay(null);
+      setContent("");
+      setOriginalContent("");
+      setTitle("Untitled Screenplay");
+      setOriginalTitle("Untitled Screenplay");
+      setFileName(null);
+      setSource("internal");
       setKnowledge(null);
       setAnalysis(null);
+      setRevisions([]);
+      return;
+    }
 
-      await loadRevisions(existing.id);
-    },
-    [loadRevisions]
-  );
+    setScreenplay(existing);
+    setContent(existing.content);
+    setOriginalContent(existing.content);
+    setTitle(existing.title);
+    setOriginalTitle(existing.title);
+    setFileName(existing.sourceFileName);
+    setSource(existing.source);
+    setKnowledge(null);
+    setAnalysis(null);
+    await loadRevisions(existing.id);
+  }, [loadRevisions]);
 
   const load = useCallback(async () => {
     if (!productionId) {
       setLoading(false);
       return;
     }
-
     setLoading(true);
     setError(null);
-
     try {
       const existing = await screenplayRepository.getByProductionId(productionId);
       await applyScreenplay(existing);
     } catch (err) {
-      setError(
-        err instanceof Error ? err.message : "Unable to load screenplay."
-      );
+      setError(err instanceof Error ? err.message : "Unable to load screenplay.");
     } finally {
       setLoading(false);
     }
@@ -131,12 +92,7 @@ export function useScriptWorkspace(productionId: string) {
 
   useEffect(() => {
     let cancelled = false;
-
-    if (!productionId) {
-      return () => {
-        cancelled = true;
-      };
-    }
+    if (!productionId) return () => { cancelled = true; };
 
     screenplayRepository
       .getByProductionId(productionId)
@@ -147,70 +103,51 @@ export function useScriptWorkspace(productionId: string) {
       })
       .catch((err) => {
         if (cancelled) return;
-        setError(
-          err instanceof Error ? err.message : "Unable to load screenplay."
-        );
+        setError(err instanceof Error ? err.message : "Unable to load screenplay.");
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
       });
 
-    return () => {
-      cancelled = true;
-    };
+    return () => { cancelled = true; };
   }, [productionId, applyScreenplay]);
 
-  const importScript = useCallback(
-    async (input: ImportScriptInput) => {
-      setProcessing(true);
-      setError(null);
-
-      try {
-        const result = await scriptPipeline.process(productionId, {
-          name: input.name,
-          type: input.type,
-          content: input.content,
-        });
-
-        const importedTitle =
-          result.knowledge.screenplay.title ||
-          getTitleFromFileName(input.name);
-
-        setContent(result.screenplay);
-        setTitle(importedTitle);
-        setFileName(input.name);
-        setSource(input.type);
-        setKnowledge(result.knowledge);
-        setAnalysis(result.analysis);
-
-        return result;
-      } catch (err) {
-        const message =
-          err instanceof Error ? err.message : "Unable to process screenplay.";
-        setError(message);
-        throw err;
-      } finally {
-        setProcessing(false);
-      }
-    },
-    [productionId]
-  );
-
-  const analyseScreenplay = useCallback(async () => {
-    if (!content.trim()) {
-      return;
-    }
-
+  const importScript = useCallback(async (input: ImportScriptInput) => {
     setProcessing(true);
     setError(null);
+    try {
+      const result = await scriptPipeline.process(productionId, {
+        name: input.name,
+        type: input.type,
+        content: input.content,
+      });
+      const importedTitle = result.knowledge.screenplay.title || getTitleFromFileName(input.name);
+      setContent(result.screenplay);
+      setTitle(importedTitle);
+      setFileName(input.name);
+      setSource(input.type);
+      setKnowledge(result.knowledge);
+      setAnalysis(result.analysis);
+      return result;
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Unable to process screenplay.";
+      setError(message);
+      throw err;
+    } finally {
+      setProcessing(false);
+    }
+  }, [productionId]);
 
+  const analyseScreenplay = useCallback(async () => {
+    if (!content.trim()) return;
+    setProcessing(true);
+    setError(null);
     try {
       const result = await scriptIntelligence.analyze(content);
       setAnalysis(result);
       return result;
     } catch (err) {
-      const message =
-        err instanceof Error ? err.message : "Unable to analyse screenplay.";
+      const message = err instanceof Error ? err.message : "Unable to analyse screenplay.";
       setError(message);
       throw err;
     } finally {
@@ -218,140 +155,91 @@ export function useScriptWorkspace(productionId: string) {
     }
   }, [content]);
 
-  const reviewScreenplay = useCallback(
-    async (
-      type:
-        | "professional"
-        | "spiritual"
-        | "cultural"
-        | "dialogue"
-        | "character"
-        | "story"
-        | "production"
-    ) => {
-      if (!content.trim()) {
-        return;
-      }
+  const reviewScreenplay = useCallback(async (
+    type: "professional" | "spiritual" | "cultural" | "dialogue" | "character" | "story" | "production"
+  ) => {
+    if (!content.trim()) return;
+    setProcessing(true);
+    setError(null);
+    try {
+      return await scriptIntelligence.review(content, type);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Unable to review screenplay.";
+      setError(message);
+      throw err;
+    } finally {
+      setProcessing(false);
+    }
+  }, [content]);
 
-      setProcessing(true);
-      setError(null);
+  const saveScreenplay = useCallback(async (reason = "manual-save") => {
+    if (!productionId) throw new Error("Production ID is required.");
+    if (!content.trim()) throw new Error("Screenplay content cannot be empty.");
 
-      try {
-        const result = await scriptIntelligence.review(content, type);
-        return result;
-      } catch (err) {
-        const message =
-          err instanceof Error ? err.message : "Unable to review screenplay.";
-        setError(message);
-        throw err;
-      } finally {
-        setProcessing(false);
-      }
-    },
-    [content]
-  );
+    setSaving(true);
+    setProcessing(true);
+    setError(null);
 
-  const saveScreenplay = useCallback(
-    async (reason = "manual-save") => {
-      if (!productionId) {
-        const message = "Production ID is required.";
-        setError(message);
-        throw new Error(message);
-      }
+    try {
+      // Every saved screenplay gets one canonical AI breakdown. The original
+      // screenplay text is never modified by the AI.
+      const canonicalAnalysis = await analyzeScreenplay(content);
 
-      if (!content.trim()) {
-        const message = "Screenplay content cannot be empty.";
-        setError(message);
-        throw new Error(message);
-      }
+      const saved = await screenplayRepository.save(productionId, {
+        title: title.trim() || "Untitled Screenplay",
+        content,
+        analysis: canonicalAnalysis,
+        source,
+        sourceFileName: fileName,
+        status: screenplay ? "revised" : fileName ? "imported" : "draft",
+        reason,
+      });
 
-      setSaving(true);
-      setError(null);
+      setScreenplay(saved);
+      setTitle(saved.title);
+      setOriginalTitle(saved.title);
+      setContent(saved.content);
+      setOriginalContent(saved.content);
+      setSource(saved.source);
+      setFileName(saved.sourceFileName);
+      await loadRevisions(saved.id);
+      return saved;
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Unable to save screenplay.";
+      setError(message);
+      throw err;
+    } finally {
+      setProcessing(false);
+      setSaving(false);
+    }
+  }, [productionId, content, title, source, fileName, screenplay, loadRevisions]);
 
-      try {
-        const saved = await screenplayRepository.save(productionId, {
-          title: title.trim() || "Untitled Screenplay",
-          content,
-          source,
-          sourceFileName: fileName,
-          status: screenplay
-            ? "revised"
-            : fileName
-              ? "imported"
-              : "draft",
-          reason,
-        });
-
-        setScreenplay(saved);
-        setTitle(saved.title);
-        setOriginalTitle(saved.title);
-        setContent(saved.content);
-        setOriginalContent(saved.content);
-        setSource(saved.source);
-        setFileName(saved.sourceFileName);
-
-        await loadRevisions(saved.id);
-
-        return saved;
-      } catch (err) {
-        const message =
-          err instanceof Error ? err.message : "Unable to save screenplay.";
-        setError(message);
-        throw err;
-      } finally {
-        setSaving(false);
-      }
-    },
-    [
-      productionId,
-      content,
-      title,
-      source,
-      fileName,
-      screenplay,
-      loadRevisions,
-    ]
-  );
-
-  const restoreRevision = useCallback(
-    async (revisionId: string) => {
-      if (!productionId) {
-        const message = "Production ID is required.";
-        setError(message);
-        throw new Error(message);
-      }
-
-      setSaving(true);
-      setError(null);
-
-      try {
-        const restored = await screenplayRepository.restoreRevision(
-          productionId,
-          revisionId
-        );
-
-        setScreenplay(restored);
-        setTitle(restored.title);
-        setOriginalTitle(restored.title);
-        setContent(restored.content);
-        setOriginalContent(restored.content);
-        setSource(restored.source);
-        setFileName(restored.sourceFileName);
-
-        await loadRevisions(restored.id);
-
-        return restored;
-      } catch (err) {
-        const message =
-          err instanceof Error ? err.message : "Unable to restore revision.";
-        setError(message);
-        throw err;
-      } finally {
-        setSaving(false);
-      }
-    },
-    [productionId, loadRevisions]
-  );
+  const restoreRevision = useCallback(async (revisionId: string) => {
+    if (!productionId) throw new Error("Production ID is required.");
+    setSaving(true);
+    setProcessing(true);
+    setError(null);
+    try {
+      const revision = await screenplayRepository.getRevisionById(revisionId);
+      const restored = await screenplayRepository.restoreRevision(productionId, revisionId);
+      setScreenplay(restored);
+      setTitle(restored.title);
+      setOriginalTitle(restored.title);
+      setContent(restored.content);
+      setOriginalContent(restored.content);
+      setSource(restored.source);
+      setFileName(restored.sourceFileName);
+      await loadRevisions(restored.id);
+      return { ...restored, analysis: revision.analysis };
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Unable to restore revision.";
+      setError(message);
+      throw err;
+    } finally {
+      setProcessing(false);
+      setSaving(false);
+    }
+  }, [productionId, loadRevisions]);
 
   function clear() {
     setScreenplay(null);
