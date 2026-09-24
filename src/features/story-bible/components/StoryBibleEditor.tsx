@@ -157,7 +157,7 @@ export default function StoryBibleEditor({ productionId }: StoryBibleEditorProps
 
       {error && <div className="rounded-2xl border border-red-500/40 bg-red-500/10 p-5 text-sm text-red-400">{error}</div>}
 
-      <StoryBibleProgress title={form.title} logline={form.logline} synopsis={form.synopsis} theme={form.theme} scripture={form.scripture_foundation} genre={form.genre} beginning={form.beginning} conflict={form.conflict} climax={form.climax} aiContext={form.ai_context} />
+      <StoryBibleProgress values={form} />
 
       <StoryBibleOverview
         title={form.title} logline={form.logline} synopsis={form.synopsis}
