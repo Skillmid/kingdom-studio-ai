@@ -79,19 +79,22 @@ export async function syncCharactersFromScreenplay(productionId: string): Promis
       const proposal = await syncCharacterProfileWithAI(productionId, record, {
         otherCharacterNames: otherNames,
         extractionDescription: extractedCharacter.description,
+        extractedRole: extractedCharacter.role,
       });
 
       const merged = mergeCharacterProfile(record, proposal, {
         replaceOmittedFactualFields: true,
       });
+      const nextRole = proposal.role ?? record.role ?? extractedCharacter.role;
       const progress = calculateCharacterProgress({
         ...record,
         ...merged,
+        role: nextRole,
       });
 
       const updated = await characterRepository.update(record.id, {
         ...merged,
-        role: record.role || extractedCharacter.role,
+        role: nextRole,
         progress,
         status: characterStatusFromProgress(progress),
       });
