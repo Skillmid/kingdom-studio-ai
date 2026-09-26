@@ -19,9 +19,9 @@ interface ShotListViewProps {
 export function ShotListView({ productionId }: ShotListViewProps) {
   const { shots, loading, saving, planning, error, createShot, updateShot, deleteShot, planFromScenes } =
     useShots(productionId);
-  const { scenes, loading: scenesLoading, error: scenesError } = useScenes(productionId);
-  const { locations, loading: locationsLoading, error: locationsError } = useLocations(productionId);
-  const { characters, loading: charactersLoading } = useCharacters(productionId);
+  const { scenes, error: scenesError } = useScenes(productionId);
+  const { locations, error: locationsError } = useLocations(productionId);
+  const { characters } = useCharacters(productionId);
 
   const [formOpen, setFormOpen] = useState(false);
   const [formMode, setFormMode] = useState<"create" | "edit">("create");
@@ -208,9 +208,6 @@ export function ShotListView({ productionId }: ShotListViewProps) {
         scenes={scenes}
         locations={locations}
         characters={characters}
-        scenesLoading={scenesLoading}
-        locationsLoading={locationsLoading}
-        charactersLoading={charactersLoading}
         saving={saving}
         onClose={() => {
           setFormOpen(false);
