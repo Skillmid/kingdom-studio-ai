@@ -2,6 +2,18 @@
 
 ---
 
+## Version 0.4.0
+
+### Added
+
+- Generic AI Director module with production-derived direction notes
+- Note enrichment from persisted scene, shot, storyboard, character and location records
+- `director_notes` table, RLS policies, and production-owned persistence
+- Deterministic director-note completion scoring
+- Unit tests for grounded direction planning, uncertainty preservation, and approved-note protection
+
+---
+
 ## Version 0.3.0
 
 ### Added
