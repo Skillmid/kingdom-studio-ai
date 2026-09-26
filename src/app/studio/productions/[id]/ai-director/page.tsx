@@ -1,4 +1,4 @@
-import AIDirectorWorkspace from "@/features/ai-director/components/AIDirectorWorkspace";
+import { AIDirectorView } from "@/features/ai-director/components/AIDirectorView";
 
 interface AIDirectorPageProps {
   params: Promise<{
@@ -9,7 +9,7 @@ interface AIDirectorPageProps {
 export default async function AIDirectorPage({
   params,
 }: AIDirectorPageProps) {
-  await params;
+  const { id } = await params;
 
-  return <AIDirectorWorkspace />;
+  return <AIDirectorView productionId={id} />;
 }
