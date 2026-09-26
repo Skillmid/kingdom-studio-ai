@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import type { Character, CharacterRole, CharacterStatus } from "../types/character";
+import { calculateCharacterProgress } from "../utils/character-progress";
+import { mergeCharacterProfile } from "../utils/merge-character-profile";
 
 interface CharacterEditorProps {
   character: Character;
@@ -84,10 +86,20 @@ export default function CharacterEditor({
 
     try {
       const proposal = await onAISync(character);
-      setForm((current) => ({
-        ...current,
-        ...proposal,
-      }));
+      setForm((current) => {
+        const merged = mergeCharacterProfile(current, proposal, {
+          replaceOmittedFactualFields: false,
+        });
+        const next = {
+          ...current,
+          ...merged,
+        };
+
+        return {
+          ...next,
+          progress: calculateCharacterProgress(next),
+        };
+      });
       setAiNotice("AI proposal applied. Review the profile before saving.");
     } catch {
       // Parent hook exposes the error state.
@@ -141,6 +153,9 @@ export default function CharacterEditor({
             <h2 className="mt-1 text-2xl font-bold text-white">
               {character.name}
             </h2>
+            <p className="mt-1 text-xs text-zinc-500">
+              {form.progress ?? character.progress}% complete from populated fields
+            </p>
           </div>
 
           <div className="flex items-center gap-3">
@@ -219,35 +234,35 @@ export default function CharacterEditor({
                 label="Age"
                 value={form.age ?? ""}
                 onChange={(value) => update("age", value)}
-                placeholder="e.g. 28"
+                placeholder="Leave blank if the screenplay does not say"
               />
 
               <Field
                 label="Gender"
                 value={form.gender ?? ""}
                 onChange={(value) => update("gender", value)}
-                placeholder="e.g. Female"
+                placeholder="Leave blank if the screenplay does not say"
               />
 
               <Field
                 label="Occupation"
                 value={form.occupation ?? ""}
                 onChange={(value) => update("occupation", value)}
-                placeholder="e.g. Teacher"
+                placeholder="Only if stated for this character"
               />
 
               <Field
                 label="Nationality"
                 value={form.nationality ?? ""}
                 onChange={(value) => update("nationality", value)}
-                placeholder="e.g. Nigerian"
+                placeholder="Leave blank if unknown"
               />
 
               <Field
                 label="Ethnicity"
                 value={form.ethnicity ?? ""}
                 onChange={(value) => update("ethnicity", value)}
-                placeholder="Optional"
+                placeholder="Leave blank if unknown"
               />
             </div>
           </section>

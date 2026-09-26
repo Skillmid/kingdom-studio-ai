@@ -1,6 +1,7 @@
 "use client";
 
 import type { Character } from "../types/character";
+import { calculateCharacterProgress } from "../utils/character-progress";
 
 interface CharacterCardProps {
   character: Character;
@@ -28,23 +29,19 @@ export default function CharacterCard({
   character,
   onOpen,
 }: CharacterCardProps) {
+  const progress = calculateCharacterProgress(character);
+
   return (
     <div className="rounded-2xl border border-zinc-800 bg-zinc-900 p-6 transition hover:border-yellow-500">
-
       <div className="flex items-start justify-between">
-
         <div>
-
           <h3 className="text-xl font-bold">
             {character.name}
           </h3>
-
           <p className="mt-1 text-sm text-zinc-400">
             {character.occupation || "No occupation"}
           </p>
-
         </div>
-
         <span
           className={`rounded-full border px-3 py-1 text-xs font-semibold ${getRoleColor(
             character.role
@@ -52,38 +49,25 @@ export default function CharacterCard({
         >
           {character.role.toUpperCase()}
         </span>
-
       </div>
-
       <div className="mt-6">
-
         <div className="mb-2 flex justify-between text-sm">
-
           <span>Completion</span>
-
-          <span>{character.progress}%</span>
-
+          <span>{progress}%</span>
         </div>
-
         <div className="h-2 overflow-hidden rounded-full bg-zinc-800">
-
           <div
             className="h-full rounded-full bg-yellow-500 transition-all"
             style={{
-              width: `${character.progress}%`,
+              width: `${progress}%`,
             }}
           />
-
         </div>
-
       </div>
-
       <div className="mt-6 flex items-center justify-between">
-
         <span className="rounded-full bg-zinc-800 px-3 py-1 text-xs uppercase tracking-wide text-zinc-300">
           {character.status}
         </span>
-
         <button
           type="button"
           onClick={() => onOpen?.(character)}
@@ -91,9 +75,7 @@ export default function CharacterCard({
         >
           Open
         </button>
-
       </div>
-
     </div>
   );
 }

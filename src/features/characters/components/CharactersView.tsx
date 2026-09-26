@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useState } from "react";
 import CharacterEditor from "./CharacterEditor";
@@ -24,8 +24,12 @@ export function CharactersView({ productionId }: CharactersViewProps) {
     syncFromScreenplay,
   } = useCharacters(productionId);
 
-  const [selectedCharacter, setSelectedCharacter] =
-    useState<Character | null>(null);
+  const [selectedCharacterId, setSelectedCharacterId] = useState<string | null>(
+    null
+  );
+  const selectedCharacter =
+    characters.find((character) => character.id === selectedCharacterId) ??
+    null;
   const [newName, setNewName] = useState("");
   const [newRole, setNewRole] = useState<CharacterRole>("supporting");
   const [newOccupation, setNewOccupation] = useState("");
@@ -39,15 +43,27 @@ export function CharactersView({ productionId }: CharactersViewProps) {
 
       if (result.totalExtracted === 0) {
         setNotification("No characters were detected in the screenplay.");
-      } else if (result.createdCount === 0) {
-        setNotification(
-          `Found ${result.totalExtracted} character${result.totalExtracted === 1 ? "" : "s"}, but they are already in this production.`,
-        );
-      } else {
-        setNotification(
-          `Added ${result.createdCount} new character${result.createdCount === 1 ? "" : "s"} from the screenplay.`,
-        );
+        return;
       }
+
+      const parts = [
+        `Found ${result.totalExtracted} character${result.totalExtracted === 1 ? "" : "s"}`,
+      ];
+
+      if (result.createdCount > 0) {
+        parts.push(`added ${result.createdCount}`);
+      }
+
+      if (result.profiledCount > 0) {
+        parts.push(`profiled ${result.profiledCount}`);
+      }
+
+      if (result.failedCount > 0) {
+        const failedNames = result.failed.map((item) => item.name).join(", ");
+        parts.push(`could not profile ${result.failedCount}${failedNames ? ` (${failedNames})` : ""}`);
+      }
+
+      setNotification(`${parts.join("; ")}.`);
     } catch {
       // The hook exposes the error state.
     }
@@ -67,7 +83,6 @@ export function CharactersView({ productionId }: CharactersViewProps) {
         occupation: newOccupation.trim() || undefined,
         biography: newBiography.trim() || undefined,
         status: "draft",
-        progress: 0,
       });
 
       setNewName("");
@@ -86,8 +101,7 @@ export function CharactersView({ productionId }: CharactersViewProps) {
       return;
     }
 
-    const updated = await updateCharacter(selectedCharacter.id, updates);
-    setSelectedCharacter(updated);
+    await updateCharacter(selectedCharacter.id, updates);
     setNotification("Character profile saved successfully.");
   }
 
@@ -104,9 +118,9 @@ export function CharactersView({ productionId }: CharactersViewProps) {
           </p>
           <h1 className="mt-2 text-3xl font-bold text-white">Characters</h1>
           <p className="mt-2 max-w-2xl text-sm text-zinc-400">
-            Build and refine the characters that will drive your production.
-            Characters extracted from the screenplay can be reviewed and
-            developed here.
+            Extract characters from the screenplay, then let AI draft a grounded
+            profile for each person. Review one character with AI Sync Profile
+            without resyncing the whole cast.
           </p>
         </div>
 
@@ -117,7 +131,7 @@ export function CharactersView({ productionId }: CharactersViewProps) {
             disabled={syncing}
             className="rounded-xl border border-yellow-500/40 bg-yellow-500/10 px-4 py-3 text-sm font-semibold text-yellow-400 transition hover:bg-yellow-500/20 disabled:cursor-not-allowed disabled:opacity-50"
           >
-            {syncing ? "Syncing..." : "Sync from Screenplay"}
+            {syncing ? "Profiling from Screenplay..." : "Sync from Screenplay"}
           </button>
 
           <button
@@ -152,7 +166,7 @@ export function CharactersView({ productionId }: CharactersViewProps) {
       <CharacterList
         characters={characters}
         loading={loading}
-        onOpen={setSelectedCharacter}
+        onOpen={(character) => setSelectedCharacterId(character.id)}
       />
 
       {showCreateForm && (
@@ -258,12 +272,13 @@ export function CharactersView({ productionId }: CharactersViewProps) {
 
       {selectedCharacter && (
         <CharacterEditor
+          key={`${selectedCharacter.id}:${selectedCharacter.updatedAt}:${selectedCharacter.progress}`}
           character={selectedCharacter}
           saving={saving}
           aiSyncing={aiSyncing}
           onSave={handleUpdate}
           onAISync={handleAISync}
-          onCancel={() => setSelectedCharacter(null)}
+          onCancel={() => setSelectedCharacterId(null)}
         />
       )}
     </div>

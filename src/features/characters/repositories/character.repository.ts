@@ -41,6 +41,40 @@ type CharacterRow = {
   updated_at: Character["updatedAt"];
 };
 
+type CharacterWritePayload = {
+  production_id?: string;
+  name?: Character["name"];
+  role?: Character["role"];
+  status?: Character["status"];
+  age?: Character["age"];
+  gender?: Character["gender"];
+  occupation?: Character["occupation"];
+  nationality?: Character["nationality"];
+  ethnicity?: Character["ethnicity"];
+  biography?: Character["biography"];
+  appearance?: Character["appearance"];
+  height?: Character["height"];
+  weight?: Character["weight"];
+  eye_color?: Character["eyeColor"];
+  hair_color?: Character["hairColor"];
+  distinguishing_features?: Character["distinguishingFeatures"];
+  personality?: Character["personality"];
+  strengths?: Character["strengths"];
+  weaknesses?: Character["weaknesses"];
+  fears?: Character["fears"];
+  habits?: Character["habits"];
+  values?: Character["values"];
+  motivation?: Character["motivation"];
+  goal?: Character["goal"];
+  conflict?: Character["conflict"];
+  character_arc?: Character["characterArc"];
+  spiritual_journey?: Character["spiritualJourney"];
+  speech_style?: Character["speechStyle"];
+  catch_phrases?: Character["catchPhrases"];
+  ai_instructions?: Character["aiInstructions"];
+  progress?: number;
+};
+
 export class CharacterRepository {
   private readonly supabase = supabase;
 
@@ -201,40 +235,48 @@ export class CharacterRepository {
     };
   }
 
-  private toDatabase(character: Partial<Character>) {
-    return {
-      production_id: character.productionId,
-      name: character.name,
-      role: character.role ?? "supporting",
-      status: character.status ?? "draft",
-      age: character.age,
-      gender: character.gender,
-      occupation: character.occupation,
-      nationality: character.nationality,
-      ethnicity: character.ethnicity,
-      biography: character.biography,
-      appearance: character.appearance,
-      height: character.height,
-      weight: character.weight,
-      eye_color: character.eyeColor,
-      hair_color: character.hairColor,
-      distinguishing_features: character.distinguishingFeatures,
-      personality: character.personality,
-      strengths: character.strengths,
-      weaknesses: character.weaknesses,
-      fears: character.fears,
-      habits: character.habits,
-      values: character.values,
-      motivation: character.motivation,
-      goal: character.goal,
-      conflict: character.conflict,
-      character_arc: character.characterArc,
-      spiritual_journey: character.spiritualJourney,
-      speech_style: character.speechStyle,
-      catch_phrases: character.catchPhrases,
-      ai_instructions: character.aiInstructions,
-      progress: character.progress ?? 0,
-    };
+  private toDatabase(character: Partial<Character>): CharacterWritePayload {
+    const payload: CharacterWritePayload = {};
+
+    if (character.productionId !== undefined) payload.production_id = character.productionId;
+    if (character.name !== undefined) payload.name = character.name;
+    if (character.role !== undefined) payload.role = character.role;
+    if (character.status !== undefined) payload.status = character.status;
+    if (character.age !== undefined) payload.age = character.age;
+    if (character.gender !== undefined) payload.gender = character.gender;
+    if (character.occupation !== undefined) payload.occupation = character.occupation;
+    if (character.nationality !== undefined) payload.nationality = character.nationality;
+    if (character.ethnicity !== undefined) payload.ethnicity = character.ethnicity;
+    if (character.biography !== undefined) payload.biography = character.biography;
+    if (character.appearance !== undefined) payload.appearance = character.appearance;
+    if (character.height !== undefined) payload.height = character.height;
+    if (character.weight !== undefined) payload.weight = character.weight;
+    if (character.eyeColor !== undefined) payload.eye_color = character.eyeColor;
+    if (character.hairColor !== undefined) payload.hair_color = character.hairColor;
+    if (character.distinguishingFeatures !== undefined) {
+      payload.distinguishing_features = character.distinguishingFeatures;
+    }
+    if (character.personality !== undefined) payload.personality = character.personality;
+    if (character.strengths !== undefined) payload.strengths = character.strengths;
+    if (character.weaknesses !== undefined) payload.weaknesses = character.weaknesses;
+    if (character.fears !== undefined) payload.fears = character.fears;
+    if (character.habits !== undefined) payload.habits = character.habits;
+    if (character.values !== undefined) payload.values = character.values;
+    if (character.motivation !== undefined) payload.motivation = character.motivation;
+    if (character.goal !== undefined) payload.goal = character.goal;
+    if (character.conflict !== undefined) payload.conflict = character.conflict;
+    if (character.characterArc !== undefined) payload.character_arc = character.characterArc;
+    if (character.spiritualJourney !== undefined) {
+      payload.spiritual_journey = character.spiritualJourney;
+    }
+    if (character.speechStyle !== undefined) payload.speech_style = character.speechStyle;
+    if (character.catchPhrases !== undefined) payload.catch_phrases = character.catchPhrases;
+    if (character.aiInstructions !== undefined) {
+      payload.ai_instructions = character.aiInstructions;
+    }
+    if (character.progress !== undefined) payload.progress = character.progress;
+
+    return payload;
   }
 }
 
