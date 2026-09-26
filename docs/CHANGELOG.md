@@ -2,6 +2,17 @@
 
 ---
 
+## Version 0.2.0
+
+### Added
+
+- Generic Shot List module with scene-derived coverage planning
+- `shots` table, RLS policies, and production-owned persistence
+- Deterministic shot completion scoring
+- Unit tests for grounded shot planning and user-approved shot preservation
+
+---
+
 ## Version 0.1.0
 
 ### Completed
