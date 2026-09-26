@@ -5,8 +5,8 @@ import { useCallback, useEffect, useState } from "react";
 import { sceneRepository } from "@/features/scenes/repositories/scene.repository";
 
 import { shotRepository } from "../repositories/shot.repository";
-import { withCalculatedProgress } from "../services/shot-completion";
 import { planShotsFromScenes, selectNewShotProposals } from "../services/shot-planner";
+import { withCalculatedProgress } from "../services/shot-completion";
 import type { Shot } from "../types/shot";
 
 export function useShots(productionId: string) {
@@ -63,26 +63,14 @@ export function useShots(productionId: string) {
     };
   }, [productionId]);
 
-  function nextShotNumber(sceneId?: string, current: Shot[] = shots) {
-    const relevant = current.filter((shot) => (sceneId ? shot.sceneId === sceneId : !shot.sceneId));
-    const pool = relevant.length > 0 ? relevant : current;
-    return pool.length === 0 ? 1 : Math.max(...pool.map((shot) => shot.shotNumber)) + 1;
-  }
-
   async function createShot(shot: Partial<Shot>) {
     try {
       setSaving(true);
       setError(null);
-      const payload = withCalculatedProgress({
-        ...shot,
-        productionId,
-        shotNumber: shot.shotNumber ?? nextShotNumber(shot.sceneId),
-        provenance: shot.provenance ?? "user",
-        userApproved: shot.userApproved ?? true,
-        characterIds: shot.characterIds ?? [],
-      });
-      const created = await shotRepository.create(payload);
-      setShots((current) => [...current, created]);
+      const created = await shotRepository.create(
+        withCalculatedProgress({ ...shot, productionId, provenance: shot.provenance ?? "user" }),
+      );
+      setShots((current) => [...current, created].sort((a, b) => a.shotNumber - b.shotNumber));
       return created;
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to create shot.");
@@ -96,10 +84,8 @@ export function useShots(productionId: string) {
     try {
       setSaving(true);
       setError(null);
-      const current = shots.find((shot) => shot.id === id);
-      const payload = current ? withCalculatedProgress({ ...current, ...updates }) : updates;
-      const updated = await shotRepository.update(id, payload);
-      setShots((list) => list.map((shot) => (shot.id === id ? updated : shot)));
+      const updated = await shotRepository.update(id, withCalculatedProgress({ ...updates }));
+      setShots((current) => current.map((shot) => (shot.id === id ? updated : shot)));
       return updated;
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to update shot.");
@@ -123,14 +109,11 @@ export function useShots(productionId: string) {
     }
   }
 
-  async function approveShot(id: string) {
-    return updateShot(id, { userApproved: true });
-  }
-
   async function planFromScenes(): Promise<{
     createdCount: number;
+    proposedCount: number;
     sceneCount: number;
-    existingCount: number;
+    preservedCount: number;
   }> {
     if (!productionId) throw new Error("Production ID is required.");
 
@@ -145,24 +128,36 @@ export function useShots(productionId: string) {
 
       if (scenes.length === 0) {
         setShots(existing);
-        return { createdCount: 0, sceneCount: 0, existingCount: existing.length };
+        return { createdCount: 0, proposedCount: 0, sceneCount: 0, preservedCount: existing.length };
       }
 
-      const proposals = planShotsFromScenes(scenes);
-      const incoming = selectNewShotProposals(proposals, existing).map((proposal) =>
-        withCalculatedProgress({
-          ...proposal,
-          productionId,
-        }),
-      );
+      const nextNumberStart =
+        existing.length === 0 ? 1 : Math.max(...existing.map((shot) => shot.shotNumber)) + 1;
+      const proposals = planShotsFromScenes({ productionId, scenes }).map((proposal, index) => ({
+        ...proposal,
+        shotNumber: nextNumberStart + index,
+      }));
+      const selected = selectNewShotProposals(proposals, existing);
 
-      const created = await shotRepository.createMany(incoming);
-      setShots([...existing, ...created]);
+      if (selected.length === 0) {
+        setShots(existing);
+        return {
+          createdCount: 0,
+          proposedCount: proposals.length,
+          sceneCount: scenes.length,
+          preservedCount: existing.length,
+        };
+      }
+
+      const created = await shotRepository.createMany(selected);
+      const merged = [...existing, ...created].sort((a, b) => a.shotNumber - b.shotNumber);
+      setShots(merged);
 
       return {
         createdCount: created.length,
+        proposedCount: proposals.length,
         sceneCount: scenes.length,
-        existingCount: existing.length,
+        preservedCount: existing.filter((shot) => shot.userApproved || shot.provenance === "user").length,
       };
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to plan shots from scenes.");
@@ -186,8 +181,6 @@ export function useShots(productionId: string) {
     createShot,
     updateShot,
     deleteShot,
-    approveShot,
     planFromScenes,
-    nextShotNumber,
   };
 }
