@@ -16,7 +16,6 @@ type ShotRow = {
   id: string;
   production_id: string;
   scene_id: string | null;
-  location_id: string | null;
   shot_number: number;
   shot_code: string | null;
   shot_type: ShotType;
@@ -32,6 +31,7 @@ type ShotRow = {
   generation_prompt: string | null;
   source_evidence: string | null;
   character_ids: string[] | null;
+  location_id: string | null;
   estimated_duration_seconds: number | null;
   provenance: ShotProvenance;
   user_approved: boolean | null;
@@ -113,8 +113,8 @@ export class ShotRepository {
       sceneId: data.scene_id ?? undefined,
       shotNumber: data.shot_number,
       shotCode: data.shot_code ?? undefined,
-      shotType: data.shot_type,
-      framing: data.framing,
+      shotType: data.shot_type ?? "medium",
+      framing: data.framing ?? "MS",
       cameraAngle: data.camera_angle ?? undefined,
       cameraMovement: data.camera_movement ?? undefined,
       lens: data.lens ?? undefined,
@@ -128,8 +128,8 @@ export class ShotRepository {
       characterIds: data.character_ids ?? [],
       locationId: data.location_id ?? undefined,
       estimatedDurationSeconds: data.estimated_duration_seconds ?? undefined,
-      provenance: data.provenance,
-      userApproved: Boolean(data.user_approved),
+      provenance: data.provenance ?? "user",
+      userApproved: data.user_approved ?? false,
       status: data.status,
       progress: data.progress ?? 0,
       createdAt: data.created_at,
@@ -138,33 +138,31 @@ export class ShotRepository {
   }
 
   private toDatabase(shot: Partial<Shot>) {
-    const row: Record<string, unknown> = {};
-    if (shot.productionId !== undefined) row.production_id = shot.productionId;
-    if (shot.sceneId !== undefined) row.scene_id = shot.sceneId;
-    if (shot.locationId !== undefined) row.location_id = shot.locationId;
-    if (shot.shotNumber !== undefined) row.shot_number = shot.shotNumber;
-    if (shot.shotCode !== undefined) row.shot_code = shot.shotCode;
-    if (shot.shotType !== undefined) row.shot_type = shot.shotType;
-    if (shot.framing !== undefined) row.framing = shot.framing;
-    if (shot.cameraAngle !== undefined) row.camera_angle = shot.cameraAngle;
-    if (shot.cameraMovement !== undefined) row.camera_movement = shot.cameraMovement;
-    if (shot.lens !== undefined) row.lens = shot.lens;
-    if (shot.subject !== undefined) row.subject = shot.subject;
-    if (shot.action !== undefined) row.action = shot.action;
-    if (shot.dialogueReference !== undefined) row.dialogue_reference = shot.dialogueReference;
-    if (shot.visualDescription !== undefined) row.visual_description = shot.visualDescription;
-    if (shot.continuityNotes !== undefined) row.continuity_notes = shot.continuityNotes;
-    if (shot.generationPrompt !== undefined) row.generation_prompt = shot.generationPrompt;
-    if (shot.sourceEvidence !== undefined) row.source_evidence = shot.sourceEvidence;
-    if (shot.characterIds !== undefined) row.character_ids = shot.characterIds;
-    if (shot.estimatedDurationSeconds !== undefined) {
-      row.estimated_duration_seconds = shot.estimatedDurationSeconds;
-    }
-    if (shot.provenance !== undefined) row.provenance = shot.provenance;
-    if (shot.userApproved !== undefined) row.user_approved = shot.userApproved;
-    if (shot.status !== undefined) row.status = shot.status;
-    if (shot.progress !== undefined) row.progress = shot.progress;
-    return row;
+    return {
+      production_id: shot.productionId,
+      scene_id: shot.sceneId,
+      shot_number: shot.shotNumber,
+      shot_code: shot.shotCode,
+      shot_type: shot.shotType,
+      framing: shot.framing,
+      camera_angle: shot.cameraAngle,
+      camera_movement: shot.cameraMovement,
+      lens: shot.lens,
+      subject: shot.subject,
+      action: shot.action,
+      dialogue_reference: shot.dialogueReference,
+      visual_description: shot.visualDescription,
+      continuity_notes: shot.continuityNotes,
+      generation_prompt: shot.generationPrompt,
+      source_evidence: shot.sourceEvidence,
+      character_ids: shot.characterIds ?? [],
+      location_id: shot.locationId,
+      estimated_duration_seconds: shot.estimatedDurationSeconds,
+      provenance: shot.provenance ?? "user",
+      user_approved: shot.userApproved ?? false,
+      status: shot.status ?? "draft",
+      progress: shot.progress ?? 0,
+    };
   }
 }
 
