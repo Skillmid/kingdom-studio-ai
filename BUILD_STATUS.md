@@ -6,7 +6,9 @@ This file is the persistent engineering status for autonomous sessions. Treat th
 
 ## Current milestone
 
-Shot List v1 is complete as a generic production module. It consumes Scene Planner records, proposes grounded camera coverage, persists shots with RLS, preserves filmmaker-approved shots on later planning runs, and exposes a production workspace.
+Storyboard v1 is complete as a generic production module. It consumes persisted Shot, Scene, Character and Location records, proposes visual panels without inventing plot, persists panels with RLS, preserves filmmaker-approved panels on later planning runs, and exposes a production workspace. Image generation is deferred to generation jobs.
+
+Shot List v1 remains complete.
 
 ## Pipeline
 
@@ -20,8 +22,8 @@ Shot List v1 is complete as a generic production module. It consumes Scene Plann
 | Locations | Present | Location Bible + screenplay sync |
 | Scenes | Present | Production scene records with source text |
 | Shot List | Complete | Domain, planner, persistence, UI, tests, verified |
-| Storyboard | Stub page only | Next pipeline dependency |
-| AI Director | UI shell only | Not production intelligence yet |
+| Storyboard | Complete | Shot-derived panels enriched from scene/character/location records |
+| AI Director | UI shell only | Next pipeline dependency after this milestone |
 | Assets / generation jobs | Stub pages | Not implemented |
 | Render / export | Stub pages | Not implemented |
 
@@ -34,6 +36,17 @@ Shot List v1 is complete as a generic production module. It consumes Scene Plann
 - User-created or user-approved shots are not overwritten by Plan from Scenes.
 - Completion percentage is calculated from persisted shot fields.
 - RLS restricts shot access to the production owner.
+
+## Storyboard v1 invariants
+
+- Panels belong to a production and may link to a shot, scene, location, and characters.
+- Plan from Shots copies shot visual fields and attaches persisted scene, character, and location continuity when those records exist.
+- Unsupported visual facts are not invented when downstream records are sparse.
+- A shot already represented by a panel is not duplicated.
+- User-created or user-approved panels are preserved.
+- Completion is calculated from persisted panel fields.
+- RLS restricts panel access to the production owner.
+- No still is fabricated. `image_url` is optional until generation jobs exist.
 
 ## Shot List files
 
@@ -51,17 +64,36 @@ Shot List v1 is complete as a generic production module. It consumes Scene Plann
 - `src/features/shots/components/DeleteShotDialog.tsx`
 - `src/app/studio/productions/[id]/shot-list/page.tsx`
 
+## Storyboard files
+
+- `supabase/migrations/202609260002_create_storyboard_panels_table.sql`
+- `src/features/storyboard/types/storyboard-panel.ts`
+- `src/features/storyboard/validation/storyboard-panel.schema.ts`
+- `src/features/storyboard/services/storyboard-completion.ts`
+- `src/features/storyboard/services/storyboard-planner.ts`
+- `src/features/storyboard/repositories/storyboard.repository.ts`
+- `src/features/storyboard/hooks/use-storyboard.ts`
+- `src/features/storyboard/components/StoryboardView.tsx`
+- `src/features/storyboard/components/PanelFormDialog.tsx`
+- `src/features/storyboard/components/PanelCard.tsx`
+- `src/features/storyboard/components/PanelList.tsx`
+- `src/features/storyboard/components/DeletePanelDialog.tsx`
+- `src/app/studio/productions/[id]/storyboard/page.tsx`
+
 ## Verification (2026-09-26)
 
 Executed in this session:
 
-- `npm test` — passed (7 tests)
+- `npm test` — passed (14 tests: shot list + storyboard)
 - `npm run lint` — passed
 - `npx tsc --noEmit` — passed
 - `npm run build` — passed
 
-Apply `supabase/migrations/202609260001_create_shots_table.sql` to the live Supabase project before using shot persistence.
+Apply these migrations to the live Supabase project before using persistence:
+
+- `supabase/migrations/202609260001_create_shots_table.sql`
+- `supabase/migrations/202609260002_create_storyboard_panels_table.sql`
 
 ## Next executable dependency
 
-Storyboard: persist panels that consume shot, scene, character, and location intelligence so visual continuity can be planned before generation.
+AI Director: production intelligence that consumes approved scenes, shots and storyboard panels for blocking, camera, lighting and continuity proposals. Assets / generation jobs follow so stills can attach to panels.
