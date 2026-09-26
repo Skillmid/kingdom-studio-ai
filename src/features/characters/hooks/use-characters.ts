@@ -1,15 +1,11 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-
 import { characterRepository } from "../repositories/character.repository";
 import { syncCharacterProfileWithAI } from "../services/character-ai-sync.service";
 import { syncCharactersFromScreenplay } from "../services/character-screenplay-sync.service";
 import type { Character } from "../types/character";
-import {
-  calculateCharacterProgress,
-  characterStatusFromProgress,
-} from "../utils/character-progress";
+import { calculateCharacterProgress, characterStatusFromProgress } from "../utils/character-progress";
 
 export function useCharacters(productionId: string) {
   const [characters, setCharacters] = useState<Character[]>([]);
@@ -25,19 +21,12 @@ export function useCharacters(productionId: string) {
       setLoading(false);
       return;
     }
-
     try {
       setLoading(true);
       setError(null);
-
-      const data = await characterRepository.getByProductionId(productionId);
-      setCharacters(data);
+      setCharacters(await characterRepository.getByProductionId(productionId));
     } catch (err) {
-      setError(
-        err instanceof Error
-          ? err.message
-          : "Failed to load characters."
-      );
+      setError(err instanceof Error ? err.message : "Failed to load characters.");
     } finally {
       setLoading(false);
     }
@@ -45,42 +34,24 @@ export function useCharacters(productionId: string) {
 
   useEffect(() => {
     let cancelled = false;
-
-    if (!productionId) {
-      return () => {
-        cancelled = true;
-      };
-    }
-
-    characterRepository
-      .getByProductionId(productionId)
-      .then((data) => {
-        if (cancelled) return;
+    if (!productionId) return () => { cancelled = true; };
+    characterRepository.getByProductionId(productionId).then((data) => {
+      if (!cancelled) {
         setCharacters(data);
         setError(null);
-      })
-      .catch((err) => {
-        if (cancelled) return;
-        setError(
-          err instanceof Error
-            ? err.message
-            : "Failed to load characters."
-        );
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
-      });
-
-    return () => {
-      cancelled = true;
-    };
+      }
+    }).catch((err) => {
+      if (!cancelled) setError(err instanceof Error ? err.message : "Failed to load characters.");
+    }).finally(() => {
+      if (!cancelled) setLoading(false);
+    });
+    return () => { cancelled = true; };
   }, [productionId]);
 
   async function createCharacter(character: Partial<Character>) {
     try {
       setSaving(true);
       setError(null);
-
       const progress = calculateCharacterProgress(character);
       const created = await characterRepository.create({
         ...character,
@@ -88,12 +59,10 @@ export function useCharacters(productionId: string) {
         progress,
         status: character.status ?? characterStatusFromProgress(progress),
       });
-
       setCharacters((current) => [...current, created]);
       return created;
     } catch (err) {
-      const message =
-        err instanceof Error ? err.message : "Failed to create character.";
+      const message = err instanceof Error ? err.message : "Failed to create character.";
       setError(message);
       throw err;
     } finally {
@@ -105,29 +74,17 @@ export function useCharacters(productionId: string) {
     try {
       setSaving(true);
       setError(null);
-
       const current = characters.find((character) => character.id === id);
-      const progress = calculateCharacterProgress({
-        ...current,
-        ...updates,
-      });
-
+      const progress = calculateCharacterProgress({ ...current, ...updates });
       const updated = await characterRepository.update(id, {
         ...updates,
         progress,
         status: updates.status ?? characterStatusFromProgress(progress),
       });
-
-      setCharacters((currentCharacters) =>
-        currentCharacters.map((character) =>
-          character.id === id ? updated : character
-        )
-      );
-
+      setCharacters((items) => items.map((character) => character.id === id ? updated : character));
       return updated;
     } catch (err) {
-      const message =
-        err instanceof Error ? err.message : "Failed to update character.";
+      const message = err instanceof Error ? err.message : "Failed to update character.";
       setError(message);
       throw err;
     } finally {
@@ -138,20 +95,13 @@ export function useCharacters(productionId: string) {
   async function syncCharacterWithAI(character: Character) {
     setAiSyncing(true);
     setError(null);
-
     try {
       const otherCharacterNames = characters
         .map((item) => item.name)
         .filter((name) => name.trim().toLowerCase() !== character.name.trim().toLowerCase());
-
-      return await syncCharacterProfileWithAI(productionId, character, {
-        otherCharacterNames,
-      });
+      return await syncCharacterProfileWithAI(productionId, character, { otherCharacterNames });
     } catch (err) {
-      const message =
-        err instanceof Error
-          ? err.message
-          : "Failed to sync character profile with AI.";
+      const message = err instanceof Error ? err.message : "Failed to sync character profile with AI.";
       setError(message);
       throw err;
     } finally {
@@ -163,14 +113,10 @@ export function useCharacters(productionId: string) {
     try {
       setSaving(true);
       setError(null);
-
       await characterRepository.delete(id);
-      setCharacters((current) =>
-        current.filter((character) => character.id !== id)
-      );
+      setCharacters((items) => items.filter((character) => character.id !== id));
     } catch (err) {
-      const message =
-        err instanceof Error ? err.message : "Failed to delete character.";
+      const message = err instanceof Error ? err.message : "Failed to delete character.";
       setError(message);
       throw err;
     } finally {
@@ -180,43 +126,33 @@ export function useCharacters(productionId: string) {
 
   async function syncFromScreenplay(): Promise<{
     createdCount: number;
+    proposedCount: number;
     profiledCount: number;
     failedCount: number;
     totalExtracted: number;
     failed: Array<{ name: string; error: string }>;
   }> {
-    if (!productionId) {
-      throw new Error("Production ID is required.");
-    }
-
+    if (!productionId) throw new Error("Production ID is required.");
     setSyncing(true);
     setError(null);
-
     try {
       const result = await syncCharactersFromScreenplay(productionId);
-      const existing = await characterRepository.getByProductionId(productionId);
-      setCharacters(existing);
+      setCharacters(await characterRepository.getByProductionId(productionId));
       return {
         createdCount: result.createdCount,
+        proposedCount: result.proposedCount,
         profiledCount: result.profiledCount,
         failedCount: result.failedCount,
         totalExtracted: result.totalExtracted,
         failed: result.failed,
       };
     } catch (err) {
-      const message =
-        err instanceof Error
-          ? err.message
-          : "Failed to sync characters from screenplay.";
+      const message = err instanceof Error ? err.message : "Failed to sync characters from screenplay.";
       setError(message);
       throw err;
     } finally {
       setSyncing(false);
     }
-  }
-
-  async function refresh() {
-    await loadCharacters();
   }
 
   return {
@@ -226,7 +162,7 @@ export function useCharacters(productionId: string) {
     syncing,
     aiSyncing,
     error,
-    refresh,
+    refresh: loadCharacters,
     createCharacter,
     updateCharacter,
     syncCharacterWithAI,

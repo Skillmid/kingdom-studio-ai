@@ -5,11 +5,6 @@ import { characterRepository } from "../repositories/character.repository";
 import type { Character } from "../types/character";
 import type { ExtractedCharacter } from "@/features/import-engine/extract-from-screenplay";
 import { syncCharacterProfileWithAI } from "./character-ai-sync.service";
-import { mergeCharacterProfile } from "../utils/merge-character-profile";
-import {
-  calculateCharacterProgress,
-  characterStatusFromProgress,
-} from "../utils/character-progress";
 
 export function previewCharactersFromScreenplay(
   screenplayContent: string,
@@ -20,12 +15,13 @@ export function previewCharactersFromScreenplay(
 
 export async function syncCharactersFromScreenplay(productionId: string): Promise<{
   createdCount: number;
+  proposedCount: number;
   profiledCount: number;
   failedCount: number;
   totalExtracted: number;
   extracted: ExtractedCharacter[];
   created: Character[];
-  profiled: Character[];
+  proposed: Character[];
   failed: Array<{ name: string; error: string }>;
 }> {
   if (!productionId) throw new Error("Production ID is required.");
@@ -39,12 +35,13 @@ export async function syncCharactersFromScreenplay(productionId: string): Promis
   if (extracted.length === 0) {
     return {
       createdCount: 0,
+      proposedCount: 0,
       profiledCount: 0,
       failedCount: 0,
       totalExtracted: 0,
       extracted,
       created: [],
-      profiled: [],
+      proposed: [],
       failed: [],
     };
   }
@@ -56,7 +53,7 @@ export async function syncCharactersFromScreenplay(productionId: string): Promis
 
   const otherNames = extracted.map((character) => character.name);
   const created: Character[] = [];
-  const profiled: Character[] = [];
+  const proposed: Character[] = [];
   const failed: Array<{ name: string; error: string }> = [];
 
   for (const extractedCharacter of extracted) {
@@ -76,47 +73,29 @@ export async function syncCharactersFromScreenplay(productionId: string): Promis
     }
 
     try {
-      const proposal = await syncCharacterProfileWithAI(productionId, record, {
+      await syncCharacterProfileWithAI(productionId, record, {
         otherCharacterNames: otherNames,
         extractionDescription: extractedCharacter.description,
         extractedRole: extractedCharacter.role,
       });
-
-      const merged = mergeCharacterProfile(record, proposal, {
-        replaceOmittedFactualFields: true,
-      });
-      const nextRole = proposal.role ?? record.role ?? extractedCharacter.role;
-      const progress = calculateCharacterProgress({
-        ...record,
-        ...merged,
-        role: nextRole,
-      });
-
-      const updated = await characterRepository.update(record.id, {
-        ...merged,
-        role: nextRole,
-        progress,
-        status: characterStatusFromProgress(progress),
-      });
-
-      existingByName.set(key, updated);
-      profiled.push(updated);
+      proposed.push(record);
     } catch (error) {
       failed.push({
         name: extractedCharacter.name,
-        error: error instanceof Error ? error.message : "Character profile sync failed.",
+        error: error instanceof Error ? error.message : "Character profile proposal failed.",
       });
     }
   }
 
   return {
     createdCount: created.length,
-    profiledCount: profiled.length,
+    proposedCount: proposed.length,
+    profiledCount: proposed.length,
     failedCount: failed.length,
     totalExtracted: extracted.length,
     extracted,
     created,
-    profiled,
+    proposed,
     failed,
   };
 }
