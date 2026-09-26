@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "test": "node --experimental-strip-types --experimental-loader ./scripts/ts-test-loader.mjs --test src/features/shots/services/shot-planner.test.ts src/features/shots/validation/shot.schema.test.ts src/features/storyboard/services/storyboard-planner.test.ts src/features/storyboard/validation/storyboard-panel.schema.test.ts src/features/ai-director/services/director-planner.test.ts src/features/ai-director/validation/director-note.schema.test.ts",
+    "test": "node --experimental-strip-types --experimental-loader ./scripts/ts-test-loader.mjs --test src/features/shots/services/shot-planner.test.ts src/features/shots/validation/shot.schema.test.ts src/features/storyboard/services/storyboard-planner.test.ts src/features/storyboard/validation/storyboard-panel.schema.test.ts src/features/ai-director/services/director-planner.test.ts src/features/ai-director/validation/director-note.schema.test.ts src/features/assets/services/asset-planner.test.ts src/features/assets/services/generation-job.test.ts src/features/assets/validation/asset.schema.test.ts",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
