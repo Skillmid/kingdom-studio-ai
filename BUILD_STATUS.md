@@ -6,7 +6,7 @@ This file is the persistent engineering status for autonomous sessions. Treat th
 
 ## Current milestone
 
-Shot List v1 is complete as a generic production module. It consumes Scene Planner records, proposes grounded camera coverage, persists shots with RLS, preserves filmmaker-approved shots on later planning runs, and exposes a production workspace.
+Shot List v1 is implemented as a generic production module. It consumes Scene Planner records, proposes grounded camera coverage, persists shots with owner-scoped RLS, preserves filmmaker-approved shots on later planning runs, and exposes a production workspace.
 
 ## Pipeline
 
@@ -19,7 +19,7 @@ Shot List v1 is complete as a generic production module. It consumes Scene Plann
 | Characters | Present | Dynamic extraction and editor |
 | Locations | Present | Location Bible + screenplay sync |
 | Scenes | Present | Production scene records with source text |
-| Shot List | Complete | Domain, planner, persistence, UI, tests, verified |
+| Shot List | Implemented | Domain, planner, persistence, UI, unit tests, verified in this session |
 | Storyboard | Stub page only | Next pipeline dependency |
 | AI Director | UI shell only | Not production intelligence yet |
 | Assets / generation jobs | Stub pages | Not implemented |
@@ -36,14 +36,14 @@ Shot List v1 is complete as a generic production module. It consumes Scene Plann
 
 ## Verification (2026-09-26)
 
-Executed in this session:
+Executed in this session after landing planner, repository, hook, form, view, and migration:
 
-- `npm test` — passed (7 tests)
+- `npm test` — passed (14 tests: planner + schema)
 - `npm run lint` — passed
 - `npx tsc --noEmit` — passed
-- `npm run build` — passed after making the browser Supabase client safe to import when env vars are absent at prerender time
+- `npm run build` — passed
 
-Apply `supabase/migrations/202609260001_create_shots_table.sql` to the live Supabase project before using shot persistence.
+Apply `supabase/migrations/202609260001_create_shots_table.sql` to the live Supabase project before using shot persistence. This session cannot apply remote database migrations without project credentials.
 
 ## Next executable dependency
 
