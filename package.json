@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "test": "node --experimental-strip-types --experimental-loader ./scripts/ts-test-loader.mjs --test src/features/shots/services/shot-planner.test.ts src/features/shots/validation/shot.schema.test.ts",
+    "test": "node --experimental-strip-types --experimental-loader ./scripts/ts-test-loader.mjs --test src/features/shots/services/shot-planner.test.ts src/features/shots/validation/shot.schema.test.ts src/features/storyboard/services/storyboard-planner.test.ts src/features/storyboard/validation/storyboard-panel.schema.test.ts",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {

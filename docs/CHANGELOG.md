@@ -2,6 +2,17 @@
 
 ---
 
+## Version 0.3.0
+
+### Added
+
+- Generic Storyboard module with shot-derived panel planning
+- `storyboard_panels` table, RLS policies, and production-owned persistence
+- Deterministic storyboard completion scoring
+- Unit tests for grounded panel planning and duplicate-shot preservation
+
+---
+
 ## Version 0.2.0
 
 ### Added

@@ -6,7 +6,7 @@ This file is the persistent engineering status for autonomous sessions. Treat th
 
 ## Current milestone
 
-Shot List v1 is complete as a generic production module. It consumes Scene Planner records, proposes grounded camera coverage, persists shots with RLS, preserves filmmaker-approved shots on later planning runs, and exposes a production workspace.
+Storyboard v1 persists visual panels from Shot List coverage. Shot List v1 remains complete on this branch. Image generation is deferred to generation jobs.
 
 ## Pipeline
 
@@ -20,7 +20,7 @@ Shot List v1 is complete as a generic production module. It consumes Scene Plann
 | Locations | Present | Location Bible + screenplay sync |
 | Scenes | Present | Production scene records with source text |
 | Shot List | Complete | Domain, planner, persistence, UI, tests, verified |
-| Storyboard | Stub page only | Next pipeline dependency |
+| Storyboard | Complete on `feat/storyboard` | Shot-derived panels, persistence, UI, tests |
 | AI Director | UI shell only | Not production intelligence yet |
 | Assets / generation jobs | Stub pages | Not implemented |
 | Render / export | Stub pages | Not implemented |
@@ -55,13 +55,26 @@ Shot List v1 is complete as a generic production module. It consumes Scene Plann
 
 Executed in this session:
 
-- `npm test` — passed (7 tests)
+- `npm test` — passed (11 tests: shot list + storyboard)
 - `npm run lint` — passed
 - `npx tsc --noEmit` — passed
 - `npm run build` — passed
 
-Apply `supabase/migrations/202609260001_create_shots_table.sql` to the live Supabase project before using shot persistence.
+Apply these migrations to the live Supabase project before using persistence:
+
+- `supabase/migrations/202609260001_create_shots_table.sql`
+- `supabase/migrations/202609260002_create_storyboard_panels_table.sql`
+
+## Storyboard v1 invariants
+
+- Panels belong to a production and may link to a shot, scene, location, and characters.
+- Plan from Shots copies shot visual fields; it does not invent plot facts.
+- A shot already represented by a panel is not duplicated.
+- User-created or user-approved panels are preserved.
+- Completion is calculated from persisted panel fields.
+- RLS restricts panel access to the production owner.
+- No still is fabricated. `image_url` is optional until generation jobs exist.
 
 ## Next executable dependency
 
-Storyboard: persist panels that consume shot, scene, character, and location intelligence so visual continuity can be planned before generation.
+Assets / generation jobs: persist reusable production assets and observable generation jobs that can attach stills and motion to storyboard panels and shots.
