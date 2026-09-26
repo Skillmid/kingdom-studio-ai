@@ -6,7 +6,7 @@ This file is the persistent engineering status for autonomous sessions. Treat th
 
 ## Current milestone
 
-Shot List v1 is implemented as a generic production module. It consumes Scene Planner records, proposes grounded camera coverage, persists shots with RLS, and preserves filmmaker-approved shots on later planning runs.
+Shot List v1 is complete as a generic production module. It consumes Scene Planner records, proposes grounded camera coverage, persists shots with RLS, preserves filmmaker-approved shots on later planning runs, and exposes a production workspace.
 
 ## Pipeline
 
@@ -19,7 +19,7 @@ Shot List v1 is implemented as a generic production module. It consumes Scene Pl
 | Characters | Present | Dynamic extraction and editor |
 | Locations | Present | Location Bible + screenplay sync |
 | Scenes | Present | Production scene records with source text |
-| Shot List | Implemented this session | Domain, planner, persistence, UI, unit tests |
+| Shot List | Complete | Domain, planner, persistence, UI, tests, verified |
 | Storyboard | Stub page only | Next pipeline dependency |
 | AI Director | UI shell only | Not production intelligence yet |
 | Assets / generation jobs | Stub pages | Not implemented |
@@ -30,13 +30,20 @@ Shot List v1 is implemented as a generic production module. It consumes Scene Pl
 - Shots belong to a production and may link to a scene, location, and characters.
 - Scene-derived proposals use scene heading, action, dialogue cues, and source text only.
 - Unsupported camera or story facts are not invented from a named test screenplay.
-- User-created or user-approved shots are not overwritten by `Plan from Scenes`.
+- User-created or user-approved shots are not overwritten by Plan from Scenes.
 - Completion percentage is calculated from persisted shot fields.
 - RLS restricts shot access to the production owner.
 
-## Verification
+## Verification (2026-09-26)
 
-Planner unit tests passed with Node's test runner. `npm install`, lint, tsc, and production build could not be run in this session because the npm registry proxy returned 502.
+Executed in this session:
+
+- `npm test` — passed (7 tests)
+- `npm run lint` — passed
+- `npx tsc --noEmit` — passed
+- `npm run build` — passed after making the browser Supabase client safe to import when env vars are absent at prerender time
+
+Apply `supabase/migrations/202609260001_create_shots_table.sql` to the live Supabase project before using shot persistence.
 
 ## Next executable dependency
 

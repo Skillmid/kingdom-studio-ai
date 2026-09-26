@@ -8,12 +8,12 @@ function candidateUrls(parentUrl, specifier) {
   const parentPath = fileURLToPath(parentUrl);
   const base = join(dirname(parentPath), specifier);
   const urls = [];
-  if (extname(base)) {
+  if (SOURCE_EXTENSIONS.includes(extname(base))) {
     urls.push(pathToFileURL(base).href);
     return urls;
   }
   for (const extension of SOURCE_EXTENSIONS) urls.push(pathToFileURL(base + extension).href);
-  for (const extension of SOURCE_EXTENSIONS) urls.push(pathToFileURL(join(base, "index" + extension).href));
+  for (const extension of SOURCE_EXTENSIONS) urls.push(pathToFileURL(join(base, "index" + extension)).href);
   return urls;
 }
 
