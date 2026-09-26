@@ -6,7 +6,9 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "test": "node --experimental-strip-types --experimental-loader ./scripts/ts-test-loader.mjs --test src/features/shots/services/shot-planner.test.ts src/features/shots/validation/shot.schema.test.ts",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@radix-ui/react-dialog": "^1.1.17",
