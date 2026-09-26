@@ -9,12 +9,7 @@ export type {
   ShotType,
 } from "./types/shot";
 export { shotRepository } from "./repositories/shot.repository";
-export {
-  extractDialogueCues,
-  locationLabelFromHeading,
-  planShotsFromScenes,
-  selectNewShotProposals,
-} from "./services/shot-planner";
+export { planShotsFromScenes, selectNewShotProposals } from "./services/shot-planner";
 export { calculateShotProgress, withCalculatedProgress } from "./services/shot-completion";
 export { shotSchema } from "./validation/shot.schema";
 export { ShotListView } from "./components/ShotListView";
