@@ -81,6 +81,13 @@ CREATE POLICY "Users can update storyboard panels"
             WHERE productions.id = storyboard_panels.production_id
               AND productions.owner_id = auth.uid()
         )
+    )
+    WITH CHECK (
+        EXISTS (
+            SELECT 1 FROM public.productions
+            WHERE productions.id = storyboard_panels.production_id
+              AND productions.owner_id = auth.uid()
+        )
     );
 
 DROP POLICY IF EXISTS "Users can delete storyboard panels" ON public.storyboard_panels;

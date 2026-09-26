@@ -20,7 +20,7 @@ Storyboard v1 persists visual panels from Shot List coverage. Shot List v1 remai
 | Locations | Present | Location Bible + screenplay sync |
 | Scenes | Present | Production scene records with source text |
 | Shot List | Complete | Domain, planner, persistence, UI, tests, verified |
-| Storyboard | Complete on `feat/storyboard` | Shot-derived panels, persistence, UI, tests |
+| Storyboard | Complete | Shot-derived panels, persistence, workspace UI, tests, verified |
 | AI Director | UI shell only | Not production intelligence yet |
 | Assets / generation jobs | Stub pages | Not implemented |
 | Render / export | Stub pages | Not implemented |
@@ -51,11 +51,27 @@ Storyboard v1 persists visual panels from Shot List coverage. Shot List v1 remai
 - `src/features/shots/components/DeleteShotDialog.tsx`
 - `src/app/studio/productions/[id]/shot-list/page.tsx`
 
+## Storyboard files
+
+- `supabase/migrations/202609260002_create_storyboard_panels_table.sql`
+- `src/features/storyboard/types/storyboard-panel.ts`
+- `src/features/storyboard/validation/storyboard-panel.schema.ts`
+- `src/features/storyboard/services/storyboard-completion.ts`
+- `src/features/storyboard/services/storyboard-planner.ts`
+- `src/features/storyboard/repositories/storyboard.repository.ts`
+- `src/features/storyboard/hooks/use-storyboard.ts`
+- `src/features/storyboard/components/StoryboardView.tsx`
+- `src/features/storyboard/components/PanelFormDialog.tsx`
+- `src/features/storyboard/components/PanelCard.tsx`
+- `src/features/storyboard/components/PanelList.tsx`
+- `src/features/storyboard/components/DeletePanelDialog.tsx`
+- `src/app/studio/productions/[id]/storyboard/page.tsx`
+
 ## Verification (2026-09-26)
 
 Executed in this session:
 
-- `npm test` — passed (11 tests: shot list + storyboard)
+- `npm test` — passed (12 tests: shot list + storyboard)
 - `npm run lint` — passed
 - `npx tsc --noEmit` — passed
 - `npm run build` — passed

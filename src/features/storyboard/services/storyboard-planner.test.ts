@@ -1,23 +1,21 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
-import type { Shot } from "@/features/shots/types/shot";
-
 import { calculateStoryboardProgress } from "./storyboard-completion";
-import { planPanelsFromShots, selectNewPanelProposals } from "./storyboard-planner";
+import {
+  planPanelsFromShots,
+  selectNewPanelProposals,
+  type StoryboardShotInput,
+} from "./storyboard-planner";
 
-function shot(partial: Partial<Shot> & Pick<Shot, "id" | "shotNumber">): Shot {
+function shot(
+  partial: Partial<StoryboardShotInput> & Pick<StoryboardShotInput, "id" | "shotNumber">,
+): StoryboardShotInput {
   return {
     productionId: "11111111-1111-4111-8111-111111111111",
     shotType: "medium",
     framing: "MS",
     characterIds: [],
-    provenance: "scene-derived",
-    userApproved: false,
-    status: "draft",
-    progress: 0,
-    createdAt: "2026-09-26T00:00:00.000Z",
-    updatedAt: "2026-09-26T00:00:00.000Z",
     ...partial,
   };
 }
@@ -46,7 +44,6 @@ describe("planPanelsFromShots", () => {
         shotType: "close-up",
         framing: "CU",
         subject: "Clerk",
-        dialogueReference: "Clerk: The tide is early.",
         visualDescription: "Close-up of the clerk.",
       }),
     ]);
@@ -89,5 +86,29 @@ describe("selectNewPanelProposals", () => {
     ]);
 
     assert.equal(selected.length, 0);
+  });
+
+  it("keeps filmmaker-owned panels and still adds uncovered shots", () => {
+    const proposals = planPanelsFromShots([
+      shot({
+        id: "77777777-7777-4777-8777-777777777777",
+        shotNumber: 4,
+        shotCode: "4A",
+        subject: "Archive lamp",
+        action: "The lamp flickers over the shelves.",
+      }),
+    ]);
+
+    const selected = selectNewPanelProposals(proposals, [
+      {
+        panelNumber: 1,
+        title: "Hand-drawn insert",
+        userApproved: true,
+        provenance: "user",
+      },
+    ]);
+
+    assert.equal(selected.length, 1);
+    assert.equal(selected[0]?.shotId, "77777777-7777-4777-8777-777777777777");
   });
 });

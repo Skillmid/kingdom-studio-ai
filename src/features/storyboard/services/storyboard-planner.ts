@@ -1,13 +1,32 @@
-import type { Shot } from "@/features/shots/types/shot";
-
 import type { StoryboardPanel, StoryboardPanelProposal } from "../types/storyboard-panel";
 import { withCalculatedProgress } from "./storyboard-completion";
+
+export interface StoryboardShotInput {
+  id: string;
+  productionId: string;
+  sceneId?: string;
+  shotNumber: number;
+  shotCode?: string;
+  shotType: string;
+  framing: string;
+  cameraAngle?: string;
+  cameraMovement?: string;
+  lens?: string;
+  subject?: string;
+  action?: string;
+  visualDescription?: string;
+  continuityNotes?: string;
+  generationPrompt?: string;
+  sourceEvidence?: string;
+  characterIds?: string[];
+  locationId?: string;
+}
 
 function clean(value?: string): string {
   return (value ?? "").replace(/\s+/g, " ").trim();
 }
 
-function compositionFromShot(shot: Shot): string {
+export function compositionFromShot(shot: StoryboardShotInput): string {
   const parts = [
     shot.framing,
     shot.shotType.replace(/-/g, " "),
@@ -18,7 +37,7 @@ function compositionFromShot(shot: Shot): string {
   return parts.join(" · ");
 }
 
-export function planPanelsFromShots(shots: Shot[]): StoryboardPanelProposal[] {
+export function planPanelsFromShots(shots: StoryboardShotInput[]): StoryboardPanelProposal[] {
   return [...shots]
     .sort((a, b) => a.shotNumber - b.shotNumber)
     .map((shot, index) =>
@@ -48,17 +67,17 @@ export function selectNewPanelProposals(
   existing: Array<Pick<StoryboardPanel, "shotId" | "panelNumber" | "title" | "userApproved" | "provenance">>,
 ): StoryboardPanelProposal[] {
   const existingShotIds = new Set(existing.map((panel) => panel.shotId).filter(Boolean) as string[]);
-  const existingNumbers = new Set(existing.map((panel) => panel.panelNumber));
   const protectedTitles = new Set(
     existing
       .filter((panel) => panel.userApproved || panel.provenance === "user")
-      .map((panel) => `${panel.panelNumber}|${clean(panel.title).toLowerCase()}`),
+      .map((panel) => clean(panel.title).toLowerCase())
+      .filter(Boolean),
   );
 
   return proposals.filter((proposal) => {
     if (proposal.shotId && existingShotIds.has(proposal.shotId)) return false;
-    if (existingNumbers.has(proposal.panelNumber)) return false;
-    if (protectedTitles.has(`${proposal.panelNumber}|${clean(proposal.title).toLowerCase()}`)) return false;
+    const title = clean(proposal.title).toLowerCase();
+    if (title && protectedTitles.has(title)) return false;
     return true;
   });
 }
