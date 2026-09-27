@@ -2,6 +2,20 @@
 
 ---
 
+## Version 0.6.0
+
+### Added
+
+- Generic Render / Export module that assembles a sequence from shots, leftover storyboard panels and image/video assets
+- Media URLs copied only from existing asset `fileUrl` or panel `imageUrl` values
+- Export records for delivery manifest, EDL and preview package formats that never invent a package file URL
+- `render_sequences`, `render_clips` and `export_packages` tables with production-owner RLS
+- Production Render and Export workspaces with assemble, approve, remove and export flows
+- Restored Assets and AI Director repositories/views required by production pages
+- Unit tests for grounded sequence planning, approved-clip protection and export serialization
+
+---
+
 ## Version 0.5.0
 
 ### Added
