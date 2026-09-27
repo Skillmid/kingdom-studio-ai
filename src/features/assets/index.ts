@@ -20,6 +20,8 @@ export {
   applyJobResultToAsset,
   draftJobFromAsset,
   dispatchUnconfiguredProvider,
+  planJobsFromAssets,
+  selectNewJobProposals,
 } from "./services/generation-job";
 export { assetSchema } from "./validation/asset.schema";
 export { generationJobSchema } from "./validation/generation-job.schema";
