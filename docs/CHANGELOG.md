@@ -2,6 +2,17 @@
 
 ---
 
+## Version 0.6.0
+
+### Added
+
+- Generic Render/Export planners that assemble a sequence from shots, storyboard panels and assets
+- Delivery-manifest packaging that never invents a package URL
+- Unit tests for grounded clip assembly, approved-clip protection, and missing-media uncertainty
+- Workspace navigation entries for Assets and Export
+
+---
+
 ## Version 0.5.0
 
 ### Added
