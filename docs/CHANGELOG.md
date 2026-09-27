@@ -2,6 +2,19 @@
 
 ---
 
+## Version 0.5.0
+
+### Added
+
+- Generic Assets module with production-derived character, location, shot and panel references
+- Generation job state machine with queued, running, completed, failed, cancelled and retry transitions
+- Recoverable unconfigured-provider failures that never invent a file URL
+- `assets` and `generation_jobs` tables, RLS policies, and production-owned persistence
+- Deterministic asset completion scoring
+- Unit tests for grounded asset planning, approved-asset protection, and job lifecycle
+
+---
+
 ## Version 0.4.0
 
 ### Added
@@ -11,44 +24,3 @@
 - `director_notes` table, RLS policies, and production-owned persistence
 - Deterministic director-note completion scoring
 - Unit tests for grounded direction planning, uncertainty preservation, and approved-note protection
-
----
-
-## Version 0.3.0
-
-### Added
-
-- Generic Storyboard module with shot-derived panel planning
-- Panel enrichment from persisted scene, character and location records
-- `storyboard_panels` table, RLS policies, and production-owned persistence
-- Deterministic storyboard completion scoring
-- Unit tests for grounded panel planning, continuity enrichment, and approved-panel preservation
-
----
-
-## Version 0.2.0
-
-### Added
-
-- Generic Shot List module with scene-derived coverage planning
-- `shots` table, RLS policies, and production-owned persistence
-- Deterministic shot completion scoring
-- Unit tests for grounded shot planning and user-approved shot preservation
-
----
-
-## Version 0.1.0
-
-### Completed
-
-- Project initialized
-- Next.js configured
-- GitHub repository connected
-- Supabase project created
-- Landing page created
-- Authentication foundation started
-- Project documentation created
-
----
-
-Maintained by Skillmid Creatives.
