@@ -6,55 +6,42 @@ This file is the persistent engineering status for autonomous sessions. Treat th
 
 ## Current milestone
 
-Render / Export v1 is complete as a generic post-production module. It assembles a sequence from persisted shots first, then leftover storyboard panels, then image/video assets. Media URLs are copied only from an existing asset `fileUrl` or panel `imageUrl`. Export writes a delivery manifest / EDL / preview package record and never invents a package file URL.
+Provider-backed image/video generation v1 is on main against the existing generation job state machine.
 
-Missing Assets and Director persistence files required by feature indexes and production pages were restored so those workspaces compile and can plan from production records.
+- Image jobs resolve to OpenAI Images when `OPENAI_API_KEY` is set, otherwise Kling if configured.
+- Video jobs resolve to Kling when `KLING_API_KEY` or `KLING_ACCESS_KEY` + `KLING_SECRET_KEY` are set.
+- An unconfigured provider fails the job recoverably and never invents a media or package URL.
+- A completed provider response without a URL is treated as failure.
+- Server route: `POST /api/generation/run`.
+
+Assets, Render/Export and AI Director files required by feature indexes were restored so production pages resolve. Some workspace UIs are still thin and need the richer plan/approve flows from earlier modules.
 
 ## Pipeline
 
 | Stage | Status | Notes |
 | --- | --- | --- |
-| Authentication / productions | Present | Existing studio app and Supabase ownership model |
-| Screenplay import / versioning | Present | Script workspace and screenplay tables |
-| Canonical / scene extraction | Present | Import-engine extractors and Scene Planner sync |
-| Story Bible | Present | Screenplay-driven proposals exist in feature module |
-| Characters | Present | Dynamic extraction and editor |
-| Locations | Present | Location Bible + screenplay sync |
-| Scenes | Present | Production scene records with source text |
-| Shot List | Complete | Domain, planner, persistence, UI, tests, verified |
-| Storyboard | Complete | Shot-derived panels enriched from scene/character/location records |
-| AI Director | Present | Planner, restored repository and workspace |
-| Assets / generation jobs | Present | Planner, job machine, repository, migration and workspace restored |
-| Render / export | Complete | Sequence planner, persistence, workspace, tests, verified |
+| Shot List | Complete | Planner, persistence, UI, tests |
+| Storyboard | Complete | Shot-derived panels |
+| AI Director | Partial | Planner exists; workspace restored thinly |
+| Assets / jobs | Partial | Planner, job machine, repository, generate action |
+| Image/video generation | Present | Kling + OpenAI + unconfigured fallback |
+| Render / export | Partial | Planner and types present; persistence mapping still coarse |
 
-## Render / Export v1 invariants
+## Verification
 
-- Sequences belong to a production.
-- Clips are derived from shots first, then leftover storyboard panels, then image/video assets.
-- A media URL is attached only from an existing asset `fileUrl` or panel `imageUrl`.
-- Missing media is recorded as uncertainty. No file or package URL is invented.
-- Filmmaker-approved clips are not duplicated on later assemble runs.
-- Completion is `readyItemCount / itemCount`.
-- Export writes a JSON delivery manifest / EDL / preview package record.
-- RLS restricts render, clip and export access to the production owner.
+Not fully executed in the last session. The sandbox wiped the working tree during `npm install` and the npm registry returned HTTP 502. Do not treat lint/tsc/build as green until they are re-run locally.
 
-## Verification (2026-09-27)
-
-Executed after Render / Export v1:
-
-- `npm test` — 43 passed, 0 failed
-- `npm run lint`
-- `npx tsc --noEmit`
-- `npm run build`
-
-Apply these migrations to the live Supabase project before using persistence:
+Apply migrations before using persistence:
 
 - `supabase/migrations/202609260001_create_shots_table.sql`
 - `supabase/migrations/202609260002_create_storyboard_panels_table.sql`
 - `supabase/migrations/202609260003_create_director_notes_table.sql`
-- `supabase/migrations/202609270001_create_assets_and_generation_jobs.sql`
-- `supabase/migrations/202609270002_create_render_and_export_tables.sql`
+- `supabase/migrations/202609270001_create_assets_and_generation_jobs.sql` (add if missing locally)
+- `supabase/migrations/202609270002_create_render_and_export_tables.sql` (add if missing locally)
 
 ## Next executable dependency
 
-Provider-backed image/video generation against the existing generation job state machine, still without inventing media URLs when a provider is unconfigured.
+1. Re-run `npm test`, `npm run lint`, `npx tsc --noEmit`, `npm run build`.
+2. Add the assets/render SQL migrations if they are still absent from `supabase/migrations`.
+3. Replace thin Render/Director workspaces with the full plan/approve flows.
+4. Voice/audio generation behind the same job machine once image/video is verified with credentials.
