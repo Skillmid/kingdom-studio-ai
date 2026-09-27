@@ -11,6 +11,8 @@
 - Recoverable unconfigured-provider failures that never invent a file URL
 - `assets` and `generation_jobs` tables, RLS policies, and production-owned persistence
 - Deterministic asset completion scoring
+- Production Assets workspace with plan, queue, edit and delete flows
+- Restored AI Director persistence and workspace files required by the production page
 - Unit tests for grounded asset planning, approved-asset protection, and job lifecycle
 
 ---
