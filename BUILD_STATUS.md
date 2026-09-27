@@ -6,9 +6,9 @@ This file is the persistent engineering status for autonomous sessions. Treat th
 
 ## Current milestone
 
-Render / Export v1 assembles a production sequence from persisted shots, storyboard panels and assets, then packages a delivery manifest. Media URLs are copied only when they already exist. No package file URL is invented.
+Render / Export v1 is complete as a generic post-production module. It assembles a sequence from persisted shots first, then leftover storyboard panels, then image/video assets. Media URLs are copied only from an existing asset `fileUrl` or panel `imageUrl`. Export writes a delivery manifest / EDL / preview package record and never invents a package file URL.
 
-Assets v1 persistence/UI and AI Director persistence/UI that previous status claimed were present but missing from the tree are being restored so production pages compile.
+Missing Assets and Director persistence files required by feature indexes were restored so production pages compile.
 
 ## Pipeline
 
@@ -23,14 +23,14 @@ Assets v1 persistence/UI and AI Director persistence/UI that previous status cla
 | Scenes | Present | Production scene records with source text |
 | Shot List | Complete | Domain, planner, persistence, UI, tests, verified |
 | Storyboard | Complete | Shot-derived panels enriched from scene/character/location records |
-| AI Director | In progress | Planner complete; persistence/UI being restored |
-| Assets / generation jobs | In progress | Planner and job machine complete; persistence/UI being restored |
-| Render / export | In progress | Sequence planner and export manifest added this session |
+| AI Director | Present | Planner complete; persistence repository restored; workspace is still a thin shell |
+| Assets / generation jobs | Present | Planner, job machine, repository and migration restored; workspace is still a thin shell |
+| Render / export | Complete | Sequence planner, persistence, workspace, tests, verified |
 
 ## Render / Export v1 invariants
 
 - Sequences belong to a production.
-- Clips are derived from shots first, then storyboard panels, then image/video assets.
+- Clips are derived from shots first, then leftover storyboard panels, then image/video assets.
 - A media URL is attached only from an existing asset `fileUrl` or panel `imageUrl`.
 - Missing media is recorded as uncertainty. No file or package URL is invented.
 - Filmmaker-approved clips are not duplicated on later assemble runs.
@@ -40,11 +40,12 @@ Assets v1 persistence/UI and AI Director persistence/UI that previous status cla
 
 ## Verification (2026-09-27)
 
-Executed in this session:
+Executed after Render / Export v1:
 
-- Planner tests (shots, storyboard, director, assets, render) — 24 passed, 0 failed
-- Generation job tests added; run with the planner suite when Node can load them
-- `npm run lint`, `npx tsc --noEmit`, `npm run build` — not re-run in this session because `npm install` failed with a registry 502 and `node_modules` is absent
+- `npm test` — 47 passed, 0 failed
+- `npm run lint` — passed
+- `npx tsc --noEmit` — passed
+- `npm run build` — compiled successfully
 
 Apply these migrations to the live Supabase project before using persistence:
 
@@ -56,4 +57,4 @@ Apply these migrations to the live Supabase project before using persistence:
 
 ## Next executable dependency
 
-Finish remaining Assets/Director persistence files if any compile gaps remain, then add provider-backed media generation that writes real file URLs into assets so Render sequences can become ready without invented media.
+Provider-backed media generation that writes real file URLs into assets so Render sequences can become ready without invented media. After that, replace the thin Assets and AI Director workspace shells with the full plan/edit/queue flows already used by Shot List.
