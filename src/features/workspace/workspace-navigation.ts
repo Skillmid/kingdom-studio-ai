@@ -16,7 +16,6 @@ export function getProductionWorkspaceNavigation(
         "Production overview",
       href: basePath,
     },
-
     {
       id: "story-bible",
       label: "Story Bible",
@@ -25,7 +24,6 @@ export function getProductionWorkspaceNavigation(
       href:
         `${basePath}/story-bible`,
     },
-
     {
       id: "characters",
       label: "Characters",
@@ -34,7 +32,6 @@ export function getProductionWorkspaceNavigation(
       href:
         `${basePath}/characters`,
     },
-
     {
       id: "locations",
       label: "Locations",
@@ -43,7 +40,6 @@ export function getProductionWorkspaceNavigation(
       href:
         `${basePath}/locations`,
     },
-
     {
       id: "scenes",
       label: "Scenes",
@@ -52,7 +48,6 @@ export function getProductionWorkspaceNavigation(
       href:
         `${basePath}/scenes`,
     },
-
     {
       id: "screenplay",
       label: "Screenplay",
@@ -61,7 +56,6 @@ export function getProductionWorkspaceNavigation(
       href:
         `${basePath}/screenplay`,
     },
-
     {
       id: "storyboard",
       label: "Storyboard",
@@ -70,7 +64,6 @@ export function getProductionWorkspaceNavigation(
       href:
         `${basePath}/storyboard`,
     },
-
     {
       id: "shot-list",
       label: "Shot List",
@@ -79,7 +72,6 @@ export function getProductionWorkspaceNavigation(
       href:
         `${basePath}/shot-list`,
     },
-
     {
       id: "ai-director",
       label: "AI Director",
@@ -88,14 +80,29 @@ export function getProductionWorkspaceNavigation(
       href:
         `${basePath}/ai-director`,
     },
-
+    {
+      id: "assets",
+      label: "Assets",
+      description:
+        "Production Assets",
+      href:
+        `${basePath}/assets`,
+    },
     {
       id: "render",
       label: "Render",
       description:
-        "Export Production",
+        "Assemble Sequence",
       href:
         `${basePath}/render`,
+    },
+    {
+      id: "export",
+      label: "Export",
+      description:
+        "Delivery Package",
+      href:
+        `${basePath}/export`,
     },
   ];
 }
