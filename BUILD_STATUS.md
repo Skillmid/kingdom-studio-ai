@@ -6,13 +6,20 @@ This file is the persistent engineering status for autonomous sessions. Treat th
 
 ## Current milestone
 
-Assets plan/approve/queue workspace is wired to persisted production records.
+Assets planning, job lifecycle and persistence mappers are on main. The production Assets page is still the thin generate list; the plan/approve/queue workspace is implemented in the working tree and needs the remaining UI/hook/repository files landed.
 
-- Production Assets page plans character, location, shot, panel and director-note references from existing domain records.
-- Approved and filmmaker-owned assets are preserved on later planning runs.
-- Missing generation jobs can be queued and dispatched through `POST /api/generation/run`.
-- File URLs are copied only when a configured provider returns one. Unconfigured providers fail recoverably.
-- Asset and generation-job persistence omits undefined columns on partial updates.
+Landed on main in this session:
+
+- Generic asset planner and generation-job tests that avoid THE MESSAGE entities
+- Asset/job database mappers that omit undefined columns on partial updates
+- Changelog 0.7.0
+
+Still required to finish the Assets workspace:
+
+- `use-assets` hook
+- Plan/approve/edit/delete/queue Assets UI
+- Repository `createMany`/compact-update wiring for generation jobs
+- Persist dispatch results from the production page
 
 Provider-backed image/video generation v1 remains on main:
 
@@ -28,18 +35,20 @@ Provider-backed image/video generation v1 remains on main:
 | Shot List | Complete | Planner, persistence, UI, tests |
 | Storyboard | Complete | Shot-derived panels |
 | AI Director | Present | Planner, persistence; production page is still a thin notes view |
-| Assets / jobs | Present | Planner, job machine, repositories, plan/approve/queue workspace |
+| Assets / jobs | Partial | Planner, job machine, mapper tests; workspace UI not fully on main |
 | Image/video generation | Present | Kling + OpenAI + unconfigured fallback |
 | Render / export | Present | Planner and persistence exist; production page is still a thin view |
 
 ## Verification
 
-Executed 2026-09-28 in this session after the Assets workspace:
+Executed 2026-09-28 against the complete local workspace before the GitHub file split:
 
 - `npm test` — 45 passed, 0 failed
 - `npm run lint` — 0 errors, 1 pre-existing unused-arg warning in `unconfigured.provider.ts`
 - `npx tsc --noEmit` — passed
 - `npm run build` — passed (Next.js 16.2.9)
+
+Those commands have not been re-run against the partial GitHub-only tree after the push split.
 
 Apply migrations before using persistence:
 
@@ -51,6 +60,6 @@ Apply migrations before using persistence:
 
 ## Next executable dependency
 
-1. Replace the thin Render/Export workspace with the assemble/approve/export flow already implemented in planners and tests.
-2. Replace the thin AI Director production view with the plan/approve notes flow already implemented in planners and tests.
-3. Voice/audio generation behind the same job machine once image/video is verified with credentials.
+1. Land the Assets plan/approve/queue hook and workspace UI on main.
+2. Replace the thin Render/Export workspace with the assemble/approve/export flow already implemented in planners and tests.
+3. Replace the thin AI Director production view with the plan/approve notes flow already implemented in planners and tests.
