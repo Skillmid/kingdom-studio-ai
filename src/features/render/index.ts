@@ -15,3 +15,4 @@ export { calculateRenderProgress, withRenderProgress } from "./services/render-c
 export { renderClipSchema, renderSequenceSchema, exportPackageSchema } from "./validation/render.schema";
 export { renderRepository, renderClipRepository, exportPackageRepository } from "./repositories/render.repository";
 export { RenderView } from "./components/RenderView";
+export { useRender } from "./hooks/use-render";

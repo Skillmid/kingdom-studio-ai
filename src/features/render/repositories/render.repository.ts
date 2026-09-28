@@ -1,30 +1,33 @@
 import { supabase } from "@/lib/supabase/client";
 import type { ExportPackage, RenderClip, RenderSequence } from "../types/render";
+import {
+  fromExportPackageDatabase,
+  fromRenderClipDatabase,
+  fromRenderSequenceDatabase,
+  type ExportPackageRow,
+  type RenderClipRow,
+  type RenderSequenceRow,
+  toExportPackageDatabase,
+  toRenderClipDatabase,
+  toRenderSequenceDatabase,
+} from "./render.mapper";
 
 export class RenderRepository {
   private readonly supabase = supabase;
   async getByProductionId(productionId: string): Promise<RenderSequence[]> {
     const { data, error } = await this.supabase.from("render_sequences").select("*").eq("production_id", productionId).order("created_at", { ascending: false });
     if (error) throw new Error(error.message);
-    return (data ?? []) as RenderSequence[];
+    return ((data ?? []) as RenderSequenceRow[]).map(fromRenderSequenceDatabase);
   }
   async create(sequence: Partial<RenderSequence>): Promise<RenderSequence> {
-    const { data, error } = await this.supabase.from("render_sequences").insert({
-      production_id: sequence.productionId,
-      title: sequence.title,
-      status: sequence.status ?? "draft",
-      progress: sequence.progress ?? 0,
-      item_count: sequence.itemCount ?? 0,
-      ready_item_count: sequence.readyItemCount ?? 0,
-      missing_media_count: sequence.missingMediaCount ?? 0,
-      total_duration_seconds: sequence.totalDurationSeconds ?? 0,
-      uncertainty_notes: sequence.uncertaintyNotes,
-      source_evidence: sequence.sourceEvidence,
-      provenance: sequence.provenance ?? "user",
-      user_approved: sequence.userApproved ?? false,
-    }).select().single();
+    const { data, error } = await this.supabase.from("render_sequences").insert(toRenderSequenceDatabase(sequence, true)).select().single();
     if (error) throw new Error(error.message);
-    return data as RenderSequence;
+    return fromRenderSequenceDatabase(data as RenderSequenceRow);
+  }
+  async update(id: string, updates: Partial<RenderSequence>): Promise<RenderSequence> {
+    const { data, error } = await this.supabase.from("render_sequences").update(toRenderSequenceDatabase(updates)).eq("id", id).select().single();
+    if (error) throw new Error(error.message);
+    return fromRenderSequenceDatabase(data as RenderSequenceRow);
   }
 }
 
@@ -33,7 +36,18 @@ export class RenderClipRepository {
   async getByRenderId(renderId: string): Promise<RenderClip[]> {
     const { data, error } = await this.supabase.from("render_clips").select("*").eq("render_id", renderId).order("sequence_number");
     if (error) throw new Error(error.message);
-    return (data ?? []) as RenderClip[];
+    return ((data ?? []) as RenderClipRow[]).map(fromRenderClipDatabase);
+  }
+  async createMany(clips: Partial<RenderClip>[]): Promise<RenderClip[]> {
+    if (clips.length === 0) return [];
+    const { data, error } = await this.supabase.from("render_clips").insert(clips.map((clip) => toRenderClipDatabase(clip, true))).select();
+    if (error) throw new Error(error.message);
+    return ((data ?? []) as RenderClipRow[]).map(fromRenderClipDatabase);
+  }
+  async update(id: string, updates: Partial<RenderClip>): Promise<RenderClip> {
+    const { data, error } = await this.supabase.from("render_clips").update(toRenderClipDatabase(updates)).eq("id", id).select().single();
+    if (error) throw new Error(error.message);
+    return fromRenderClipDatabase(data as RenderClipRow);
   }
 }
 
@@ -42,7 +56,12 @@ export class ExportPackageRepository {
   async getByProductionId(productionId: string): Promise<ExportPackage[]> {
     const { data, error } = await this.supabase.from("export_packages").select("*").eq("production_id", productionId).order("created_at", { ascending: false });
     if (error) throw new Error(error.message);
-    return (data ?? []) as ExportPackage[];
+    return ((data ?? []) as ExportPackageRow[]).map(fromExportPackageDatabase);
+  }
+  async create(item: Partial<ExportPackage>): Promise<ExportPackage> {
+    const { data, error } = await this.supabase.from("export_packages").insert(toExportPackageDatabase(item, true)).select().single();
+    if (error) throw new Error(error.message);
+    return fromExportPackageDatabase(data as ExportPackageRow);
   }
 }
 

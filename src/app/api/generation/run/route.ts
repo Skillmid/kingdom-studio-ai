@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { createClient } from "@/lib/supabase/server";
 
 import type { GenerationJob } from "@/features/assets/types/generation-job";
 import { generationJobSchema } from "@/features/assets/validation/generation-job.schema";
@@ -12,6 +13,23 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "A valid generation job payload is required." }, { status: 400 });
     }
     const input = parsed.data;
+    const supabase = await createClient();
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    if (authError || !user) {
+      return NextResponse.json({ error: "Authentication is required." }, { status: 401 });
+    }
+    const { data: production, error: productionError } = await supabase
+      .from("productions")
+      .select("id")
+      .eq("id", input.productionId)
+      .eq("owner_id", user.id)
+      .maybeSingle();
+    if (productionError) {
+      return NextResponse.json({ error: "Unable to verify production access." }, { status: 500 });
+    }
+    if (!production) {
+      return NextResponse.json({ error: "Production not found or access denied." }, { status: 404 });
+    }
     const job: GenerationJob = {
       id: input.id ?? "00000000-0000-4000-8000-000000000000",
       productionId: input.productionId,
