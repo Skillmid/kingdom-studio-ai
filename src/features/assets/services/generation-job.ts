@@ -112,3 +112,21 @@ export function applyJobResultToAsset(
   }
   return { fileUrl: asset.fileUrl, status: asset.fileUrl ? "ready" : "draft", uncertaintyNotes: asset.uncertaintyNotes };
 }
+
+export function jobPersistencePatch(
+  job: Pick<
+    GenerationJob,
+    "status" | "provider" | "model" | "outputUrl" | "errorMessage" | "attemptCount" | "startedAt" | "completedAt"
+  >,
+): Partial<GenerationJob> {
+  return {
+    status: job.status,
+    provider: job.provider,
+    model: job.model,
+    outputUrl: job.outputUrl,
+    errorMessage: job.errorMessage,
+    attemptCount: job.attemptCount,
+    startedAt: job.startedAt,
+    completedAt: job.completedAt,
+  };
+}
