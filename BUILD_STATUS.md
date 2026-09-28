@@ -2,58 +2,63 @@
 
 Last updated: 2026-09-28
 
-This file is the persistent engineering status for autonomous sessions. Treat the repository as the source of truth.
+This file records verified repository status. The repository remains the source of truth.
 
 ## Current milestone
 
-Assets workspace is mid-landing on main. The hook and supporting card/list/delete UI are on main. The production Assets page still renders the older generate-only view because `AssetsView` and `AssetFormDialog` have not been pushed yet.
+Character AI profile proposals are integrated selectively on `codex/character-ai-profile-sync-integration`, based on `origin/main`. The newer screenplay, Story Bible, production pipeline, and downstream feature architecture remain in place.
 
-On main now:
-
-- `use-assets` hook with production-derived planning, approval and persisted dispatch
-- `jobPersistencePatch` so dispatch results can be written without inventing a media URL
-- Asset card, list and delete dialog components
-- Changelog 0.7.1 and environment helper `readGenerationEnvironment`
-
-Still required to finish the Assets workspace on main:
-
-- Replace `AssetsView` with the plan/approve/edit/queue workspace
-- Add `AssetFormDialog`
-- Point asset and generation-job repositories at compact mappers (`createMany` for jobs)
-- Make Kling/OpenAI constructors strip-types compatible
+- Character profile proposals are grounded in verbatim screenplay evidence and tied to a saved screenplay revision.
+- Proposals are reviewed field by field in the character editor. Only selected fields enter the unsaved form; persistence happens through the existing Save action.
+- Existing creator values remain untouched unless the creator selects a replacement. Creator edits after acceptance are recorded in per-field provenance.
+- Character completion is calculated from supported profile fields rather than fixed percentages.
+- Bulk screenplay synchronization only adds missing characters; it does not replace existing profiles.
+- AI generation requires an authenticated user and verifies production ownership when a production ID is provided.
+- The migration `202609280001_add_character_profile_provenance.sql` adds the JSON provenance column and object constraint. The migration is present in the repository but has not been applied to a database in this session.
 
 ## Pipeline
 
 | Stage | Status | Notes |
 | --- | --- | --- |
+| Screenplay import and intelligence | Present | Current import engine, knowledge extraction service, and ScriptPipelineService retained |
+| Story Bible | Present | Current production architecture retained |
+| Characters | Integrated | Field-grounded AI proposals, creator review, persistence provenance, dynamic completion |
+| Locations | Present | Existing production workspace retained |
+| Scenes | Present | Existing production workspace retained |
 | Shot List | Complete | Planner, persistence, UI, tests |
 | Storyboard | Complete | Shot-derived panels |
-| AI Director | Partial | Planner and tests exist; production page is still a thin notes view |
-| Assets / jobs | Partial | Hook and supporting UI landed; production page still thin |
-| Image/video generation | Present | Kling + OpenAI + unconfigured fallback |
-| Render / export | Partial | Planner and persistence exist; production page is still a thin view |
+| AI Director | Partial | Planner and tests exist; production page remains a thin notes view |
+| Assets / generation jobs | Partial | Hook and supporting UI exist; production Assets workspace remains thin |
+| Image/video generation | Present | Kling, OpenAI, and unconfigured fallback providers |
+| Render / export | Partial | Planner and persistence exist; production page remains a thin view |
 
 ## Verification
 
-Executed 2026-09-28 against the complete local Assets workspace before the GitHub file split:
+Executed on 2026-09-28 against this working tree:
 
-- `npm test` — 42 passed, 0 failed
-- `npm run lint` — 0 errors, 1 pre-existing unused-arg warning in `unconfigured.provider.ts`
+- `npm test` — 47 passed, 0 failed
+- `npm run lint` — 0 errors; one existing unused-parameter warning in `src/platform/generation/providers/unconfigured.provider.ts`
 - `npx tsc --noEmit` — passed
-- `npm run build` — passed (Next.js 16.2.9)
+- `npm run build` — passed with Next.js 16.2.9
+- `git diff --check` — passed
 
-Those commands have not been re-run against the partial GitHub-only tree after the push split.
+The test, compiler, and build commands needed process permissions in this environment. The first build attempt also exposed one stale generated `.next/dev/types/validator.ts` route reference; removing that generated file allowed the clean build to pass.
 
-Apply migrations before using persistence:
+## Migration state
 
-- `supabase/migrations/202609260001_create_shots_table.sql`
-- `supabase/migrations/202609260002_create_storyboard_panels_table.sql`
-- `supabase/migrations/202609260003_create_director_notes_table.sql`
-- `supabase/migrations/202609270001_create_assets_and_generation_jobs.sql`
-- `supabase/migrations/202609270002_create_render_and_export_tables.sql`
+The new character provenance migration has been inspected against `CharacterRepository` and the character data model. The code reads and writes `profile_provenance`, matching the added JSONB column. Database application state could not be verified from repository files; apply the migration before deploying this integration to a database.
+
+Existing pipeline migrations in this tree include:
+
+- `202609260001_create_shots_table.sql`
+- `202609260002_create_storyboard_panels_table.sql`
+- `202609260003_create_director_notes_table.sql`
+- `202609270001_create_assets_and_generation_jobs.sql`
+- `202609270002_create_render_and_export_tables.sql`
+- `202609280001_add_character_profile_provenance.sql`
 
 ## Next executable dependency
 
-1. Land `AssetsView` and `AssetFormDialog`, then wire compact repository writes.
-2. Replace the thin Render/Export workspace with the assemble/approve/export flow already implemented in planners.
-3. Replace the thin AI Director production view with the plan/approve notes flow already implemented in planners and tests.
+1. Finish the production Assets workspace by wiring the existing plan/review/edit/queue hook and components into `AssetsView` and `AssetFormDialog`.
+2. Replace the thin Render/Export workspace with the existing assemble/approve/export flow.
+3. Replace the thin AI Director production view with the existing plan/approve notes flow.

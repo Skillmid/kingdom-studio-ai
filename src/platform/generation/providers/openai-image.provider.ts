@@ -18,11 +18,16 @@ interface OpenAIImageResponse {
 export class OpenAIImageProvider implements MediaGenerationProvider {
   readonly id = "openai-image";
   readonly supports: readonly MediaJobType[] = ["image"];
+  private readonly env: GenerationEnvironment;
+  private readonly fetchImpl: typeof fetch;
 
   constructor(
-    private readonly env: GenerationEnvironment = process.env,
-    private readonly fetchImpl: typeof fetch = fetch,
-  ) {}
+    env: GenerationEnvironment = process.env as GenerationEnvironment,
+    fetchImpl: typeof fetch = fetch,
+  ) {
+    this.env = env;
+    this.fetchImpl = fetchImpl;
+  }
 
   isConfigured(): boolean {
     return Boolean(this.env.OPENAI_API_KEY?.trim());

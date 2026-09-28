@@ -19,6 +19,7 @@ export interface AIRequest {
   maxTokens?: number;
 
   model?: string;
+  productionId?: string;
 }
 
 export interface AIResponse {

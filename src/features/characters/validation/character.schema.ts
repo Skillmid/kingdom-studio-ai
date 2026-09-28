@@ -87,6 +87,7 @@ export const characterSchema = z.object({
   aiInstructions: z.string().optional(),
 
   progress: z.number().min(0).max(100).default(0),
+  profileProvenance: z.record(z.string(), z.unknown()).optional(),
 });
 
 export type CharacterFormData = z.infer<typeof characterSchema>;

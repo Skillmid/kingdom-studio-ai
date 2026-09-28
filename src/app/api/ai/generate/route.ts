@@ -1,6 +1,7 @@
 import {
   NextResponse,
 } from "next/server";
+import { createClient } from "@/lib/supabase/server";
 
 interface GenerateRequest {
   provider?: string;
@@ -14,6 +15,7 @@ interface GenerateRequest {
   maxTokens?: number;
 
   model?: string;
+  productionId?: string;
 }
 
 interface OpenRouterResponse {
@@ -47,6 +49,26 @@ export async function POST(
   request: Request
 ) {
   try {
+    const supabase = await createClient();
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    if (authError || !user) {
+      return NextResponse.json({ error: "Authentication is required." }, { status: 401 });
+    }
+    const body = (await request.json()) as GenerateRequest;
+    if (body.productionId) {
+      const { data: production, error: productionError } = await supabase
+        .from("productions")
+        .select("id")
+        .eq("id", body.productionId)
+        .eq("owner_id", user.id)
+        .maybeSingle();
+      if (productionError) {
+        return NextResponse.json({ error: "Unable to verify production access." }, { status: 500 });
+      }
+      if (!production) {
+        return NextResponse.json({ error: "Production not found or access denied." }, { status: 404 });
+      }
+    }
     const apiKey =
       process.env
         .OPENROUTER_API_KEY;
@@ -62,9 +84,6 @@ export async function POST(
         }
       );
     }
-
-    const body =
-      (await request.json()) as GenerateRequest;
 
     if (
       !body.userPrompt ||

@@ -2,11 +2,18 @@
 
 import { useState } from "react";
 import type { Character, CharacterRole, CharacterStatus } from "../types/character";
+import type { CharacterProposalField } from "../types/character";
+import type { CharacterAIProposal } from "../utils/review-character-proposal";
+import { applyAcceptedCharacterProposal, markCreatorEdit } from "../utils/review-character-proposal";
+import { calculateCharacterProgress } from "../utils/character-progress";
+import { hydrateCharacterForm } from "../utils/hydrate-character-form";
 
 interface CharacterEditorProps {
   character: Character;
   saving?: boolean;
+  aiSyncing?: boolean;
   onSave: (updates: Partial<Character>) => Promise<void>;
+  onGenerateProposal: (character: Character) => Promise<CharacterAIProposal>;
   onCancel: () => void;
 }
 
@@ -54,22 +61,59 @@ function Field({
 export default function CharacterEditor({
   character,
   saving = false,
+  aiSyncing = false,
   onSave,
+  onGenerateProposal,
   onCancel,
 }: CharacterEditorProps) {
-  const [form, setForm] = useState<Partial<Character>>({ ...character });
+  const [form, setForm] = useState<Partial<Character>>(hydrateCharacterForm(character));
   const [syncedCharacter, setSyncedCharacter] = useState(character);
+  const [proposal, setProposal] = useState<CharacterAIProposal | null>(null);
+  const [proposalError, setProposalError] = useState<string | null>(null);
 
   if (character !== syncedCharacter) {
     setSyncedCharacter(character);
-    setForm({ ...character });
+    setForm(hydrateCharacterForm(character));
+    setProposal(null);
   }
 
   function update<K extends keyof Character>(key: K, value: Character[K]) {
-    setForm((current) => ({
-      ...current,
-      [key]: value,
-    }));
+    setForm((current) => {
+      const next: Partial<Character> = { ...current, [key]: value };
+      if (typeof value === "string") {
+        next.profileProvenance = markCreatorEdit(
+          current.profileProvenance,
+          key as CharacterProposalField,
+          value
+        );
+      }
+      next.progress = calculateCharacterProgress(next);
+      return next;
+    });
+  }
+
+  async function handleGenerateProposal() {
+    setProposalError(null);
+    try {
+      setProposal(await onGenerateProposal(character));
+    } catch (error) {
+      setProposalError(error instanceof Error ? error.message : "Unable to generate a profile proposal.");
+    }
+  }
+
+  function applyProposalField(field: CharacterProposalField) {
+    if (!proposal) return;
+    setForm((current) => {
+      const accepted = applyAcceptedCharacterProposal(
+        current,
+        proposal,
+        [field],
+        new Date().toISOString()
+      );
+      const next = { ...current, ...accepted };
+      next.progress = calculateCharacterProgress(next);
+      return next;
+    });
   }
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
@@ -105,6 +149,8 @@ export default function CharacterEditor({
       speechStyle: form.speechStyle,
       catchPhrases: form.catchPhrases,
       aiInstructions: form.aiInstructions,
+      profileProvenance: form.profileProvenance,
+      progress: form.progress,
     });
   }
 
@@ -132,6 +178,65 @@ export default function CharacterEditor({
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-8 p-6">
+          <section className="rounded-2xl border border-yellow-500/30 bg-yellow-500/5 p-5">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <h3 className="font-semibold text-yellow-300">AI Character Profile</h3>
+                <p className="mt-1 text-sm text-zinc-400">
+                  Generate suggestions for review. Nothing is saved until you edit and save this form.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={handleGenerateProposal}
+                disabled={saving || aiSyncing}
+                className="rounded-xl border border-yellow-500/40 px-4 py-2 text-sm font-semibold text-yellow-300 disabled:opacity-50"
+              >
+                {aiSyncing ? "Generating..." : "Generate proposal"}
+              </button>
+            </div>
+            {proposalError && <p role="alert" className="mt-3 text-sm text-red-300">{proposalError}</p>}
+            {proposal && (
+              <div className="mt-5 space-y-3 border-t border-zinc-800 pt-4">
+                <p className="text-xs text-zinc-400">
+                  Source: {proposal.source.screenplayTitle}, version {proposal.source.screenplayVersion}
+                  {proposal.source.revisionId ? " � revision " + proposal.source.revisionId : ""}
+                </p>
+                {Object.keys(proposal.fields).length === 0 ? (
+                  <p className="text-sm text-zinc-400">No profile fields had verifiable screenplay evidence.</p>
+                ) : (
+                  (Object.keys(proposal.fields) as CharacterProposalField[]).map((field) => {
+                    const suggested = proposal.fields[field];
+                    if (suggested === undefined) return null;
+                    const evidence = proposal.fieldEvidence[field];
+                    const applied = form[field] === suggested;
+                    return (
+                      <div key={field} className="rounded-xl border border-zinc-800 bg-zinc-950 p-4">
+                        <div className="flex flex-wrap items-start justify-between gap-3">
+                          <div>
+                            <p className="text-xs font-semibold uppercase text-zinc-500">
+                              {field.replace(/[A-Z]/g, (letter) => " " + letter).replace(/^./, (letter) => letter.toUpperCase())}
+                            </p>
+                            <p className="mt-2 whitespace-pre-wrap text-sm text-zinc-200">{String(suggested)}</p>
+                            {evidence && <p className="mt-2 text-xs leading-5 text-zinc-500">Evidence: {evidence}</p>}
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => applyProposalField(field)}
+                            disabled={saving || aiSyncing || applied}
+                            className="rounded-lg border border-zinc-700 px-3 py-2 text-xs font-semibold text-zinc-200 disabled:opacity-50"
+                          >
+                            {applied ? "In unsaved form" : "Use suggestion"}
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
+                <p className="text-xs text-zinc-500">Close without saving to reject these draft suggestions. Existing saved profile values remain unchanged.</p>
+              </div>
+            )}
+          </section>
           <section>
             <h3 className="mb-4 text-lg font-semibold text-white">
               Basic Information

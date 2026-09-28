@@ -49,6 +49,13 @@ export class GenerationJobRepository {
     return this.mapJob(data as JobRow);
   }
 
+  async createMany(jobs: Partial<GenerationJob>[]): Promise<GenerationJob[]> {
+    if (jobs.length === 0) return [];
+    const { data, error } = await this.supabase.from(TABLE_NAME).insert(jobs.map((job) => this.toDatabase(job))).select();
+    if (error) throw new Error(error.message);
+    return ((data ?? []) as JobRow[]).map((row) => this.mapJob(row));
+  }
+
   async update(id: string, updates: Partial<GenerationJob>): Promise<GenerationJob> {
     const { data, error } = await this.supabase
       .from(TABLE_NAME)

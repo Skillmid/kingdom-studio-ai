@@ -6,12 +6,18 @@ import { characterRepository } from "../repositories/character.repository";
 import { characterExtractor } from "@/features/import-engine/extractors/character.extractor";
 import { screenplayRepository } from "@/features/script-intelligence/repositories/screenplay.repository";
 import type { Character } from "../types/character";
+import { aiGateway } from "@/platform/ai/services/ai-gateway";
+import { createCharacterAISyncService } from "../services/character-ai-sync.service";
+import { calculateCharacterProgress, characterStatusFromProgress } from "../utils/character-progress";
+
+const characterAISyncService = createCharacterAISyncService({ screenplayRepository, aiGateway });
 
 export function useCharacters(productionId: string) {
   const [characters, setCharacters] = useState<Character[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [syncing, setSyncing] = useState(false);
+  const [aiSyncing, setAiSyncing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const loadCharacters = useCallback(async () => {
@@ -79,6 +85,7 @@ export function useCharacters(productionId: string) {
       const created = await characterRepository.create({
         ...character,
         productionId,
+        progress: calculateCharacterProgress(character),
       });
 
       setCharacters((current) => [...current, created]);
@@ -93,12 +100,31 @@ export function useCharacters(productionId: string) {
     }
   }
 
+  async function generateCharacterProposal(character: Character) {
+    setAiSyncing(true);
+    setError(null);
+    try {
+      return await characterAISyncService.propose(productionId, character);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "AI Character Sync failed.");
+      throw err;
+    } finally {
+      setAiSyncing(false);
+    }
+  }
+
   async function updateCharacter(id: string, updates: Partial<Character>) {
     try {
       setSaving(true);
       setError(null);
 
-      const updated = await characterRepository.update(id, updates);
+      const current = characters.find((character) => character.id === id);
+      const progress = calculateCharacterProgress({ ...current, ...updates });
+      const updated = await characterRepository.update(id, {
+        ...updates,
+        progress,
+        status: updates.status ?? characterStatusFromProgress(progress),
+      });
 
       setCharacters((current) =>
         current.map((character) =>
@@ -192,7 +218,8 @@ export function useCharacters(productionId: string) {
         role: character.role,
         status: "draft",
         biography: character.description,
-        progress: 10,
+        progress: calculateCharacterProgress({ biography: character.description }),
+        profileProvenance: {},
       }));
 
       const created = await characterRepository.createMany(toInsert);
@@ -223,10 +250,12 @@ export function useCharacters(productionId: string) {
     loading,
     saving,
     syncing,
+    aiSyncing,
     error,
     refresh,
     createCharacter,
     updateCharacter,
+    generateCharacterProposal,
     deleteCharacter,
     syncFromScreenplay,
   };

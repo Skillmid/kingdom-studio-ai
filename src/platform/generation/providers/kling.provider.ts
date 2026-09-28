@@ -25,11 +25,16 @@ interface KlingTaskPayload {
 export class KlingMediaProvider implements MediaGenerationProvider {
   readonly id = "kling";
   readonly supports: readonly MediaJobType[] = ["image", "video"];
+  private readonly env: GenerationEnvironment;
+  private readonly fetchImpl: typeof fetch;
 
   constructor(
-    private readonly env: GenerationEnvironment = process.env,
-    private readonly fetchImpl: typeof fetch = fetch,
-  ) {}
+    env: GenerationEnvironment = process.env as GenerationEnvironment,
+    fetchImpl: typeof fetch = fetch,
+  ) {
+    this.env = env;
+    this.fetchImpl = fetchImpl;
+  }
 
   isConfigured(): boolean {
     return Boolean(this.env.KLING_API_KEY?.trim() || (this.env.KLING_ACCESS_KEY?.trim() && this.env.KLING_SECRET_KEY?.trim()));

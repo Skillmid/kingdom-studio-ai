@@ -1,6 +1,7 @@
 "use client";
 
 import type { Character } from "../types/character";
+import { calculateCharacterProgress } from "../utils/character-progress";
 
 interface CharacterCardProps {
   character: Character;
@@ -28,6 +29,7 @@ export default function CharacterCard({
   character,
   onOpen,
 }: CharacterCardProps) {
+  const progress = calculateCharacterProgress(character);
   return (
     <div className="rounded-2xl border border-zinc-800 bg-zinc-900 p-6 transition hover:border-yellow-500">
 
@@ -61,7 +63,7 @@ export default function CharacterCard({
 
           <span>Completion</span>
 
-          <span>{character.progress}%</span>
+          <span>{progress}%</span>
 
         </div>
 
@@ -70,7 +72,7 @@ export default function CharacterCard({
           <div
             className="h-full rounded-full bg-yellow-500 transition-all"
             style={{
-              width: `${character.progress}%`,
+              width: progress.toString() + "%",
             }}
           />
 

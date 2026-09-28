@@ -11,6 +11,28 @@ export type CharacterStatus =
   | "in-progress"
   | "completed";
 
+export type CharacterProfileField =
+  | "age" | "gender" | "occupation" | "nationality" | "ethnicity" | "biography"
+  | "appearance" | "height" | "weight" | "eyeColor" | "hairColor"
+  | "distinguishingFeatures" | "personality" | "strengths" | "weaknesses"
+  | "fears" | "habits" | "values" | "motivation" | "goal" | "conflict"
+  | "characterArc" | "spiritualJourney" | "speechStyle" | "catchPhrases" | "aiInstructions";
+export type CharacterProposalField = CharacterProfileField | "role";
+export interface CharacterProfileSource {
+  screenplayId: string;
+  revisionId?: string;
+  screenplayTitle: string;
+  screenplayVersion: number;
+}
+export interface CharacterFieldProvenance {
+  provenance: "ai-proposal";
+  source: CharacterProfileSource & { evidence: string };
+  proposedValue: string;
+  acceptedAt: string;
+  editedByCreator: boolean;
+}
+export type CharacterProfileProvenance = Partial<Record<CharacterProposalField, CharacterFieldProvenance>>;
+
 export interface Character {
   /**
    * Primary Identifier
@@ -99,6 +121,7 @@ export interface Character {
    * Progress Tracking
    */
   progress: number;
+  profileProvenance?: CharacterProfileProvenance;
 
   /**
    * Visual References

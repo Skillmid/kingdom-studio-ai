@@ -1,6 +1,7 @@
 import { supabase } from "@/lib/supabase/client";
 
 import type { Character } from "../types/character";
+import { characterProfileProvenancePatch } from "./character.mapper";
 
 const TABLE_NAME = "characters";
 
@@ -37,6 +38,7 @@ type CharacterRow = {
   catch_phrases: Character["catchPhrases"];
   ai_instructions: Character["aiInstructions"];
   progress: number | null;
+  profile_provenance: Character["profileProvenance"] | null;
   created_at: Character["createdAt"];
   updated_at: Character["updatedAt"];
 };
@@ -195,6 +197,7 @@ export class CharacterRepository {
       catchPhrases: data.catch_phrases,
       aiInstructions: data.ai_instructions,
       progress: data.progress ?? 0,
+      profileProvenance: data.profile_provenance ?? {},
       references: [],
       createdAt: data.created_at,
       updatedAt: data.updated_at,
@@ -234,6 +237,7 @@ export class CharacterRepository {
       catch_phrases: character.catchPhrases,
       ai_instructions: character.aiInstructions,
       progress: character.progress ?? 0,
+      ...characterProfileProvenancePatch(character.profileProvenance),
     };
   }
 }

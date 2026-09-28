@@ -4,6 +4,7 @@ import type { GenerationJob } from "@/features/assets/types/generation-job";
 import { dispatchGenerationJob } from "./dispatch";
 import type { MediaGenerationProvider, MediaJobType } from "./types";
 import { UNCONFIGURED_MEDIA_ERROR, UNCONFIGURED_MEDIA_PROVIDER } from "./types";
+import { KlingMediaProvider } from "./providers/kling.provider";
 
 const NOW = "2026-09-27T20:00:00.000Z";
 
@@ -24,6 +25,11 @@ function job(partial: Partial<GenerationJob> = {}): GenerationJob {
 }
 
 describe("dispatchGenerationJob", () => {
+  it("constructs the Kling provider with injected dependencies", () => {
+    const provider = new KlingMediaProvider({}, async () => new Response("{}"));
+    assert.equal(provider.isConfigured(), false);
+  });
+
   it("fails recoverably without inventing a URL when no provider is configured", async () => {
     const result = await dispatchGenerationJob(job(), { env: {}, now: () => NOW });
     assert.equal(result.status, "failed");

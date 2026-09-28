@@ -16,9 +16,11 @@ export function CharactersView({ productionId }: CharactersViewProps) {
     loading,
     saving,
     syncing,
+    aiSyncing,
     error,
     createCharacter,
     updateCharacter,
+    generateCharacterProposal,
     syncFromScreenplay,
   } = useCharacters(productionId);
 
@@ -254,7 +256,9 @@ export function CharactersView({ productionId }: CharactersViewProps) {
         <CharacterEditor
           character={selectedCharacter}
           saving={saving}
+          aiSyncing={aiSyncing}
           onSave={handleUpdate}
+          onGenerateProposal={generateCharacterProposal}
           onCancel={() => setSelectedCharacter(null)}
         />
       )}
