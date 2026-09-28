@@ -23,6 +23,8 @@ The dedicated branch `codex/character-ai-profile-sync-integration` was based on 
 - The production Assets route uses the existing `useAssets` planning, persistence, approval, and dispatch workflow.
 - Creators can add, edit, approve, and delete assets; planner-created assets remain proposals until reviewed.
 - Generation requires creator approval and a non-empty prompt. Bulk queueing considers approved assets only.
+- The generation dispatch API accepts only a persisted job ID, reloads the job under the authenticated user's RLS context, and requires a queued job linked to an approved asset in the same production. Client-supplied prompt/provider/output fields are no longer dispatch authority.
+- Failed/cancelled asset jobs are reset to queued before retry. Provider dispatch still requires a configured provider and persists only real provider output URLs.
 - Asset and generation-job repositories use compact write mappers so partial updates leave unrelated columns unchanged.
 - Provider output is persisted only when a real output URL is returned; the UI does not fabricate media.
 
@@ -67,7 +69,7 @@ The dedicated branch `codex/character-ai-profile-sync-integration` was based on 
 
 Executed on 2026-09-28 against the Script Intelligence working tree, including the AI Director, Render/Export, and earlier integrations:
 
-- `npm test` - 64 passed, 0 failed.
+- `npm test` - 67 passed, 0 failed.
 - `npm run lint` - 0 errors; one unused-parameter warning in `src/platform/generation/providers/unconfigured.provider.ts`.
 - `npx tsc --noEmit` - passed.
 - `npm run build` - passed with Next.js 16.2.9; Render and Export routes were included.

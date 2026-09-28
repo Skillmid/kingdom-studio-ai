@@ -18,6 +18,7 @@ import {
   draftJobFromAsset,
   jobPersistencePatch,
   planJobsFromAssets,
+  retryJob,
   selectNewJobProposals,
 } from "../services/generation-job";
 import type { Asset } from "../types/asset";
@@ -27,7 +28,7 @@ async function dispatchJob(queued: GenerationJob): Promise<GenerationJob> {
   const response = await fetch("/api/generation/run", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ job: queued }),
+    body: JSON.stringify({ jobId: queued.id }),
   });
   const payload = (await response.json()) as { job?: GenerationJob; error?: string };
   if (!response.ok || !payload.job) {
@@ -260,6 +261,10 @@ export function useAssets(productionId: string) {
           throw new Error("This asset already has an active or completed generation job.");
         }
         throw new Error("No generation job could be queued for this asset.");
+      }
+
+      if (queued.status === "failed" || queued.status === "cancelled") {
+        queued = await generationJobRepository.update(queued.id, jobPersistencePatch(retryJob(queued)));
       }
 
       await assetRepository.update(asset.id, { status: "generating" });
