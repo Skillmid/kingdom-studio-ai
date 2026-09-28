@@ -3,6 +3,8 @@ import { describe, it } from "node:test";
 
 import { calculateDirectorProgress } from "./director-completion";
 import {
+  acceptDirectorNoteProposal,
+  numberNewDirectorNotes,
   planDirectionFromScenes,
   selectNewDirectionNotes,
   type DirectorSceneInput,
@@ -203,5 +205,38 @@ describe("selectNewDirectionNotes", () => {
 
     assert.equal(selected.length, 1);
     assert.equal(selected[0]?.sceneId, SECOND_SCENE_ID);
+  });
+});
+
+describe("reviewed AI Director notes", () => {
+  it("marks a creator-edited proposal approved and preserves the creator edit", () => {
+    const proposal = planDirectionFromScenes([
+      scene({ id: SCENE_ID, number: 1, heading: "EXT. RAIL SIDING - EVENING", action: "Wind moves loose paper." }),
+    ])[0]!;
+    const accepted = acceptDirectorNoteProposal(proposal, { blocking: "The filmmaker changes the blocking." });
+
+    assert.equal(accepted.userApproved, true);
+    assert.equal(accepted.provenance, "user");
+    assert.equal(accepted.blocking, "The filmmaker changes the blocking.");
+  });
+
+  it("keeps unedited source-derived provenance when the creator accepts it", () => {
+    const proposal = planDirectionFromScenes([
+      scene({ id: SCENE_ID, number: 1, heading: "INT. SIGNAL ROOM - NIGHT", purpose: "The operator listens." }),
+    ])[0]!;
+    const accepted = acceptDirectorNoteProposal(proposal);
+
+    assert.equal(accepted.userApproved, true);
+    assert.equal(accepted.provenance, "production-derived");
+  });
+
+  it("numbers uncovered notes after existing notes to honor the production uniqueness constraint", () => {
+    const proposals = planDirectionFromScenes([
+      scene({ id: SECOND_SCENE_ID, number: 3, heading: "EXT. FERRY LANDING - DAWN" }),
+      scene({ id: SCENE_ID, number: 1, heading: "INT. CONTROL ROOM - NIGHT" }),
+    ]);
+    const numbered = numberNewDirectorNotes(proposals, [{ noteNumber: 2 }, { noteNumber: 7 }]);
+
+    assert.deepEqual(numbered.map((note) => note.noteNumber), [8, 9]);
   });
 });

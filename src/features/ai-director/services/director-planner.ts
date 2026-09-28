@@ -261,3 +261,32 @@ export function selectNewDirectionNotes(
     return true;
   });
 }
+
+const DIRECTOR_NOTE_CONTENT_FIELDS = [
+  "title", "sceneIntent", "blocking", "camera", "composition", "lighting",
+  "pacing", "sound", "emotion", "continuity", "uncertaintyNotes",
+] as const;
+
+export function acceptDirectorNoteProposal<T extends DirectorNoteProposal>(
+  proposal: T,
+  edits: Partial<Pick<T, (typeof DIRECTOR_NOTE_CONTENT_FIELDS)[number]>> = {},
+): T {
+  const creatorEdited = DIRECTOR_NOTE_CONTENT_FIELDS.some((field) =>
+    Object.hasOwn(edits, field) && edits[field] !== proposal[field],
+  );
+  const accepted = withCalculatedProgress({
+    ...proposal,
+    ...edits,
+    provenance: creatorEdited ? "user" as const : proposal.provenance,
+    userApproved: true,
+  });
+  return accepted as T;
+}
+
+export function numberNewDirectorNotes<T extends DirectorNoteProposal>(
+  proposals: T[],
+  existing: Array<Pick<DirectorNote, "noteNumber">>,
+): T[] {
+  const firstNumber = Math.max(0, ...existing.map((note) => note.noteNumber)) + 1;
+  return proposals.map((proposal, index) => ({ ...proposal, noteNumber: firstNumber + index }));
+}

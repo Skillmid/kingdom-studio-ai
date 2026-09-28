@@ -33,6 +33,13 @@ The dedicated branch `codex/character-ai-profile-sync-integration` was based on 
 - Export packages require an approved sequence and its matching loaded clip set. EDL and JSON manifests preserve missing-media entries; they do not encode or host video.
 - `202609280003_create_render_and_export_tables.sql` matches the current repository mappers and types. Database application state is unverified.
 
+### AI Director production notes
+
+- The production AI Director uses the existing grounded scene/shot/storyboard planner and loads saved direction notes from the production.
+- New notes are proposals until the creator reviews, edits or rejects them. Saving an accepted note persists it with source evidence, provenance, completion, and explicit creator approval.
+- Only creator-approved shots and storyboard panels enrich a new proposal. Existing notes are left intact, and generated note numbers follow the current production maximum.
+- This production workflow is deterministic and evidence-based; the separate general AI Director tools page remains outside this integration.
+
 ## Pipeline
 
 | Stage | Status | Notes |
@@ -44,16 +51,16 @@ The dedicated branch `codex/character-ai-profile-sync-integration` was based on 
 | Scenes | Present | Existing production workspace retained |
 | Shot List | Complete | Planner, persistence, UI, tests |
 | Storyboard | Complete | Shot-derived panels |
-| AI Director | Partial | Planner and tests exist; production page remains a thin notes view |
+| AI Director | Partial | Grounded plan/review/persist flow is integrated; separate general AI tools are not wired to production records |
 | Assets / generation jobs | Integrated | Creator-review workspace connected to planning, persistence, and dispatch |
 | Image/video generation | Present | Kling, OpenAI, and unconfigured fallback providers |
 | Render / export | Partial | Creator-reviewed assembly and persisted EDL/JSON packages; no video encoder or hosted package storage |
 
 ## Verification
 
-Executed on 2026-09-28 against the Render/Export working tree:
+Executed on 2026-09-28 against the AI Director working tree, including the Render/Export and earlier integrations:
 
-- `npm test` - 54 passed, 0 failed.
+- `npm test` - 59 passed, 0 failed.
 - `npm run lint` - 0 errors; one unused-parameter warning in `src/platform/generation/providers/unconfigured.provider.ts`.
 - `npx tsc --noEmit` - passed.
 - `npm run build` - passed with Next.js 16.2.9; Render and Export routes were included.
