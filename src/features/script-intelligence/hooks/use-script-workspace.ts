@@ -18,6 +18,8 @@ import {
   screenplayRepository,
 } from "../repositories/screenplay.repository";
 import { screenplayAnalysisRepository } from "../repositories/screenplay-analysis.repository";
+import { screenplayReviewRepository } from "../repositories/screenplay-review.repository";
+import type { FocusedReviewType, ScreenplayReviewRecord } from "../repositories/screenplay-review.mapper";
 import { findPersistedAnalysisRevision } from "../services/saved-analysis";
 
 import type {
@@ -61,6 +63,7 @@ export function useScriptWorkspace(productionId: string) {
   const [knowledge, setKnowledge] = useState<ProductionKnowledge | null>(null);
   const [analysis, setAnalysis] = useState<ScriptAnalysis | null>(null);
   const [analysisRevisionVersion, setAnalysisRevisionVersion] = useState<number | null>(null);
+  const [reviews, setReviews] = useState<ScreenplayReviewRecord[]>([]);
   const [revisions, setRevisions] = useState<ScreenplayRevision[]>([]);
   const [loading, setLoading] = useState(true);
   const [processing, setProcessing] = useState(false);
@@ -93,6 +96,7 @@ export function useScriptWorkspace(productionId: string) {
         setKnowledge(null);
         setAnalysis(null);
         setAnalysisRevisionVersion(null);
+        setReviews([]);
         setRevisions([]);
         return;
       }
@@ -107,13 +111,18 @@ export function useScriptWorkspace(productionId: string) {
       setKnowledge(null);
       setAnalysis(null);
       setAnalysisRevisionVersion(null);
+      setReviews([]);
 
       const loadedRevisions = await loadRevisions(existing.id);
       const currentRevision = loadedRevisions.find((revision) => revision.version === existing.version);
       if (currentRevision) {
-        const savedAnalysis = await screenplayAnalysisRepository.getLatestByRevisionId(currentRevision.id);
+        const [savedAnalysis, savedReviews] = await Promise.all([
+          screenplayAnalysisRepository.getLatestByRevisionId(currentRevision.id),
+          screenplayReviewRepository.getByRevisionId(currentRevision.id),
+        ]);
         setAnalysis(savedAnalysis?.analysis ?? null);
         setAnalysisRevisionVersion(savedAnalysis?.screenplayVersion ?? null);
+        setReviews(savedReviews);
       }
     },
     [loadRevisions]
@@ -194,6 +203,7 @@ export function useScriptWorkspace(productionId: string) {
         setKnowledge(result.knowledge);
         setAnalysis(null);
         setAnalysisRevisionVersion(null);
+        setReviews([]);
 
         return result;
       } catch (err) {
@@ -253,17 +263,23 @@ export function useScriptWorkspace(productionId: string) {
 
   const reviewScreenplay = useCallback(
     async (
-      type:
-        | "professional"
-        | "spiritual"
-        | "cultural"
-        | "dialogue"
-        | "character"
-        | "story"
-        | "production"
+      type: FocusedReviewType,
     ) => {
       if (!content.trim()) {
         return;
+      }
+
+      if (!screenplay) {
+        const message = "Save the current screenplay as a revision before running a focused review.";
+        setError(message);
+        throw new Error(message);
+      }
+
+      const revision = findPersistedAnalysisRevision(screenplay, revisions, isDirty);
+      if (!revision) {
+        const message = "Save the current screenplay as a revision before running a focused review.";
+        setError(message);
+        throw new Error(message);
       }
 
       setProcessing(true);
@@ -271,7 +287,16 @@ export function useScriptWorkspace(productionId: string) {
 
       try {
         const result = await scriptIntelligence.review(content, type);
-        return result;
+        const saved = await screenplayReviewRepository.create({
+          productionId,
+          screenplayId: screenplay.id,
+          revisionId: revision.id,
+          screenplayVersion: screenplay.version,
+          reviewType: type,
+          review: result,
+        });
+        setReviews((current) => [saved, ...current]);
+        return saved.review;
       } catch (err) {
         const message =
           err instanceof Error ? err.message : "Unable to review screenplay.";
@@ -281,7 +306,7 @@ export function useScriptWorkspace(productionId: string) {
         setProcessing(false);
       }
     },
-    [content]
+    [content, isDirty, productionId, revisions, screenplay]
   );
 
   const saveScreenplay = useCallback(
@@ -318,6 +343,7 @@ export function useScriptWorkspace(productionId: string) {
         setScreenplay(saved);
         setAnalysis(null);
         setAnalysisRevisionVersion(null);
+        setReviews([]);
         setTitle(saved.title);
         setOriginalTitle(saved.title);
         setContent(saved.content);
@@ -368,6 +394,7 @@ export function useScriptWorkspace(productionId: string) {
         setScreenplay(restored);
         setAnalysis(null);
         setAnalysisRevisionVersion(null);
+        setReviews([]);
         setTitle(restored.title);
         setOriginalTitle(restored.title);
         setContent(restored.content);
@@ -401,6 +428,7 @@ export function useScriptWorkspace(productionId: string) {
     setKnowledge(null);
     setAnalysis(null);
     setAnalysisRevisionVersion(null);
+    setReviews([]);
     setRevisions([]);
     setError(null);
   }
@@ -416,6 +444,7 @@ export function useScriptWorkspace(productionId: string) {
     knowledge,
     analysis,
     analysisRevisionVersion,
+    reviews,
     revisions,
     loading,
     processing,

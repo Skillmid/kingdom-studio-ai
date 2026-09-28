@@ -1,39 +1,33 @@
 "use client";
 
-import { useState } from "react";
-
 import type {
   ScriptAnalysis,
   ScriptReview,
 } from "../types/script-analysis";
+import type { FocusedReviewType, ScreenplayReviewRecord } from "../repositories/screenplay-review.mapper";
 
 interface ScriptAnalysisPanelProps {
   analysis: ScriptAnalysis | null;
   analysisRevisionVersion: number | null;
   canAnalyse: boolean;
+  canReview: boolean;
+  reviews: ScreenplayReviewRecord[];
   processing: boolean;
   onAnalyse: () => Promise<void>;
-  onReview: (
-    type:
-      | "professional"
-      | "spiritual"
-      | "cultural"
-      | "dialogue"
-      | "character"
-      | "story"
-      | "production"
-  ) => Promise<ScriptReview | undefined>;
+  onReview: (type: FocusedReviewType) => Promise<ScriptReview | undefined>;
 }
 
 export default function ScriptAnalysisPanel({
   analysis,
   analysisRevisionVersion,
   canAnalyse,
+  canReview,
+  reviews,
   processing,
   onAnalyse,
   onReview,
 }: ScriptAnalysisPanelProps) {
-  const [review, setReview] = useState<ScriptReview | null>(null);
+  const review = reviews[0]?.review ?? null;
 
   if (processing) {
     return (
@@ -44,13 +38,11 @@ export default function ScriptAnalysisPanel({
           </p>
 
           <h2 className="text-2xl font-bold">
-            Analysing Screenplay
+            Processing Script Intelligence
           </h2>
 
           <p className="text-sm leading-6 text-zinc-400">
-            Kingdom Studio AI is examining the screenplay across story,
-            characters, dialogue, spirituality, culture, professional
-            quality, scenes, and production readiness.
+            Kingdom Studio AI is preparing the requested analysis or focused review for the saved screenplay revision.
           </p>
 
           <div className="h-2 overflow-hidden rounded-full bg-zinc-800">
@@ -105,7 +97,7 @@ export default function ScriptAnalysisPanel({
           </h3>
 
           <p className="mt-1 text-xs leading-5 text-zinc-500">
-            Run a focused review without changing the screenplay.
+            Focused reviews are saved to the current screenplay revision and do not change screenplay content. Save a revision before reviewing.
           </p>
         </div>
 
@@ -122,9 +114,9 @@ export default function ScriptAnalysisPanel({
             <button
               key={type}
               type="button"
-              disabled={processing}
+              disabled={processing || !canReview}
               onClick={async () => {
-                const result = await onReview(
+                await onReview(
                   type as
                     | "story"
                     | "character"
@@ -135,9 +127,6 @@ export default function ScriptAnalysisPanel({
                     | "production"
                 );
 
-                if (result) {
-                  setReview(result);
-                }
               }}
               className="rounded-xl border border-zinc-800 bg-zinc-950 px-4 py-3 text-left text-sm transition hover:border-yellow-500 disabled:cursor-not-allowed disabled:opacity-50"
             >
@@ -251,6 +240,18 @@ export default function ScriptAnalysisPanel({
           )}
         </section>
       )}
+
+      {reviews.length > 1 ? (
+        <section className="space-y-2 border-t border-zinc-800 pt-5">
+          <h3 className="text-xs font-bold uppercase tracking-widest text-zinc-500">Earlier reviews on revision {reviews[0]?.screenplayVersion}</h3>
+          {reviews.slice(1).map((record) => (
+            <div key={record.id} className="flex flex-wrap justify-between gap-2 rounded-xl border border-zinc-800 bg-zinc-950 px-3 py-2 text-xs text-zinc-400">
+              <span className="capitalize">{record.reviewType} review | score {record.review.score}</span>
+              <time dateTime={record.createdAt}>{new Date(record.createdAt).toLocaleString()}</time>
+            </div>
+          ))}
+        </section>
+      ) : null}
 
       {!analysis ? (
         <div className="rounded-2xl border border-dashed border-zinc-800 p-6">

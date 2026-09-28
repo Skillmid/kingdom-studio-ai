@@ -18,6 +18,10 @@ export * from "./repositories/screenplay-analysis.repository";
 
 export * from "./repositories/screenplay-analysis.mapper";
 
+export * from "./repositories/screenplay-review.repository";
+
+export * from "./repositories/screenplay-review.mapper";
+
 export * from "./hooks/use-script-workspace";
 
 export * from "./components";

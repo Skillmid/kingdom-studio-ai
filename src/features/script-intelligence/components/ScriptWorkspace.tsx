@@ -37,6 +37,7 @@ function ScriptWorkspaceContent({
     knowledge,
     analysis,
     analysisRevisionVersion,
+    reviews,
     revisions,
     loading,
     processing,
@@ -237,6 +238,8 @@ function ScriptWorkspaceContent({
             analysis={analysis}
             analysisRevisionVersion={analysisRevisionVersion}
             canAnalyse={Boolean(screenplay && !isDirty)}
+            canReview={Boolean(screenplay && !isDirty)}
+            reviews={reviews}
             processing={processing}
             onAnalyse={handleAnalyse}
             onReview={reviewScreenplay}
