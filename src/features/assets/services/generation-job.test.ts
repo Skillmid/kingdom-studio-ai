@@ -7,6 +7,7 @@ import {
   completeJob,
   dispatchUnconfiguredProvider,
   draftJobFromAsset,
+  canGenerateAsset,
   planJobsFromAssets,
   selectNewJobProposals,
   startJob,
@@ -51,6 +52,12 @@ function job(partial: Partial<GenerationJob> = {}): GenerationJob {
 }
 
 describe("generation job lifecycle", () => {
+  it("requires creator approval and a grounded prompt before generation", () => {
+    assert.equal(canGenerateAsset(asset({ userApproved: false })), false);
+    assert.equal(canGenerateAsset(asset({ userApproved: true, prompt: " " })), false);
+    assert.equal(canGenerateAsset(asset({ userApproved: true })), true);
+  });
+
   it("drafts an image job and refuses an empty prompt", () => {
     const draft = draftJobFromAsset(asset());
     assert.equal(draft.jobType, "image");

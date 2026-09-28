@@ -26,6 +26,7 @@ export {
 export { assetSchema } from "./validation/asset.schema";
 export { generationJobSchema } from "./validation/generation-job.schema";
 export { AssetsView } from "./components/AssetsView";
+export { default as AssetFormDialog } from "./components/AssetFormDialog";
 export { useAssets } from "./hooks/use-assets";
 export { toAssetDatabase, toGenerationJobDatabase } from "./repositories/asset.mapper";
 export { jobPersistencePatch } from "./services/generation-job";

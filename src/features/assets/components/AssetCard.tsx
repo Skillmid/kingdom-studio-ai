@@ -2,6 +2,7 @@
 
 import type { Asset, AssetStatus } from "../types/asset";
 import type { GenerationJob } from "../types/generation-job";
+import { canGenerateAsset } from "../services/generation-job";
 
 interface AssetCardProps {
   asset: Asset;
@@ -36,7 +37,7 @@ export default function AssetCard({
   queueing = false,
 }: AssetCardProps) {
   const progress = Math.max(0, Math.min(100, asset.progress));
-  const canQueue = Boolean(asset.prompt?.trim()) && asset.status !== "generating";
+  const canQueue = canGenerateAsset(asset) && asset.status !== "generating";
 
   return (
     <article className="group relative overflow-hidden rounded-2xl border border-zinc-800 bg-zinc-900/75 transition duration-200 hover:-translate-y-0.5 hover:border-yellow-500/35">
@@ -116,7 +117,7 @@ export default function AssetCard({
             onClick={() => onQueue(asset)}
             className="rounded-lg bg-yellow-500 px-3 py-2 text-xs font-bold text-black disabled:opacity-50"
           >
-            {asset.status === "generating" ? "Generating..." : "Queue generation"}
+            {asset.status === "generating" ? "Generating..." : asset.userApproved ? "Queue generation" : "Approve asset first"}
           </button>
           <button
             type="button"

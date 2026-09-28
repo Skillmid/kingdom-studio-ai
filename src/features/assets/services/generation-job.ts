@@ -15,6 +15,10 @@ const JOB_TYPE_BY_KIND: Partial<Record<Asset["kind"], GenerationJobType>> = {
   document: "document",
 };
 
+export function canGenerateAsset(asset: Pick<Asset, "userApproved" | "prompt">): boolean {
+  return asset.userApproved && Boolean(asset.prompt?.trim());
+}
+
 export function jobTypeForAsset(asset: Pick<Asset, "kind">): GenerationJobType {
   return JOB_TYPE_BY_KIND[asset.kind] ?? "image";
 }

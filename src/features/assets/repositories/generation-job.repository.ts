@@ -1,5 +1,6 @@
 import { supabase } from "@/lib/supabase/client";
 
+import { toGenerationJobDatabase } from "./asset.mapper";
 import type {
   GenerationJob,
   GenerationJobStatus,
@@ -44,14 +45,14 @@ export class GenerationJobRepository {
   }
 
   async create(job: Partial<GenerationJob>): Promise<GenerationJob> {
-    const { data, error } = await this.supabase.from(TABLE_NAME).insert(this.toDatabase(job)).select().single();
+    const { data, error } = await this.supabase.from(TABLE_NAME).insert(toGenerationJobDatabase(job, { includeDefaults: true })).select().single();
     if (error) throw new Error(error.message);
     return this.mapJob(data as JobRow);
   }
 
   async createMany(jobs: Partial<GenerationJob>[]): Promise<GenerationJob[]> {
     if (jobs.length === 0) return [];
-    const { data, error } = await this.supabase.from(TABLE_NAME).insert(jobs.map((job) => this.toDatabase(job))).select();
+    const { data, error } = await this.supabase.from(TABLE_NAME).insert(jobs.map((job) => toGenerationJobDatabase(job, { includeDefaults: true }))).select();
     if (error) throw new Error(error.message);
     return ((data ?? []) as JobRow[]).map((row) => this.mapJob(row));
   }
@@ -59,7 +60,7 @@ export class GenerationJobRepository {
   async update(id: string, updates: Partial<GenerationJob>): Promise<GenerationJob> {
     const { data, error } = await this.supabase
       .from(TABLE_NAME)
-      .update(this.toDatabase(updates))
+      .update(toGenerationJobDatabase(updates))
       .eq("id", id)
       .select()
       .single();
@@ -90,25 +91,6 @@ export class GenerationJobRepository {
     };
   }
 
-  private toDatabase(job: Partial<GenerationJob>) {
-    return {
-      production_id: job.productionId,
-      asset_id: job.assetId,
-      job_type: job.jobType,
-      status: job.status ?? "queued",
-      provider: job.provider,
-      model: job.model,
-      prompt: job.prompt,
-      parameters: job.parameters ?? {},
-      source_entity_type: job.sourceEntityType,
-      source_entity_id: job.sourceEntityId,
-      output_url: job.outputUrl,
-      error_message: job.errorMessage,
-      attempt_count: job.attemptCount ?? 0,
-      started_at: job.startedAt,
-      completed_at: job.completedAt,
-    };
-  }
 }
 
 export const generationJobRepository = new GenerationJobRepository();

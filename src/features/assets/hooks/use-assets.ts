@@ -14,6 +14,7 @@ import { planAssetsFromProduction, selectNewAssetProposals } from "../services/a
 import { withCalculatedProgress } from "../services/asset-completion";
 import {
   applyJobResultToAsset,
+  canGenerateAsset,
   draftJobFromAsset,
   jobPersistencePatch,
   planJobsFromAssets,
@@ -234,7 +235,10 @@ export function useAssets(productionId: string) {
   }
 
   async function queueAsset(asset: Asset) {
-    if (!asset.prompt?.trim()) {
+    if (!asset.userApproved) {
+      throw new Error("Approve this asset before starting generation.");
+    }
+    if (!canGenerateAsset(asset)) {
       throw new Error("A generation job requires a prompt grounded in production records or filmmaker input.");
     }
 
@@ -279,7 +283,8 @@ export function useAssets(productionId: string) {
 
     try {
       const existingJobs = await generationJobRepository.getByProductionId(productionId);
-      const drafts = selectNewJobProposals(planJobsFromAssets(assets), existingJobs);
+      const approvedAssets = assets.filter((asset) => asset.userApproved);
+      const drafts = selectNewJobProposals(planJobsFromAssets(approvedAssets), existingJobs);
       const created = await generationJobRepository.createMany(
         drafts.map((draft) => ({ ...draft, productionId })),
       );

@@ -1,68 +1,123 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { assetRepository } from "../repositories/asset.repository";
-import { generationJobRepository } from "../repositories/generation-job.repository";
-import { draftJobFromAsset } from "../services/generation-job";
+import { useMemo, useState } from "react";
 import type { Asset } from "../types/asset";
-import type { GenerationJob } from "../types/generation-job";
+import { useAssets } from "../hooks/use-assets";
+import AssetFormDialog from "./AssetFormDialog";
+import AssetList from "./AssetList";
+import DeleteAssetDialog from "./DeleteAssetDialog";
 
 export function AssetsView({ productionId }: { productionId: string }) {
-  const [assets, setAssets] = useState<Asset[]>([]);
-  const [error, setError] = useState<string | null>(null);
+  const {
+    assets, jobs, loading, saving, planning, queueing, error,
+    createAsset, updateAsset, deleteAsset, approveAsset, planFromProduction,
+    queueAsset, queueMissing,
+  } = useAssets(productionId);
+  const [formOpen, setFormOpen] = useState(false);
+  const [editingAsset, setEditingAsset] = useState<Asset | null>(null);
+  const [deletingAsset, setDeletingAsset] = useState<Asset | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
-  const [working, setWorking] = useState(false);
+  const [actionError, setActionError] = useState<string | null>(null);
+  const approvedQueueableCount = useMemo(
+    () => assets.filter((asset) => asset.userApproved && asset.prompt?.trim() && asset.status !== "generating").length,
+    [assets],
+  );
 
-  useEffect(() => {
-    let cancelled = false;
-    assetRepository.getByProductionId(productionId).then((rows) => {
-      if (!cancelled) setAssets(rows);
-    }).catch((err) => {
-      if (!cancelled) setError(err instanceof Error ? err.message : "Failed to load assets.");
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, [productionId]);
+  function openNewAsset() {
+    setEditingAsset(null);
+    setFormOpen(true);
+    setActionError(null);
+  }
 
-  async function generate(asset: Asset) {
-    setWorking(true);
-    setError(null);
+  function openEditAsset(asset: Asset) {
+    setEditingAsset(asset);
+    setFormOpen(true);
+    setActionError(null);
+  }
+
+  async function saveAsset(values: Partial<Asset>) {
+    if (editingAsset) await updateAsset(editingAsset.id, values);
+    else await createAsset(values);
+    setNotice(editingAsset ? "Asset saved and approved." : "Asset added and approved.");
+  }
+
+  async function handlePlan() {
+    setActionError(null);
+    setNotice(null);
     try {
-      const queued = await generationJobRepository.create({ ...draftJobFromAsset(asset), productionId });
-      const response = await fetch("/api/generation/run", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ job: queued }),
-      });
-      const payload = (await response.json()) as { job?: GenerationJob; error?: string };
-      if (!response.ok || !payload.job) throw new Error(payload.error || "Generation failed.");
-      if (payload.job.outputUrl) {
-        const updated = await assetRepository.update(asset.id, { fileUrl: payload.job.outputUrl, status: "ready" });
-        setAssets((current) => current.map((item) => (item.id === updated.id ? updated : item)));
-      }
-      setNotice(payload.job.errorMessage || payload.job.status);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Generation failed.");
-    } finally {
-      setWorking(false);
+      const result = await planFromProduction();
+      setNotice(result.createdCount > 0
+        ? `Added ${result.createdCount} asset proposals from ${result.sourceCount} production records. ${result.preservedCount} existing assets were preserved for creator review.`
+        : `No new asset proposals. ${result.preservedCount} existing assets were preserved.`);
+    } catch (planError) {
+      setActionError(planError instanceof Error ? planError.message : "Unable to plan assets.");
     }
   }
 
+  async function handleQueue(asset: Asset) {
+    setActionError(null);
+    try {
+      await queueAsset(asset);
+      setNotice(`Generation job updated for ${asset.title || asset.kind}.`);
+    } catch (queueError) {
+      setActionError(queueError instanceof Error ? queueError.message : "Unable to queue generation.");
+    }
+  }
+
+  async function handleQueueMissing() {
+    setActionError(null);
+    try {
+      const result = await queueMissing();
+      setNotice(`Dispatched ${result.queuedCount} approved asset job(s); ${result.skippedCount} asset(s) were skipped.`);
+    } catch (queueError) {
+      setActionError(queueError instanceof Error ? queueError.message : "Unable to queue approved assets.");
+    }
+  }
+
+  async function handleApprove(asset: Asset) {
+    setActionError(null);
+    try {
+      await approveAsset(asset.id);
+      setNotice(`${asset.title || asset.kind} approved for production use.`);
+    } catch (approveError) {
+      setActionError(approveError instanceof Error ? approveError.message : "Unable to approve this asset.");
+    }
+  }
+
+  async function handleDelete() {
+    if (!deletingAsset) return;
+    await deleteAsset(deletingAsset.id);
+    setNotice(`${deletingAsset.title || deletingAsset.kind} deleted.`);
+    setDeletingAsset(null);
+  }
+
   return (
-    <div className="space-y-6 p-6">
-      <h1 className="text-3xl font-black text-white">Assets</h1>
-      <p className="text-sm text-zinc-400">Generation copies a file URL only when a configured provider returns one.</p>
-      {error ? <p className="text-sm text-red-300">{error}</p> : null}
-      {notice ? <p className="text-sm text-zinc-300">{notice}</p> : null}
-      {assets.length === 0 ? <p className="text-sm text-zinc-500">No assets yet.</p> : assets.map((asset) => (
-        <article key={asset.id} className="rounded-2xl border border-zinc-800 bg-zinc-900 p-5">
-          <h2 className="text-lg font-bold text-white">{asset.title || asset.kind}</h2>
-          <p className="mt-2 text-sm text-zinc-400">{asset.prompt || asset.description || "No grounded prompt."}</p>
-          {asset.fileUrl ? <p className="mt-2 break-all text-xs text-emerald-400">{asset.fileUrl}</p> : null}
-          <button type="button" disabled={working || !asset.prompt} onClick={() => generate(asset)} className="mt-4 rounded-xl bg-yellow-500 px-4 py-2 text-sm font-bold text-black disabled:opacity-50">Generate</button>
-        </article>
-      ))}
-    </div>
+    <main className="space-y-7 p-6 lg:p-8">
+      <header className="flex flex-col gap-5 border-b border-zinc-800 pb-6 lg:flex-row lg:items-end lg:justify-between">
+        <div>
+          <p className="text-xs font-black uppercase tracking-[0.25em] text-yellow-500">Production workspace</p>
+          <h1 className="mt-2 text-3xl font-black text-white">Assets</h1>
+          <p className="mt-2 max-w-2xl text-sm leading-6 text-zinc-400">Review production-derived references, edit prompts, approve assets, and create generation jobs. A media URL appears only when a provider returns one.</p>
+        </div>
+        <div className="flex flex-wrap gap-3">
+          <button type="button" disabled={planning || loading} onClick={handlePlan} className="rounded-xl border border-zinc-700 px-4 py-3 text-sm font-bold text-zinc-200 disabled:opacity-50">{planning ? "Planning..." : "Plan from production"}</button>
+          <button type="button" disabled={queueing || approvedQueueableCount === 0} onClick={handleQueueMissing} className="rounded-xl border border-yellow-500/40 px-4 py-3 text-sm font-bold text-yellow-300 disabled:opacity-50">{queueing ? "Queueing..." : "Queue approved assets"}</button>
+          <button type="button" onClick={openNewAsset} className="rounded-xl bg-yellow-500 px-4 py-3 text-sm font-black text-black">Add asset</button>
+        </div>
+      </header>
+
+      <section className="grid gap-3 sm:grid-cols-3">
+        <div className="rounded-2xl border border-zinc-800 bg-zinc-900/60 p-4"><p className="text-xs uppercase tracking-wide text-zinc-500">Total assets</p><p className="mt-2 text-2xl font-black text-white">{assets.length}</p></div>
+        <div className="rounded-2xl border border-zinc-800 bg-zinc-900/60 p-4"><p className="text-xs uppercase tracking-wide text-zinc-500">Awaiting creator approval</p><p className="mt-2 text-2xl font-black text-white">{assets.filter((asset) => !asset.userApproved).length}</p></div>
+        <div className="rounded-2xl border border-zinc-800 bg-zinc-900/60 p-4"><p className="text-xs uppercase tracking-wide text-zinc-500">Generation jobs</p><p className="mt-2 text-2xl font-black text-white">{jobs.length}</p></div>
+      </section>
+
+      {error || actionError ? <p role="alert" className="rounded-xl border border-red-500/20 bg-red-950/30 p-4 text-sm text-red-200">{actionError || error}</p> : null}
+      {notice ? <p role="status" className="rounded-xl border border-emerald-500/20 bg-emerald-950/20 p-4 text-sm text-emerald-200">{notice}</p> : null}
+      <AssetList assets={assets} jobs={jobs} loading={loading} queueing={queueing} onEdit={openEditAsset} onDelete={setDeletingAsset} onApprove={handleApprove} onQueue={handleQueue} />
+
+      {formOpen ? <AssetFormDialog asset={editingAsset} productionId={productionId} saving={saving} onClose={() => setFormOpen(false)} onSave={saveAsset} /> : null}
+      <DeleteAssetDialog asset={deletingAsset} open={Boolean(deletingAsset)} loading={saving} onClose={() => setDeletingAsset(null)} onDelete={handleDelete} />
+    </main>
   );
 }

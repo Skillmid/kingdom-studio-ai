@@ -1,5 +1,6 @@
 import { supabase } from "@/lib/supabase/client";
 import type { Asset, AssetKind, AssetProvenance, AssetSourceKind, AssetStatus } from "../types/asset";
+import { toAssetDatabase } from "./asset.mapper";
 
 const TABLE_NAME = "assets";
 
@@ -38,18 +39,18 @@ export class AssetRepository {
     return (data ?? []).map((row) => this.mapAsset(row as AssetRow));
   }
   async create(asset: Partial<Asset>): Promise<Asset> {
-    const { data, error } = await this.supabase.from(TABLE_NAME).insert(this.toDatabase(asset)).select().single();
+    const { data, error } = await this.supabase.from(TABLE_NAME).insert(toAssetDatabase(asset, { includeDefaults: true })).select().single();
     if (error) throw new Error(error.message);
     return this.mapAsset(data as AssetRow);
   }
   async createMany(assets: Partial<Asset>[]): Promise<Asset[]> {
     if (assets.length === 0) return [];
-    const { data, error } = await this.supabase.from(TABLE_NAME).insert(assets.map((asset) => this.toDatabase(asset))).select();
+    const { data, error } = await this.supabase.from(TABLE_NAME).insert(assets.map((asset) => toAssetDatabase(asset, { includeDefaults: true }))).select();
     if (error) throw new Error(error.message);
     return ((data ?? []) as AssetRow[]).map((row) => this.mapAsset(row));
   }
   async update(id: string, updates: Partial<Asset>): Promise<Asset> {
-    const { data, error } = await this.supabase.from(TABLE_NAME).update(this.toDatabase(updates)).eq("id", id).select().single();
+    const { data, error } = await this.supabase.from(TABLE_NAME).update(toAssetDatabase(updates)).eq("id", id).select().single();
     if (error) throw new Error(error.message);
     return this.mapAsset(data as AssetRow);
   }
@@ -83,31 +84,6 @@ export class AssetRepository {
       progress: data.progress ?? 0,
       createdAt: data.created_at,
       updatedAt: data.updated_at,
-    };
-  }
-  private toDatabase(asset: Partial<Asset>) {
-    return {
-      production_id: asset.productionId,
-      scene_id: asset.sceneId,
-      shot_id: asset.shotId,
-      panel_id: asset.panelId,
-      character_id: asset.characterId,
-      location_id: asset.locationId,
-      director_note_id: asset.directorNoteId,
-      kind: asset.kind,
-      title: asset.title,
-      description: asset.description,
-      prompt: asset.prompt,
-      file_url: asset.fileUrl,
-      mime_type: asset.mimeType,
-      source_kind: asset.sourceKind ?? "user",
-      source_id: asset.sourceId,
-      uncertainty_notes: asset.uncertaintyNotes,
-      source_evidence: asset.sourceEvidence,
-      provenance: asset.provenance ?? "user",
-      user_approved: asset.userApproved ?? false,
-      status: asset.status ?? "draft",
-      progress: asset.progress ?? 0,
     };
   }
 }
