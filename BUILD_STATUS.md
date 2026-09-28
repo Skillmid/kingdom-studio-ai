@@ -6,22 +6,21 @@ This file is the persistent engineering status for autonomous sessions. Treat th
 
 ## Current milestone
 
-Assets plan/approve/edit/delete/queue workspace is landed on main.
+Assets workspace is mid-landing on main. The hook and supporting card/list/delete UI are on main. The production Assets page still renders the older generate-only view because `AssetsView` and `AssetFormDialog` have not been pushed yet.
 
-Landed on main in this session:
+On main now:
 
-- `use-assets` hook with production-derived planning, approval, compact updates and persisted dispatch results
-- Assets workspace UI: plan from production, approve, edit, delete, queue one asset, queue missing jobs
-- Asset and generation-job repositories now write through compact mappers and support `createMany` for jobs
-- Generation dispatch results persist job status/output/error without inventing a media URL
-- Provider constructors no longer use TypeScript parameter properties, so `npm test` can load Kling/OpenAI adapters
+- `use-assets` hook with production-derived planning, approval and persisted dispatch
+- `jobPersistencePatch` so dispatch results can be written without inventing a media URL
+- Asset card, list and delete dialog components
+- Changelog 0.7.1 and environment helper `readGenerationEnvironment`
 
-Provider-backed image/video generation v1 remains on main:
+Still required to finish the Assets workspace on main:
 
-- Image jobs resolve to OpenAI Images when `OPENAI_API_KEY` is set, otherwise Kling if configured.
-- Video jobs resolve to Kling when `KLING_API_KEY` or `KLING_ACCESS_KEY` + `KLING_SECRET_KEY` are set.
-- An unconfigured provider fails the job recoverably and never invents a media URL.
-- Server route: `POST /api/generation/run`.
+- Replace `AssetsView` with the plan/approve/edit/queue workspace
+- Add `AssetFormDialog`
+- Point asset and generation-job repositories at compact mappers (`createMany` for jobs)
+- Make Kling/OpenAI constructors strip-types compatible
 
 ## Pipeline
 
@@ -30,20 +29,20 @@ Provider-backed image/video generation v1 remains on main:
 | Shot List | Complete | Planner, persistence, UI, tests |
 | Storyboard | Complete | Shot-derived panels |
 | AI Director | Partial | Planner and tests exist; production page is still a thin notes view |
-| Assets / jobs | Complete | Planner, job machine, mappers, hook, plan/approve/queue workspace |
+| Assets / jobs | Partial | Hook and supporting UI landed; production page still thin |
 | Image/video generation | Present | Kling + OpenAI + unconfigured fallback |
 | Render / export | Partial | Planner and persistence exist; production page is still a thin view |
 
 ## Verification
 
-Executed 2026-09-28 against this workspace after the Assets workspace landing:
+Executed 2026-09-28 against the complete local Assets workspace before the GitHub file split:
 
 - `npm test` — 42 passed, 0 failed
 - `npm run lint` — 0 errors, 1 pre-existing unused-arg warning in `unconfigured.provider.ts`
 - `npx tsc --noEmit` — passed
 - `npm run build` — passed (Next.js 16.2.9)
 
-`package.json` still lists three test files that are not on main (`director-note.mapper.test.ts`, `render-planner.test.ts`, `render.mapper.test.ts`). Node skipped the missing paths; the 42 passing tests are the files that exist.
+Those commands have not been re-run against the partial GitHub-only tree after the push split.
 
 Apply migrations before using persistence:
 
@@ -55,6 +54,6 @@ Apply migrations before using persistence:
 
 ## Next executable dependency
 
-1. Replace the thin Render/Export workspace with the assemble/approve/export flow already implemented in planners.
-2. Restore missing render planner/mapper tests referenced by `package.json`.
+1. Land `AssetsView` and `AssetFormDialog`, then wire compact repository writes.
+2. Replace the thin Render/Export workspace with the assemble/approve/export flow already implemented in planners.
 3. Replace the thin AI Director production view with the plan/approve notes flow already implemented in planners and tests.
