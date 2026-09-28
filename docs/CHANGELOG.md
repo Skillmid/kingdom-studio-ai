@@ -2,6 +2,20 @@
 
 ---
 
+## Version 0.7.1
+
+### Added
+
+- Production Assets workspace hook and UI for plan, approve, edit, delete and queue-generation
+- Generation-job `createMany` plus compact mapper writes on asset and job persistence
+- Dispatch result persistence that copies provider output URLs only when a provider returns one
+
+### Fixed
+
+- Generation provider constructors are compatible with the Node strip-types test runner
+
+---
+
 ## Version 0.7.0
 
 ### Added

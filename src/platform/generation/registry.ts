@@ -1,10 +1,10 @@
 import { KlingMediaProvider } from "./providers/kling.provider";
 import { OpenAIImageProvider } from "./providers/openai-image.provider";
 import { unconfiguredMediaProvider } from "./providers/unconfigured.provider";
-import type { GenerationEnvironment, MediaGenerationProvider, MediaJobType } from "./types";
+import { readGenerationEnvironment, type GenerationEnvironment, type MediaGenerationProvider, type MediaJobType } from "./types";
 
 export function createMediaProviders(
-  env: GenerationEnvironment = process.env,
+  env: GenerationEnvironment = readGenerationEnvironment(),
   fetchImpl: typeof fetch = fetch,
 ): MediaGenerationProvider[] {
   return [new OpenAIImageProvider(env, fetchImpl), new KlingMediaProvider(env, fetchImpl), unconfiguredMediaProvider];
@@ -12,7 +12,7 @@ export function createMediaProviders(
 
 export function resolveMediaProvider(
   jobType: MediaJobType,
-  env: GenerationEnvironment = process.env,
+  env: GenerationEnvironment = readGenerationEnvironment(),
   fetchImpl: typeof fetch = fetch,
   preferredProvider?: string,
 ): MediaGenerationProvider {

@@ -35,6 +35,19 @@ export interface GenerationEnvironment {
   OPENAI_IMAGE_MODEL?: string;
 }
 
+export function readGenerationEnvironment(
+  env: NodeJS.ProcessEnv | GenerationEnvironment = process.env,
+): GenerationEnvironment {
+  return {
+    KLING_ACCESS_KEY: env.KLING_ACCESS_KEY,
+    KLING_SECRET_KEY: env.KLING_SECRET_KEY,
+    KLING_API_KEY: env.KLING_API_KEY,
+    KLING_API_BASE_URL: env.KLING_API_BASE_URL,
+    OPENAI_API_KEY: env.OPENAI_API_KEY,
+    OPENAI_IMAGE_MODEL: env.OPENAI_IMAGE_MODEL,
+  };
+}
+
 export const UNCONFIGURED_MEDIA_PROVIDER = "unconfigured";
 export const UNCONFIGURED_MEDIA_ERROR =
   "No generation provider is configured. The job remains recoverable and no media was invented.";

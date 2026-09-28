@@ -6,20 +6,15 @@ This file is the persistent engineering status for autonomous sessions. Treat th
 
 ## Current milestone
 
-Assets planning, job lifecycle and persistence mappers are on main. The production Assets page is still the thin generate list; the plan/approve/queue workspace is implemented in the working tree and needs the remaining UI/hook/repository files landed.
+Assets plan/approve/edit/delete/queue workspace is landed on main.
 
 Landed on main in this session:
 
-- Generic asset planner and generation-job tests that avoid THE MESSAGE entities
-- Asset/job database mappers that omit undefined columns on partial updates
-- Changelog 0.7.0
-
-Still required to finish the Assets workspace:
-
-- `use-assets` hook
-- Plan/approve/edit/delete/queue Assets UI
-- Repository `createMany`/compact-update wiring for generation jobs
-- Persist dispatch results from the production page
+- `use-assets` hook with production-derived planning, approval, compact updates and persisted dispatch results
+- Assets workspace UI: plan from production, approve, edit, delete, queue one asset, queue missing jobs
+- Asset and generation-job repositories now write through compact mappers and support `createMany` for jobs
+- Generation dispatch results persist job status/output/error without inventing a media URL
+- Provider constructors no longer use TypeScript parameter properties, so `npm test` can load Kling/OpenAI adapters
 
 Provider-backed image/video generation v1 remains on main:
 
@@ -34,21 +29,21 @@ Provider-backed image/video generation v1 remains on main:
 | --- | --- | --- |
 | Shot List | Complete | Planner, persistence, UI, tests |
 | Storyboard | Complete | Shot-derived panels |
-| AI Director | Present | Planner, persistence; production page is still a thin notes view |
-| Assets / jobs | Partial | Planner, job machine, mapper tests; workspace UI not fully on main |
+| AI Director | Partial | Planner and tests exist; production page is still a thin notes view |
+| Assets / jobs | Complete | Planner, job machine, mappers, hook, plan/approve/queue workspace |
 | Image/video generation | Present | Kling + OpenAI + unconfigured fallback |
-| Render / export | Present | Planner and persistence exist; production page is still a thin view |
+| Render / export | Partial | Planner and persistence exist; production page is still a thin view |
 
 ## Verification
 
-Executed 2026-09-28 against the complete local workspace before the GitHub file split:
+Executed 2026-09-28 against this workspace after the Assets workspace landing:
 
-- `npm test` — 45 passed, 0 failed
+- `npm test` — 42 passed, 0 failed
 - `npm run lint` — 0 errors, 1 pre-existing unused-arg warning in `unconfigured.provider.ts`
 - `npx tsc --noEmit` — passed
 - `npm run build` — passed (Next.js 16.2.9)
 
-Those commands have not been re-run against the partial GitHub-only tree after the push split.
+`package.json` still lists three test files that are not on main (`director-note.mapper.test.ts`, `render-planner.test.ts`, `render.mapper.test.ts`). Node skipped the missing paths; the 42 passing tests are the files that exist.
 
 Apply migrations before using persistence:
 
@@ -60,6 +55,6 @@ Apply migrations before using persistence:
 
 ## Next executable dependency
 
-1. Land the Assets plan/approve/queue hook and workspace UI on main.
-2. Replace the thin Render/Export workspace with the assemble/approve/export flow already implemented in planners and tests.
+1. Replace the thin Render/Export workspace with the assemble/approve/export flow already implemented in planners.
+2. Restore missing render planner/mapper tests referenced by `package.json`.
 3. Replace the thin AI Director production view with the plan/approve notes flow already implemented in planners and tests.
