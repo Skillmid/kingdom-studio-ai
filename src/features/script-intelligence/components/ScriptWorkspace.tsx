@@ -36,6 +36,7 @@ function ScriptWorkspaceContent({
     fileName,
     knowledge,
     analysis,
+    analysisRevisionVersion,
     revisions,
     loading,
     processing,
@@ -234,6 +235,8 @@ function ScriptWorkspaceContent({
         {intelligenceOpen && (
           <ScriptIntelligencePanel
             analysis={analysis}
+            analysisRevisionVersion={analysisRevisionVersion}
+            canAnalyse={Boolean(screenplay && !isDirty)}
             processing={processing}
             onAnalyse={handleAnalyse}
             onReview={reviewScreenplay}

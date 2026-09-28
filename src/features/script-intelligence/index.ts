@@ -8,9 +8,15 @@ export * from "./types/scene-proposal";
 
 export * from "./services/script-intelligence.service";
 
+export * from "./services/saved-analysis";
+
 export * from "./services/script-pipeline.service";
 
 export * from "./repositories/screenplay.repository";
+
+export * from "./repositories/screenplay-analysis.repository";
+
+export * from "./repositories/screenplay-analysis.mapper";
 
 export * from "./hooks/use-script-workspace";
 

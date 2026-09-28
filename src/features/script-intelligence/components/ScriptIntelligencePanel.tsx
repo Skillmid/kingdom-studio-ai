@@ -9,6 +9,8 @@ import type {
 
 interface ScriptAnalysisPanelProps {
   analysis: ScriptAnalysis | null;
+  analysisRevisionVersion: number | null;
+  canAnalyse: boolean;
   processing: boolean;
   onAnalyse: () => Promise<void>;
   onReview: (
@@ -25,6 +27,8 @@ interface ScriptAnalysisPanelProps {
 
 export default function ScriptAnalysisPanel({
   analysis,
+  analysisRevisionVersion,
+  canAnalyse,
   processing,
   onAnalyse,
   onReview,
@@ -77,7 +81,7 @@ export default function ScriptAnalysisPanel({
 
       <button
         type="button"
-        disabled={processing}
+        disabled={processing || !canAnalyse}
         onClick={() => void onAnalyse()}
         className="w-full rounded-2xl border border-yellow-600/40 bg-yellow-500/10 p-4 text-left transition hover:border-yellow-500 hover:bg-yellow-500/15 disabled:cursor-not-allowed disabled:opacity-50"
       >
@@ -86,9 +90,13 @@ export default function ScriptAnalysisPanel({
         </p>
 
         <p className="mt-1 text-xs leading-5 text-zinc-400">
-          Run comprehensive screenplay intelligence.
+          Run comprehensive screenplay intelligence and save it to the current screenplay revision. Save a revision before analysing.
         </p>
       </button>
+
+      {analysis && analysisRevisionVersion !== null ? (
+        <p className="-mt-6 text-xs text-zinc-500">This analysis is linked to saved screenplay revision {analysisRevisionVersion}.</p>
+      ) : null}
 
       <section className="space-y-3">
         <div>

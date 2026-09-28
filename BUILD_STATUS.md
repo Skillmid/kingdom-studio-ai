@@ -6,7 +6,7 @@ This file records repository findings verified during engineering work. Database
 
 ## Verified milestones
 
-The dedicated branch `codex/character-ai-profile-sync-integration` was based on fetched `origin/main` commit `7151235` and contains verified Character AI profile proposal, Assets workspace, and Render/Export assembly milestones.
+The dedicated branch `codex/character-ai-profile-sync-integration` was based on fetched `origin/main` commit `7151235` and contains verified Character AI profile proposal, Assets workspace, Render/Export assembly, AI Director note workflow, and revision-linked Script Intelligence milestones.
 
 ### Character AI profile proposals
 
@@ -40,11 +40,17 @@ The dedicated branch `codex/character-ai-profile-sync-integration` was based on 
 - Only creator-approved shots and storyboard panels enrich a new proposal. Existing notes are left intact, and generated note numbers follow the current production maximum.
 - This production workflow is deterministic and evidence-based; the separate general AI Director tools page remains outside this integration.
 
+### Script Intelligence persistence
+
+- Comprehensive Script Intelligence results are immutable records tied to the exact saved screenplay and revision that were analysed.
+- Analysis cannot run for an unsaved or changed draft. Loading a screenplay restores the latest analysis for its current revision; saving a new revision clears the prior result from the active view without deleting its historical record.
+- Analysis remains advisory and does not modify screenplay content. The `202609280004_create_screenplay_analyses.sql` migration enforces production ownership and matching screenplay/revision/version relationships. Database application state is unverified.
+
 ## Pipeline
 
 | Stage | Status | Notes |
 | --- | --- | --- |
-| Screenplay import and intelligence | Present | Current import engine, knowledge extraction service, and ScriptPipelineService retained |
+| Screenplay import and intelligence | Partial | Current import pipeline retained; comprehensive analysis persists by saved revision, while focused review results remain session-only |
 | Story Bible | Present | Current production architecture retained |
 | Characters | Integrated | Field-grounded AI proposals, creator review, persistence provenance, dynamic completion |
 | Locations | Present | Existing production workspace retained |
@@ -58,9 +64,9 @@ The dedicated branch `codex/character-ai-profile-sync-integration` was based on 
 
 ## Verification
 
-Executed on 2026-09-28 against the AI Director working tree, including the Render/Export and earlier integrations:
+Executed on 2026-09-28 against the Script Intelligence working tree, including the AI Director, Render/Export, and earlier integrations:
 
-- `npm test` - 59 passed, 0 failed.
+- `npm test` - 63 passed, 0 failed.
 - `npm run lint` - 0 errors; one unused-parameter warning in `src/platform/generation/providers/unconfigured.provider.ts`.
 - `npx tsc --noEmit` - passed.
 - `npm run build` - passed with Next.js 16.2.9; Render and Export routes were included.
@@ -84,10 +90,12 @@ The repository contains these production pipeline migrations:
 - `202609280001_add_character_profile_provenance.sql`
 - `202609280002_create_assets_and_generation_jobs.sql`
 - `202609280003_create_render_and_export_tables.sql`
+- `202609280004_create_screenplay_analyses.sql`
 
-The character, Assets, generation jobs, render sequences, render clips, and export packages migrations have been inspected against their application repositories, data types, and production ownership policies. No database connection or migration history was checked, so whether they have been applied is unverified.
+The character, Assets, generation jobs, render sequences, render clips, export packages, and screenplay analyses migrations have been inspected against their application repositories, data types, and production ownership policies. No database connection or migration history was checked, so whether they have been applied is unverified.
 
 ## Next dependencies
 
-1. Replace the thin AI Director production view with the existing plan/approve notes workflow.
-2. Integrate a real video renderer and durable export-file storage when that infrastructure is available. Current outputs are accurate EDL/JSON manifests only.
+1. Persist focused Script Intelligence reviews against their saved screenplay revisions, matching the comprehensive analysis history.
+2. Integrate a production video renderer and durable export-file storage. This repository has no render-worker or storage integration; the local FFmpeg executable is not a deployment contract, and current outputs remain EDL/JSON manifests.
+3. Connect the separate general AI Director tools page to production-scoped, creator-reviewed workflows.

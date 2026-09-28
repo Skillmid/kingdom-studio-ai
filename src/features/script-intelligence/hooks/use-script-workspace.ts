@@ -17,6 +17,8 @@ import {
 import {
   screenplayRepository,
 } from "../repositories/screenplay.repository";
+import { screenplayAnalysisRepository } from "../repositories/screenplay-analysis.repository";
+import { findPersistedAnalysisRevision } from "../services/saved-analysis";
 
 import type {
   ImportFileType,
@@ -58,6 +60,7 @@ export function useScriptWorkspace(productionId: string) {
   const [originalTitle, setOriginalTitle] = useState("Untitled Screenplay");
   const [knowledge, setKnowledge] = useState<ProductionKnowledge | null>(null);
   const [analysis, setAnalysis] = useState<ScriptAnalysis | null>(null);
+  const [analysisRevisionVersion, setAnalysisRevisionVersion] = useState<number | null>(null);
   const [revisions, setRevisions] = useState<ScreenplayRevision[]>([]);
   const [loading, setLoading] = useState(true);
   const [processing, setProcessing] = useState(false);
@@ -89,6 +92,7 @@ export function useScriptWorkspace(productionId: string) {
         setSource("internal");
         setKnowledge(null);
         setAnalysis(null);
+        setAnalysisRevisionVersion(null);
         setRevisions([]);
         return;
       }
@@ -102,8 +106,15 @@ export function useScriptWorkspace(productionId: string) {
       setSource(existing.source);
       setKnowledge(null);
       setAnalysis(null);
+      setAnalysisRevisionVersion(null);
 
-      await loadRevisions(existing.id);
+      const loadedRevisions = await loadRevisions(existing.id);
+      const currentRevision = loadedRevisions.find((revision) => revision.version === existing.version);
+      if (currentRevision) {
+        const savedAnalysis = await screenplayAnalysisRepository.getLatestByRevisionId(currentRevision.id);
+        setAnalysis(savedAnalysis?.analysis ?? null);
+        setAnalysisRevisionVersion(savedAnalysis?.screenplayVersion ?? null);
+      }
     },
     [loadRevisions]
   );
@@ -181,7 +192,8 @@ export function useScriptWorkspace(productionId: string) {
         setFileName(input.name);
         setSource(input.type);
         setKnowledge(result.knowledge);
-        setAnalysis(result.analysis);
+        setAnalysis(null);
+        setAnalysisRevisionVersion(null);
 
         return result;
       } catch (err) {
@@ -201,13 +213,34 @@ export function useScriptWorkspace(productionId: string) {
       return;
     }
 
+    if (!screenplay || isDirty) {
+      const message = "Save the current screenplay as a revision before running Script Intelligence.";
+      setError(message);
+      throw new Error(message);
+    }
+
+    const revision = findPersistedAnalysisRevision(screenplay, revisions, isDirty);
+    if (!revision) {
+      const message = "The current saved screenplay revision could not be found.";
+      setError(message);
+      throw new Error(message);
+    }
+
     setProcessing(true);
     setError(null);
 
     try {
       const result = await scriptIntelligence.analyze(content);
-      setAnalysis(result);
-      return result;
+      const saved = await screenplayAnalysisRepository.create({
+        productionId,
+        screenplayId: screenplay.id,
+        revisionId: revision.id,
+        screenplayVersion: screenplay.version,
+        analysis: result,
+      });
+      setAnalysis(saved.analysis);
+      setAnalysisRevisionVersion(saved.screenplayVersion);
+      return saved.analysis;
     } catch (err) {
       const message =
         err instanceof Error ? err.message : "Unable to analyse screenplay.";
@@ -216,7 +249,7 @@ export function useScriptWorkspace(productionId: string) {
     } finally {
       setProcessing(false);
     }
-  }, [content]);
+  }, [content, isDirty, productionId, revisions, screenplay]);
 
   const reviewScreenplay = useCallback(
     async (
@@ -283,6 +316,8 @@ export function useScriptWorkspace(productionId: string) {
         });
 
         setScreenplay(saved);
+        setAnalysis(null);
+        setAnalysisRevisionVersion(null);
         setTitle(saved.title);
         setOriginalTitle(saved.title);
         setContent(saved.content);
@@ -331,6 +366,8 @@ export function useScriptWorkspace(productionId: string) {
         );
 
         setScreenplay(restored);
+        setAnalysis(null);
+        setAnalysisRevisionVersion(null);
         setTitle(restored.title);
         setOriginalTitle(restored.title);
         setContent(restored.content);
@@ -363,6 +400,7 @@ export function useScriptWorkspace(productionId: string) {
     setSource("internal");
     setKnowledge(null);
     setAnalysis(null);
+    setAnalysisRevisionVersion(null);
     setRevisions([]);
     setError(null);
   }
@@ -377,6 +415,7 @@ export function useScriptWorkspace(productionId: string) {
     source,
     knowledge,
     analysis,
+    analysisRevisionVersion,
     revisions,
     loading,
     processing,
