@@ -4,10 +4,14 @@ import { useCallback, useState } from "react";
 
 import { sceneRepository } from "@/features/scenes/repositories/scene.repository";
 import { sceneSchema } from "@/features/scenes/validation/scene.schema";
-import type { SceneStatus } from "@/features/scenes/types/scene";
 
 import { scriptIntelligence } from "../services/script-intelligence.service";
 import type { ProposedScene } from "../types/scene-proposal";
+import {
+  buildApprovedSceneInput,
+  createRevisionBoundSceneProposals,
+  type SceneExtractionSource,
+} from "../services/scene-extraction-provenance";
 
 function createClientId() {
   return `proposal-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
@@ -21,10 +25,15 @@ export function useSceneExtraction(productionId: string) {
   const [notice, setNotice] = useState<string | null>(null);
 
   const extractScenes = useCallback(
-    async (screenplay: string) => {
+    async (screenplay: string, source: SceneExtractionSource | null) => {
       if (!screenplay.trim()) {
         setError("Save or paste a screenplay before extracting scenes.");
         return;
+      }
+      if (!source) {
+        const message = "Save the current screenplay as a revision before extracting scenes.";
+        setError(message);
+        throw new Error(message);
       }
 
       setExtracting(true);
@@ -35,13 +44,9 @@ export function useSceneExtraction(productionId: string) {
         const drafts = await scriptIntelligence.extractScenes(screenplay);
 
         setProposals(
-          drafts.map((draft) => ({
+          createRevisionBoundSceneProposals(drafts, source).map((draft) => ({
             clientId: createClientId(),
-            number: draft.number,
-            heading: draft.heading,
-            summary: draft.summary,
-            status: draft.status,
-            progress: draft.progress,
+            ...draft,
             selected: true,
           })),
         );
@@ -91,51 +96,28 @@ export function useSceneExtraction(productionId: string) {
   }, []);
 
   const persistScenes = useCallback(
-    async (scenes: ProposedScene[]) => {
+    async (scenes: ProposedScene[], currentSource: SceneExtractionSource | null) => {
       if (!productionId) {
         throw new Error("Production ID is required.");
       }
-
-      const validated = scenes.map((scene) => {
-        const result = sceneSchema.safeParse({
-          productionId,
-          number: scene.number,
-          heading: scene.heading,
-          summary: scene.summary.trim() ? scene.summary.trim() : undefined,
-          characterIds: [],
-          status: scene.status,
-          progress: scene.progress,
-        });
-
-        if (!result.success) {
-          const firstIssue = result.error.issues[0];
-          throw new Error(
-            firstIssue?.message ??
-              `Scene ${scene.number} is not valid and was not saved.`,
-          );
-        }
-
-        return result.data;
-      });
 
       setSaving(true);
       setError(null);
 
       try {
+        const validated = scenes.map((scene) => {
+          const input = buildApprovedSceneInput(scene, productionId, currentSource);
+          const result = sceneSchema.safeParse(input);
+          if (!result.success) {
+            const firstIssue = result.error.issues[0];
+            throw new Error(firstIssue?.message ?? `Scene ${scene.number} is not valid and was not saved.`);
+          }
+          return result.data;
+        });
         const created = [];
 
         for (const scene of validated) {
-          created.push(
-            await sceneRepository.create({
-              productionId: scene.productionId,
-              number: scene.number,
-              heading: scene.heading,
-              summary: scene.summary,
-              characterIds: scene.characterIds,
-              status: scene.status as SceneStatus,
-              progress: scene.progress,
-            }),
-          );
+          created.push(await sceneRepository.create(scene));
         }
 
         const savedIds = new Set(scenes.map((scene) => scene.clientId));
@@ -163,19 +145,19 @@ export function useSceneExtraction(productionId: string) {
   );
 
   const approveScene = useCallback(
-    async (clientId: string) => {
+    async (clientId: string, currentSource: SceneExtractionSource | null) => {
       const scene = proposals.find((item) => item.clientId === clientId);
 
       if (!scene) {
         return;
       }
 
-      await persistScenes([scene]);
+      await persistScenes([scene], currentSource);
     },
     [persistScenes, proposals],
   );
 
-  const approveSelected = useCallback(async () => {
+  const approveSelected = useCallback(async (currentSource: SceneExtractionSource | null) => {
     const selected = proposals.filter((scene) => scene.selected);
 
     if (selected.length === 0) {
@@ -183,16 +165,16 @@ export function useSceneExtraction(productionId: string) {
       return;
     }
 
-    await persistScenes(selected);
+    await persistScenes(selected, currentSource);
   }, [persistScenes, proposals]);
 
-  const approveAll = useCallback(async () => {
+  const approveAll = useCallback(async (currentSource: SceneExtractionSource | null) => {
     if (proposals.length === 0) {
       setError("There are no proposed scenes to approve.");
       return;
     }
 
-    await persistScenes(proposals);
+    await persistScenes(proposals, currentSource);
   }, [persistScenes, proposals]);
 
   const clearProposals = useCallback(() => {

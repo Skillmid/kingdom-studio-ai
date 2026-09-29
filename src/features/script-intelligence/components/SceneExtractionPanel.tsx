@@ -4,10 +4,12 @@ import type { SceneStatus } from "@/features/scenes/types/scene";
 
 import { useSceneExtraction } from "../hooks/use-scene-extraction";
 import type { ProposedScene } from "../types/scene-proposal";
+import { matchesSceneSource, type SceneExtractionSource } from "../services/scene-extraction-provenance";
 
 interface SceneExtractionPanelProps {
   productionId: string;
   screenplay: string;
+  source: SceneExtractionSource | null;
 }
 
 const STATUS_OPTIONS: Array<{ value: SceneStatus; label: string }> = [
@@ -19,6 +21,7 @@ const STATUS_OPTIONS: Array<{ value: SceneStatus; label: string }> = [
 export default function SceneExtractionPanel({
   productionId,
   screenplay,
+  source,
 }: SceneExtractionPanelProps) {
   const {
     proposals,
@@ -46,21 +49,26 @@ export default function SceneExtractionPanel({
             Proposed Scenes
           </h2>
           <p className="mt-3 max-w-3xl text-sm leading-6 text-zinc-400">
-            Analyse the current screenplay and review proposed scenes before
-            anything is written to the production. Approved scenes are saved
-            through the existing Scene Planner records.
+            Extract from an unchanged saved revision, then review proposed scenes before
+            anything is written to the production. Accepted scenes retain their source revision.
           </p>
         </div>
 
         <button
           type="button"
-          disabled={extracting || saving || !screenplay.trim()}
-          onClick={() => void extractScenes(screenplay)}
+          disabled={extracting || saving || !screenplay.trim() || !source}
+          onClick={() => void extractScenes(screenplay, source)}
           className="rounded-xl bg-yellow-500 px-5 py-3 text-sm font-semibold text-black transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
         >
           {extracting ? "Extracting..." : "Extract Scenes"}
         </button>
       </div>
+
+      {!source ? (
+        <p role="status" className="rounded-xl border border-yellow-500/20 bg-yellow-500/5 p-4 text-sm text-yellow-200">
+          Save the current screenplay revision before extracting or accepting scene proposals.
+        </p>
+      ) : null}
 
       {error && (
         <div className="rounded-2xl border border-red-500/40 bg-red-500/10 p-4 text-sm text-red-300">
@@ -87,16 +95,16 @@ export default function SceneExtractionPanel({
           <div className="flex flex-wrap gap-3">
             <button
               type="button"
-              disabled={saving}
-              onClick={() => void approveSelected()}
+              disabled={saving || !source}
+              onClick={() => void approveSelected(source)}
               className="rounded-xl border border-yellow-500/40 bg-yellow-500/10 px-4 py-2 text-sm font-semibold text-yellow-400 transition hover:bg-yellow-500/20 disabled:opacity-50"
             >
               {saving ? "Saving..." : "Approve Selected"}
             </button>
             <button
               type="button"
-              disabled={saving}
-              onClick={() => void approveAll()}
+              disabled={saving || !source}
+              onClick={() => void approveAll(source)}
               className="rounded-xl bg-yellow-500 px-4 py-2 text-sm font-semibold text-black transition hover:opacity-90 disabled:opacity-50"
             >
               Approve All
@@ -116,12 +124,12 @@ export default function SceneExtractionPanel({
               <ProposalRow
                 key={proposal.clientId}
                 proposal={proposal}
-                disabled={saving}
+                disabled={saving || !source || !matchesSceneSource(proposal, source)}
                 onToggle={() => toggleProposal(proposal.clientId)}
                 onChange={(updates) =>
                   updateProposal(proposal.clientId, updates)
                 }
-                onApprove={() => void approveScene(proposal.clientId)}
+                onApprove={() => void approveScene(proposal.clientId, source)}
               />
             ))}
           </div>

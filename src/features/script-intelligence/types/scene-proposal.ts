@@ -8,4 +8,7 @@ export interface ProposedScene {
   status: SceneStatus;
   progress: number;
   selected: boolean;
+  sourceScreenplayId: string;
+  sourceRevisionId: string;
+  sourceScreenplayVersion: number;
 }

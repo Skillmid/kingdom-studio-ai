@@ -25,6 +25,9 @@ export interface Scene {
   productionNotes?: string;
   aiPrompt?: string;
   sourceText?: string;
+  sourceScreenplayId?: string;
+  sourceRevisionId?: string;
+  sourceScreenplayVersion?: number;
   estimatedDurationSeconds?: number;
   status: SceneStatus;
   progress: number;

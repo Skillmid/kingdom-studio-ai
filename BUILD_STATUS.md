@@ -1,6 +1,6 @@
 # Kingdom Studio AI - Build Status
 
-Last updated: 2026-09-28
+Last updated: 2026-09-29
 
 This file records repository findings verified during engineering work. Database migration application state is not available from the repository alone.
 
@@ -49,6 +49,12 @@ The dedicated branch `codex/character-ai-profile-sync-integration` was based on 
 - Analysis remains advisory and does not modify screenplay content. The `202609280004_create_screenplay_analyses.sql` migration enforces production ownership and matching screenplay/revision/version relationships. Database application state is unverified.
 - The `202609280005_create_screenplay_reviews.sql` migration persists focused reviews with their type and the same screenplay/revision/version provenance. Database application state is unverified.
 
+### Revision-bound scene extraction
+
+- Scene extraction is available only when the editor matches the exact current saved screenplay revision. A changed or unsaved draft cannot produce or accept scene proposals.
+- Proposals carry screenplay ID, revision ID, and version through creator review. Accepted scenes persist those identifiers; scene validation and database foreign keys require the provenance fields together and tie them to the same screenplay and production.
+- Manually created scenes remain valid without screenplay provenance. The `202609290001_add_scene_screenplay_provenance.sql` migration preserves exact revision relationships; database application state is unverified.
+
 ## Pipeline
 
 | Stage | Status | Notes |
@@ -57,7 +63,7 @@ The dedicated branch `codex/character-ai-profile-sync-integration` was based on 
 | Story Bible | Present | Current production architecture retained |
 | Characters | Integrated | Field-grounded AI proposals, creator review, persistence provenance, dynamic completion |
 | Locations | Present | Existing production workspace retained |
-| Scenes | Present | Existing production workspace retained |
+| Scenes | Integrated | Existing Scene Planner retained; screenplay extraction and accepted scenes are bound to exact saved revisions |
 | Shot List | Complete | Planner, persistence, UI, tests |
 | Storyboard | Complete | Shot-derived panels |
 | AI Director | Partial | Grounded plan/review/persist flow is integrated; separate general AI tools are not wired to production records |
@@ -67,9 +73,9 @@ The dedicated branch `codex/character-ai-profile-sync-integration` was based on 
 
 ## Verification
 
-Executed on 2026-09-28 against the Script Intelligence working tree, including the AI Director, Render/Export, and earlier integrations:
+Executed on 2026-09-29 against the revision-bound scene extraction working tree, including the existing AI Director, Render/Export, and earlier integrations:
 
-- `npm test` - 67 passed, 0 failed.
+- `npm test` - 75 passed, 0 failed.
 - `npm run lint` - 0 errors; one unused-parameter warning in `src/platform/generation/providers/unconfigured.provider.ts`.
 - `npx tsc --noEmit` - passed.
 - `npm run build` - passed with Next.js 16.2.9; Render and Export routes were included.
@@ -95,8 +101,9 @@ The repository contains these production pipeline migrations:
 - `202609280003_create_render_and_export_tables.sql`
 - `202609280004_create_screenplay_analyses.sql`
 - `202609280005_create_screenplay_reviews.sql`
+- `202609290001_add_scene_screenplay_provenance.sql`
 
-The character, Assets, generation jobs, render sequences, render clips, export packages, screenplay analyses, and screenplay reviews migrations have been inspected against their application repositories, data types, and production ownership policies. No database connection or migration history was checked, so whether they have been applied is unverified.
+The character, Assets, generation jobs, render sequences, render clips, export packages, screenplay analyses, screenplay reviews, and scene screenplay provenance migrations have been inspected against their application repositories, data types, and production ownership policies. No database connection or migration history was checked, so whether they have been applied is unverified.
 
 ## Next dependencies
 

@@ -29,9 +29,22 @@ export const sceneSchema = z.object({
   productionNotes: optionalText,
   aiPrompt: optionalText,
   sourceText: optionalText,
+  sourceScreenplayId: z.string().uuid().optional(),
+  sourceRevisionId: z.string().uuid().optional(),
+  sourceScreenplayVersion: z.number().int().positive().optional(),
   estimatedDurationSeconds: z.number().int().min(0).optional(),
   status: sceneStatusSchema.default("draft"),
   progress: z.number().int().min(0).max(100).default(0),
+}).superRefine((scene, context) => {
+  const sourceValues = [scene.sourceScreenplayId, scene.sourceRevisionId, scene.sourceScreenplayVersion];
+  const sourceCount = sourceValues.filter((value) => value !== undefined).length;
+  if (sourceCount !== 0 && sourceCount !== sourceValues.length) {
+    context.addIssue({
+      code: "custom",
+      message: "Screenplay provenance must include the screenplay, revision, and version together.",
+      path: ["sourceRevisionId"],
+    });
+  }
 });
 
 export type SceneFormData = z.infer<typeof sceneSchema>;

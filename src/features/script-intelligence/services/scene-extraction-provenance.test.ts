@@ -1,0 +1,55 @@
+import assert from "node:assert/strict";
+import { describe, it } from "node:test";
+import {
+  buildApprovedSceneInput,
+  createRevisionBoundSceneProposals,
+  getSceneExtractionSource,
+} from "./scene-extraction-provenance";
+
+const screenplay = { id: "screenplay-1", version: 4 };
+const revisions = [
+  { id: "revision-4", screenplayId: "screenplay-1", version: 4 },
+  { id: "revision-3", screenplayId: "screenplay-1", version: 3 },
+];
+const drafts = [{ number: 1, heading: "EXT. MARKET - DAY", summary: "A vendor opens the stall.", status: "draft" as const, progress: 0 }];
+
+describe("revision-bound scene extraction provenance", () => {
+  it("selects the exact current saved revision for extraction", () => {
+    assert.deepEqual(getSceneExtractionSource(screenplay, revisions, false), {
+      screenplayId: "screenplay-1",
+      revisionId: "revision-4",
+      screenplayVersion: 4,
+    });
+  });
+
+  it("rejects extraction from changed or unsaved screenplay text", () => {
+    assert.equal(getSceneExtractionSource(screenplay, revisions, true), null);
+    assert.equal(getSceneExtractionSource(null, revisions, false), null);
+  });
+
+  it("carries the saved revision into every reviewable proposal", () => {
+    const source = getSceneExtractionSource(screenplay, revisions, false)!;
+    const [proposal] = createRevisionBoundSceneProposals(drafts, source);
+    assert.equal(proposal?.sourceScreenplayId, source.screenplayId);
+    assert.equal(proposal?.sourceRevisionId, source.revisionId);
+    assert.equal(proposal?.sourceScreenplayVersion, source.screenplayVersion);
+  });
+
+  it("persists accepted scenes only while their proposal source remains current", () => {
+    const source = getSceneExtractionSource(screenplay, revisions, false)!;
+    const proposal = {
+      ...createRevisionBoundSceneProposals(drafts, source)[0]!,
+      clientId: "proposal-1",
+      selected: true,
+    };
+    const accepted = buildApprovedSceneInput(proposal, "production-1", source);
+    assert.equal(accepted.productionId, "production-1");
+    assert.equal(accepted.sourceScreenplayId, "screenplay-1");
+    assert.equal(accepted.sourceRevisionId, "revision-4");
+    assert.equal(accepted.sourceScreenplayVersion, 4);
+    assert.throws(
+      () => buildApprovedSceneInput(proposal, "production-1", null),
+      /saved screenplay revision changed/i,
+    );
+  });
+});

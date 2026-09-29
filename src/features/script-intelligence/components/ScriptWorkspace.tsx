@@ -19,6 +19,7 @@ import ScriptImport from "./ScriptImport";
 import ScriptIntelligencePanel from "./ScriptIntelligencePanel";
 import ScriptRevisionHistory from "./ScriptRevisionHistory";
 import SceneExtractionPanel from "./SceneExtractionPanel";
+import { getSceneExtractionSource } from "../services/scene-extraction-provenance";
 
 interface ScriptWorkspaceProps {
   productionId: string;
@@ -53,6 +54,8 @@ function ScriptWorkspaceContent({
   } = useScriptWorkspace(
     productionId
   );
+
+  const sceneExtractionSource = getSceneExtractionSource(screenplay, revisions, isDirty);
 
   const {
     runSave,
@@ -250,6 +253,7 @@ function ScriptWorkspaceContent({
       <SceneExtractionPanel
         productionId={productionId}
         screenplay={content}
+        source={sceneExtractionSource}
       />
 
       {historyOpen && (
