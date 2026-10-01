@@ -8,6 +8,9 @@ interface PanelListProps {
   loading?: boolean;
   onEdit: (panel: StoryboardPanel) => void;
   onDelete: (panel: StoryboardPanel) => void;
+  onToggleApproval?: (panel: StoryboardPanel) => void;
+  onMoveUp?: (panel: StoryboardPanel) => void;
+  onMoveDown?: (panel: StoryboardPanel) => void;
   sceneHeadings?: ReadonlyMap<string, string>;
   shotLabels?: ReadonlyMap<string, string>;
   locationNames?: ReadonlyMap<string, string>;
@@ -19,6 +22,9 @@ export default function PanelList({
   loading = false,
   onEdit,
   onDelete,
+  onToggleApproval,
+  onMoveUp,
+  onMoveDown,
   sceneHeadings,
   shotLabels,
   locationNames,
@@ -45,16 +51,21 @@ export default function PanelList({
 
   return (
     <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
-      {panels.map((panel) => (
+      {panels.map((panel, index) => (
         <PanelCard
           key={panel.id}
           panel={panel}
+          canMoveUp={index > 0}
+          canMoveDown={index < panels.length - 1}
           sceneHeading={panel.sceneId ? sceneHeadings?.get(panel.sceneId) : undefined}
           shotLabel={panel.shotId ? shotLabels?.get(panel.shotId) : undefined}
           locationName={panel.locationId ? locationNames?.get(panel.locationId) : undefined}
           characterNames={characterNames}
           onEdit={onEdit}
           onDelete={onDelete}
+          onToggleApproval={onToggleApproval}
+          onMoveUp={onMoveUp}
+          onMoveDown={onMoveDown}
         />
       ))}
     </div>

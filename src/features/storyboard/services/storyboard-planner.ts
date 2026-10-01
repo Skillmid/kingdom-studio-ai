@@ -29,6 +29,10 @@ export interface StoryboardSceneInput {
   timeOfDay?: string;
   action?: string;
   visualDirection?: string;
+  cameraDirection?: string;
+  mood?: string;
+  musicNotes?: string;
+  videoPrompt?: string;
   continuityNotes?: string;
   characterIds?: string[];
   locationId?: string;
@@ -48,6 +52,11 @@ export interface StoryboardLocationInput {
   name: string;
   description?: string;
   setting?: string;
+  timePeriod?: string;
+  weather?: string;
+  architecture?: string;
+  lighting?: string;
+  mood?: string;
 }
 
 export interface StoryboardPlanContext {
@@ -74,13 +83,14 @@ function joinUnique(parts: Array<string | undefined>): string | undefined {
   return values.length > 0 ? values.join(" ") : undefined;
 }
 
-export function compositionFromShot(shot: StoryboardShotInput): string {
+export function compositionFromShot(shot: StoryboardShotInput, scene?: StoryboardSceneInput): string {
   const parts = [
     shot.framing,
     shot.shotType.replace(/-/g, " "),
     shot.cameraAngle,
     shot.cameraMovement && shot.cameraMovement !== "static" ? shot.cameraMovement : undefined,
     shot.lens,
+    scene?.cameraDirection && !shot.cameraAngle && !shot.cameraMovement ? scene.cameraDirection : undefined,
   ].filter(Boolean);
   return parts.join(" · ");
 }
@@ -108,6 +118,8 @@ function buildGenerationPrompt(params: {
     const extras = joinUnique([
       location?.name,
       location?.description,
+      location?.lighting ? `lighting ${location.lighting}` : undefined,
+      location?.weather ? `weather ${location.weather}` : undefined,
       ...characters.map((character) => characterContinuity(character)),
     ]);
     return extras && !shot.generationPrompt.toLowerCase().includes(extras.toLowerCase())
@@ -118,11 +130,15 @@ function buildGenerationPrompt(params: {
   return joinUnique([
     composition,
     visualDescription,
+    scene?.videoPrompt ? `Video: ${scene.videoPrompt}` : undefined,
     shot.subject,
     shot.dialogueReference ? `Dialogue: ${shot.dialogueReference}` : undefined,
     scene?.heading,
+    scene?.mood ? `Mood: ${scene.mood}` : undefined,
     location?.name,
     location?.description,
+    location?.lighting ? `Lighting: ${location.lighting}` : undefined,
+    location?.weather ? `Weather: ${location.weather}` : undefined,
     ...characters.map((character) => characterContinuity(character)),
   ]);
 }
@@ -154,15 +170,23 @@ export function planPanelsFromShots(
         shot.action,
         shot.subject,
         scene?.visualDirection,
+        scene?.mood ? `Atmosphere: ${scene.mood}` : undefined,
       ]);
-      const composition = compositionFromShot(shot);
+      const composition = compositionFromShot(shot, scene);
       const continuityNotes = joinUnique([
         shot.continuityNotes,
         scene?.continuityNotes,
         scene?.heading,
         scene?.timeOfDay,
+        scene?.cameraDirection ? `Camera direction: ${scene.cameraDirection}` : undefined,
+        scene?.mood ? `Scene mood: ${scene.mood}` : undefined,
         location?.name,
         location?.setting,
+        location?.timePeriod ? `Period: ${location.timePeriod}` : undefined,
+        location?.weather ? `Weather: ${location.weather}` : undefined,
+        location?.architecture ? `Architecture: ${location.architecture}` : undefined,
+        location?.lighting ? `Lighting: ${location.lighting}` : undefined,
+        location?.mood ? `Location mood: ${location.mood}` : undefined,
         location?.description,
         ...frameCharacters.map((character) => characterContinuity(character)),
       ]);
@@ -173,6 +197,9 @@ export function planPanelsFromShots(
         shot.dialogueReference,
         scene?.action,
         scene?.visualDirection,
+        scene?.cameraDirection,
+        scene?.mood,
+        scene?.videoPrompt,
       ]);
 
       return withCalculatedProgress({

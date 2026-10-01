@@ -81,6 +81,42 @@ export class StoryboardRepository {
     if (error) throw new Error(error.message);
   }
 
+  async reorder(productionId: string, orderedIds: string[]): Promise<StoryboardPanel[]> {
+    if (orderedIds.length === 0) return [];
+
+    const TEMP_OFFSET = 10000;
+    for (let index = 0; index < orderedIds.length; index++) {
+      const id = orderedIds[index];
+      const { error } = await this.supabase
+        .from(TABLE_NAME)
+        .update({ panel_number: TEMP_OFFSET + index + 1 })
+        .eq("id", id);
+      if (error) throw new Error(error.message);
+    }
+
+    for (let index = 0; index < orderedIds.length; index++) {
+      const id = orderedIds[index];
+      const { error } = await this.supabase
+        .from(TABLE_NAME)
+        .update({ panel_number: index + 1 })
+        .eq("id", id);
+      if (error) throw new Error(error.message);
+    }
+
+    return this.getByProductionId(productionId);
+  }
+
+  async approveMany(ids: string[]): Promise<void> {
+    if (ids.length === 0) return;
+
+    const { error } = await this.supabase
+      .from(TABLE_NAME)
+      .update({ user_approved: true })
+      .in("id", ids);
+
+    if (error) throw new Error(error.message);
+  }
+
   private mapPanel(data: PanelRow): StoryboardPanel {
     return {
       id: data.id,

@@ -17,6 +17,7 @@ export function useStoryboard(productionId: string) {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [planning, setPlanning] = useState(false);
+  const [reordering, setReordering] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const loadPanels = useCallback(async () => {
@@ -125,6 +126,65 @@ export function useStoryboard(productionId: string) {
     }
   }
 
+  async function toggleApproval(id: string) {
+    const current = panels.find((panel) => panel.id === id);
+    if (!current) throw new Error("Panel not found.");
+
+    return updatePanel(id, { userApproved: !current.userApproved });
+  }
+
+  async function approveAll(): Promise<number> {
+    const unapproved = panels.filter((panel) => !panel.userApproved);
+    if (unapproved.length === 0) return 0;
+
+    try {
+      setSaving(true);
+      setError(null);
+      await storyboardRepository.approveMany(unapproved.map((panel) => panel.id));
+      setPanels((current) => current.map((panel) => ({ ...panel, userApproved: true })));
+      return unapproved.length;
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to approve panels.");
+      throw err;
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function reorder(orderedIds: string[]): Promise<StoryboardPanel[]> {
+    if (!productionId) throw new Error("Production ID is required.");
+    if (orderedIds.length === 0) return panels;
+
+    try {
+      setReordering(true);
+      setError(null);
+      const updated = await storyboardRepository.reorder(productionId, orderedIds);
+      setPanels(updated);
+      return updated;
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to reorder storyboard panels.");
+      throw err;
+    } finally {
+      setReordering(false);
+    }
+  }
+
+  async function movePanel(panelId: string, direction: "up" | "down"): Promise<void> {
+    const sorted = [...panels].sort((a, b) => a.panelNumber - b.panelNumber);
+    const currentIndex = sorted.findIndex((panel) => panel.id === panelId);
+
+    if (currentIndex === -1) return;
+    if (direction === "up" && currentIndex === 0) return;
+    if (direction === "down" && currentIndex === sorted.length - 1) return;
+
+    const targetIndex = direction === "up" ? currentIndex - 1 : currentIndex + 1;
+    const reordered = [...sorted];
+    const [moved] = reordered.splice(currentIndex, 1);
+    reordered.splice(targetIndex, 0, moved);
+
+    await reorder(reordered.map((panel) => panel.id));
+  }
+
   async function planFromShots(): Promise<{
     createdCount: number;
     shotCount: number;
@@ -184,11 +244,16 @@ export function useStoryboard(productionId: string) {
     loading,
     saving,
     planning,
+    reordering,
     error,
     refresh,
     createPanel,
     updatePanel,
     deletePanel,
+    toggleApproval,
+    approveAll,
+    reorder,
+    movePanel,
     planFromShots,
     nextPanelNumber,
   };

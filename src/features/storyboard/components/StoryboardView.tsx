@@ -12,14 +12,27 @@ import type { StoryboardPanel } from "../types/storyboard-panel";
 import DeletePanelDialog from "./DeletePanelDialog";
 import PanelFormDialog from "./PanelFormDialog";
 import PanelList from "./PanelList";
+import StoryboardPreviewDialog from "./StoryboardPreviewDialog";
 
 interface StoryboardViewProps {
   productionId: string;
 }
 
 export function StoryboardView({ productionId }: StoryboardViewProps) {
-  const { panels, loading, saving, planning, error, createPanel, updatePanel, deletePanel, planFromShots } =
-    useStoryboard(productionId);
+  const {
+    panels,
+    loading,
+    saving,
+    planning,
+    error,
+    createPanel,
+    updatePanel,
+    deletePanel,
+    toggleApproval,
+    approveAll,
+    movePanel,
+    planFromShots,
+  } = useStoryboard(productionId);
   const { shots, error: shotsError } = useShots(productionId);
   const { scenes, error: scenesError } = useScenes(productionId);
   const { locations, error: locationsError } = useLocations(productionId);
@@ -29,6 +42,7 @@ export function StoryboardView({ productionId }: StoryboardViewProps) {
   const [formMode, setFormMode] = useState<"create" | "edit">("create");
   const [selectedPanel, setSelectedPanel] = useState<StoryboardPanel | null>(null);
   const [panelToDelete, setPanelToDelete] = useState<StoryboardPanel | null>(null);
+  const [previewOpen, setPreviewOpen] = useState(false);
   const [notification, setNotification] = useState<string | null>(null);
   const [filter, setFilter] = useState<"all" | "draft" | "in-progress" | "completed">("all");
 
@@ -86,6 +100,48 @@ export function StoryboardView({ productionId }: StoryboardViewProps) {
     setFormOpen(true);
   }
 
+  async function handleToggleApproval(panel: StoryboardPanel) {
+    try {
+      await toggleApproval(panel.id);
+      setNotification(
+        panel.userApproved
+          ? `Panel ${panel.panelNumber} unapproved.`
+          : `Panel ${panel.panelNumber} approved.`,
+      );
+    } catch {
+      // Hook exposes the actionable error state.
+    }
+  }
+
+  async function handleApproveAll() {
+    try {
+      const count = await approveAll();
+      if (count > 0) {
+        setNotification(`Approved ${count} draft panel${count === 1 ? "" : "s"}.`);
+      }
+    } catch {
+      // Hook exposes the actionable error state.
+    }
+  }
+
+  async function handleMoveUp(panel: StoryboardPanel) {
+    try {
+      await movePanel(panel.id, "up");
+      setNotification(`Panel ${panel.panelNumber} moved earlier in sequence.`);
+    } catch {
+      // Hook exposes the actionable error state.
+    }
+  }
+
+  async function handleMoveDown(panel: StoryboardPanel) {
+    try {
+      await movePanel(panel.id, "down");
+      setNotification(`Panel ${panel.panelNumber} moved later in sequence.`);
+    } catch {
+      // Hook exposes the actionable error state.
+    }
+  }
+
   async function handlePlanFromShots() {
     try {
       const result = await planFromShots();
@@ -133,6 +189,28 @@ export function StoryboardView({ productionId }: StoryboardViewProps) {
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
+          {orderedPanels.length > 0 && (
+            <button
+              type="button"
+              onClick={() => setPreviewOpen(true)}
+              className="flex items-center gap-2 rounded-xl border border-zinc-700 bg-zinc-800/80 px-4 py-3 text-sm font-bold text-zinc-200 transition hover:bg-zinc-800 hover:text-white"
+            >
+              <svg className="h-4 w-4 text-yellow-400" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M8 5v14l11-7z" />
+              </svg>
+              <span>Preview Flow</span>
+            </button>
+          )}
+          {panels.some((panel) => !panel.userApproved) && (
+            <button
+              type="button"
+              onClick={handleApproveAll}
+              disabled={saving}
+              className="rounded-xl border border-yellow-500/40 bg-yellow-500/10 px-4 py-3 text-sm font-bold text-yellow-400 transition hover:bg-yellow-500/15 disabled:opacity-50"
+            >
+              Approve All Drafts
+            </button>
+          )}
           <button
             type="button"
             onClick={handlePlanFromShots}
@@ -220,6 +298,9 @@ export function StoryboardView({ productionId }: StoryboardViewProps) {
         loading={loading}
         onEdit={openEdit}
         onDelete={setPanelToDelete}
+        onToggleApproval={handleToggleApproval}
+        onMoveUp={handleMoveUp}
+        onMoveDown={handleMoveDown}
         sceneHeadings={sceneHeadings}
         shotLabels={shotLabels}
         locationNames={locationNames}
@@ -254,6 +335,16 @@ export function StoryboardView({ productionId }: StoryboardViewProps) {
           setPanelToDelete(null);
           setNotification("Panel deleted.");
         }}
+      />
+
+      <StoryboardPreviewDialog
+        open={previewOpen}
+        panels={orderedPanels}
+        onClose={() => setPreviewOpen(false)}
+        onToggleApproval={handleToggleApproval}
+        sceneHeadings={sceneHeadings}
+        shotLabels={shotLabels}
+        locationNames={locationNames}
       />
     </div>
   );
