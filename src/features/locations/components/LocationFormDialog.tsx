@@ -17,6 +17,11 @@ interface LocationFormDialogProps {
     name: string;
     description?: string;
     setting: LocationSetting;
+    timePeriod?: string;
+    weather?: string;
+    architecture?: string;
+    lighting?: string;
+    mood?: string;
     notes?: string;
     status: LocationStatus;
     progress: number;
@@ -61,6 +66,11 @@ function LocationFormDialogFields({
   const [setting, setSetting] = useState<LocationSetting>(
     mode === "edit" && location ? location.setting : "interior"
   );
+  const [timePeriod, setTimePeriod] = useState(mode === "edit" && location ? location.timePeriod ?? "" : "");
+  const [weather, setWeather] = useState(mode === "edit" && location ? location.weather ?? "" : "");
+  const [architecture, setArchitecture] = useState(mode === "edit" && location ? location.architecture ?? "" : "");
+  const [lighting, setLighting] = useState(mode === "edit" && location ? location.lighting ?? "" : "");
+  const [mood, setMood] = useState(mode === "edit" && location ? location.mood ?? "" : "");
   const [notes, setNotes] = useState(mode === "edit" && location ? location.notes ?? "" : "");
   const [status, setStatus] = useState<LocationStatus>(
     mode === "edit" && location ? location.status : "draft"
@@ -81,6 +91,11 @@ function LocationFormDialogFields({
       name,
       description: description.trim() || undefined,
       setting,
+      timePeriod,
+      weather,
+      architecture,
+      lighting,
+      mood,
       notes: notes.trim() || undefined,
       status,
       progress: Number.isFinite(parsedProgress) ? parsedProgress : NaN,
@@ -125,6 +140,32 @@ function LocationFormDialogFields({
               </select>
             </div>
           </div>
+
+          <fieldset className="space-y-4 rounded-xl border border-zinc-800 bg-zinc-900/50 p-4">
+            <legend className="px-2 text-sm font-semibold text-zinc-200">Environment Profile</legend>
+            <div className="grid gap-4 md:grid-cols-2">
+              <label className="block text-sm font-medium text-zinc-300">
+                Time Period
+                <input value={timePeriod} onChange={(event) => setTimePeriod(event.target.value)} placeholder="e.g. Contemporary" className="mt-2 w-full rounded-xl border border-zinc-700 bg-zinc-900 px-4 py-3 text-sm text-white outline-none placeholder:text-zinc-600 focus:border-yellow-500" />
+              </label>
+              <label className="block text-sm font-medium text-zinc-300">
+                Weather
+                <input value={weather} onChange={(event) => setWeather(event.target.value)} placeholder="e.g. Rainy season" className="mt-2 w-full rounded-xl border border-zinc-700 bg-zinc-900 px-4 py-3 text-sm text-white outline-none placeholder:text-zinc-600 focus:border-yellow-500" />
+              </label>
+              <label className="block text-sm font-medium text-zinc-300">
+                Architecture
+                <textarea value={architecture} onChange={(event) => setArchitecture(event.target.value)} placeholder="Describe established architectural details." rows={2} className="mt-2 w-full rounded-xl border border-zinc-700 bg-zinc-900 px-4 py-3 text-sm text-white outline-none placeholder:text-zinc-600 focus:border-yellow-500" />
+              </label>
+              <label className="block text-sm font-medium text-zinc-300">
+                Lighting
+                <input value={lighting} onChange={(event) => setLighting(event.target.value)} placeholder="e.g. Cool window light" className="mt-2 w-full rounded-xl border border-zinc-700 bg-zinc-900 px-4 py-3 text-sm text-white outline-none placeholder:text-zinc-600 focus:border-yellow-500" />
+              </label>
+              <label className="block text-sm font-medium text-zinc-300 md:col-span-2">
+                Mood
+                <textarea value={mood} onChange={(event) => setMood(event.target.value)} placeholder="Describe the intended atmosphere." rows={2} className="mt-2 w-full rounded-xl border border-zinc-700 bg-zinc-900 px-4 py-3 text-sm text-white outline-none placeholder:text-zinc-600 focus:border-yellow-500" />
+              </label>
+            </div>
+          </fieldset>
 
           <div>
             <label className="mb-2 block text-sm font-medium text-zinc-300">Description</label>

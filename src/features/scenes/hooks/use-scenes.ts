@@ -8,7 +8,7 @@ import { sceneExtractor } from "@/features/import-engine/extractors/scene.extrac
 import { screenplayRepository } from "@/features/script-intelligence/repositories/screenplay.repository";
 
 import { sceneRepository } from "../repositories/scene.repository";
-import type { Scene } from "../types/scene";
+import type { Scene, SceneCreateInput, SceneUpdateInput } from "../types/scene";
 
 function normaliseLocationName(value: string): string {
   return value
@@ -80,7 +80,7 @@ export function useScenes(productionId: string) {
     };
   }, [productionId]);
 
-  async function createScene(scene: Partial<Scene>) {
+  async function createScene(scene: SceneCreateInput) {
     try {
       setSaving(true);
       setError(null);
@@ -95,7 +95,7 @@ export function useScenes(productionId: string) {
     }
   }
 
-  async function updateScene(id: string, updates: Partial<Scene>) {
+  async function updateScene(id: string, updates: SceneUpdateInput) {
     try {
       setSaving(true);
       setError(null);
@@ -178,7 +178,7 @@ export function useScenes(productionId: string) {
       let linkedLocationCount = 0;
       let linkedCharacterCount = 0;
 
-      const toInsert: Partial<Scene>[] = newScenes.map((scene) => {
+      const toInsert: SceneCreateInput[] = newScenes.map((scene) => {
         const locationId = scene.locationName
           ? locationIds.get(normaliseLocationName(scene.locationName))
           : undefined;

@@ -49,7 +49,7 @@ export class KnowledgeExtractionService {
     const [
       story,
       characters,
-      scenes,
+      parsedScreenplay,
       dialogue,
       spiritual,
       cultural,
@@ -62,7 +62,7 @@ export class KnowledgeExtractionService {
         screenplay
       ),
 
-      sceneExtractor.extract(
+      sceneExtractor.parse(
         screenplay
       ),
 
@@ -87,7 +87,7 @@ export class KnowledgeExtractionService {
 
         characters,
 
-        scenes,
+        scenes: parsedScreenplay.scenes,
 
         spiritual,
 

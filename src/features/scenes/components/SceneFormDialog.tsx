@@ -38,6 +38,9 @@ type SceneFormValues = {
   emotionalBeat?: string;
   storyBeat?: string;
   visualDirection?: string;
+  cameraDirection?: string;
+  mood?: string;
+  musicNotes?: string;
   props: string[];
   wardrobe?: string;
   soundNotes?: string;
@@ -45,6 +48,7 @@ type SceneFormValues = {
   vfxNotes?: string;
   productionNotes?: string;
   aiPrompt?: string;
+  videoPrompt?: string;
   sourceText?: string;
   estimatedDurationSeconds?: number;
   status: SceneStatus;
@@ -113,6 +117,9 @@ function SceneFormDialogFields({
   const [emotionalBeat, setEmotionalBeat] = useState(editing ? scene.emotionalBeat ?? "" : "");
   const [storyBeat, setStoryBeat] = useState(editing ? scene.storyBeat ?? "" : "");
   const [visualDirection, setVisualDirection] = useState(editing ? scene.visualDirection ?? "" : "");
+  const [cameraDirection, setCameraDirection] = useState(editing ? scene.cameraDirection ?? "" : "");
+  const [mood, setMood] = useState(editing ? scene.mood ?? "" : "");
+  const [musicNotes, setMusicNotes] = useState(editing ? scene.musicNotes ?? "" : "");
   const [props, setProps] = useState(editing ? (scene.props ?? []).join(", ") : "");
   const [wardrobe, setWardrobe] = useState(editing ? scene.wardrobe ?? "" : "");
   const [soundNotes, setSoundNotes] = useState(editing ? scene.soundNotes ?? "" : "");
@@ -120,6 +127,7 @@ function SceneFormDialogFields({
   const [vfxNotes, setVfxNotes] = useState(editing ? scene.vfxNotes ?? "" : "");
   const [productionNotes, setProductionNotes] = useState(editing ? scene.productionNotes ?? "" : "");
   const [aiPrompt, setAiPrompt] = useState(editing ? scene.aiPrompt ?? "" : "");
+  const [videoPrompt, setVideoPrompt] = useState(editing ? scene.videoPrompt ?? "" : "");
   const [sourceText, setSourceText] = useState(editing ? scene.sourceText ?? "" : "");
   const [duration, setDuration] = useState(
     editing && scene.estimatedDurationSeconds ? String(scene.estimatedDurationSeconds) : ""
@@ -153,6 +161,9 @@ function SceneFormDialogFields({
       emotionalBeat: emotionalBeat.trim() || undefined,
       storyBeat: storyBeat.trim() || undefined,
       visualDirection: visualDirection.trim() || undefined,
+      cameraDirection: cameraDirection.trim() || undefined,
+      mood: mood.trim() || undefined,
+      musicNotes: musicNotes.trim() || undefined,
       props: props.split(/[\n,]/).map((item) => item.trim()).filter(Boolean),
       wardrobe: wardrobe.trim() || undefined,
       soundNotes: soundNotes.trim() || undefined,
@@ -160,6 +171,7 @@ function SceneFormDialogFields({
       vfxNotes: vfxNotes.trim() || undefined,
       productionNotes: productionNotes.trim() || undefined,
       aiPrompt: aiPrompt.trim() || undefined,
+      videoPrompt: videoPrompt.trim() || undefined,
       sourceText: sourceText.trim() || undefined,
       estimatedDurationSeconds: duration ? Number(duration) : undefined,
       status,
@@ -225,6 +237,8 @@ function SceneFormDialogFields({
                   </div>
                 </Field>
                 <Field label="Visual Direction"><textarea value={visualDirection} onChange={(e) => setVisualDirection(e.target.value)} placeholder="Composition, lighting, camera intention, visual storytelling..." className={textareaClass} /></Field>
+                <Field label="Camera Direction"><textarea value={cameraDirection} onChange={(e) => setCameraDirection(e.target.value)} placeholder="Shot movement, framing, lens, blocking, or camera placement..." className={textareaClass} /></Field>
+                <Field label="Scene Mood"><textarea value={mood} onChange={(e) => setMood(e.target.value)} placeholder="The atmosphere or tone of this scene..." className={textareaClass} /></Field>
               </div>
             )}
 
@@ -237,6 +251,7 @@ function SceneFormDialogFields({
                 <Field label="Props" hint="comma or line separated"><textarea value={props} onChange={(e) => setProps(e.target.value)} placeholder="Bible, phone, contract..." className={textareaClass} /></Field>
                 <Field label="Wardrobe"><textarea value={wardrobe} onChange={(e) => setWardrobe(e.target.value)} placeholder="David: university casual, backpack..." className={textareaClass} /></Field>
                 <Field label="Sound & Music"><textarea value={soundNotes} onChange={(e) => setSoundNotes(e.target.value)} placeholder="Room tone, phone vibration, score cue..." className={textareaClass} /></Field>
+                <Field label="Music Notes"><textarea value={musicNotes} onChange={(e) => setMusicNotes(e.target.value)} placeholder="Score, musical cues, or silence..." className={textareaClass} /></Field>
                 <Field label="Continuity Notes"><textarea value={continuityNotes} onChange={(e) => setContinuityNotes(e.target.value)} placeholder="Carry-over details from previous/next scene..." className={textareaClass} /></Field>
                 <Field label="VFX / Practical Effects"><textarea value={vfxNotes} onChange={(e) => setVfxNotes(e.target.value)} placeholder="Rain, vehicle impact, screen graphics..." className={textareaClass} /></Field>
                 <Field label="Production Notes"><textarea value={productionNotes} onChange={(e) => setProductionNotes(e.target.value)} placeholder="Crew notes, access, safety, scheduling, special requirements..." className={textareaClass} /></Field>
@@ -246,6 +261,7 @@ function SceneFormDialogFields({
             {activeTab === "ai" && (
               <div className="space-y-6">
                 <Field label="AI Visual Prompt" hint="Reusable scene-level prompt"><textarea value={aiPrompt} onChange={(e) => setAiPrompt(e.target.value)} placeholder="Cinematic prompt for generating a consistent visual reference for this scene..." className="min-h-40 w-full rounded-xl border border-yellow-500/20 bg-yellow-500/5 px-4 py-3 text-sm leading-6 text-white outline-none placeholder:text-zinc-600 focus:border-yellow-500/60" /></Field>
+                <Field label="Video Prompt" hint="Creator-entered prompt for this scene"><textarea value={videoPrompt} onChange={(e) => setVideoPrompt(e.target.value)} placeholder="Describe the intended motion and visual action for a scene video..." className="min-h-40 w-full rounded-xl border border-zinc-800 bg-zinc-950 px-4 py-3 text-sm leading-6 text-white outline-none placeholder:text-zinc-600 focus:border-yellow-500/70" /></Field>
                 <div className="rounded-2xl border border-zinc-800 bg-zinc-900/50 p-5">
                   <p className="text-xs font-bold uppercase tracking-[0.18em] text-zinc-500">Source Traceability</p>
                   <p className="mt-2 text-sm text-zinc-400">The original screenplay extraction is preserved so manual development never destroys the source material.</p>

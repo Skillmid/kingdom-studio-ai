@@ -6,7 +6,12 @@ import { locationExtractor } from "@/features/import-engine/extractors/location.
 import { screenplayRepository } from "@/features/script-intelligence/repositories/screenplay.repository";
 
 import { locationRepository } from "../repositories/location.repository";
-import type { Location } from "../types/location";
+import { planScreenplayLocationCreates } from "../services/screenplay-location-sync";
+import type {
+  CreateLocationInput,
+  Location,
+  UpdateLocationInput,
+} from "../types/location";
 
 export function useLocations(productionId: string) {
   const [locations, setLocations] = useState<Location[]>([]);
@@ -71,15 +76,14 @@ export function useLocations(productionId: string) {
     };
   }, [productionId]);
 
-  async function createLocation(location: Partial<Location>) {
+  async function createLocation(
+    location: Omit<CreateLocationInput, "productionId">
+  ) {
     try {
       setSaving(true);
       setError(null);
 
-      const created = await locationRepository.create({
-        ...location,
-        productionId,
-      });
+      const created = await locationRepository.create({ ...location, productionId });
 
       setLocations((current) => [...current, created]);
       return created;
@@ -98,7 +102,20 @@ export function useLocations(productionId: string) {
       setSaving(true);
       setError(null);
 
-      const updated = await locationRepository.update(id, updates);
+      const updateInput: UpdateLocationInput = {
+        name: updates.name,
+        description: updates.description,
+        setting: updates.setting,
+        timePeriod: updates.timePeriod,
+        weather: updates.weather,
+        architecture: updates.architecture,
+        lighting: updates.lighting,
+        mood: updates.mood,
+        notes: updates.notes,
+        status: updates.status,
+        progress: updates.progress,
+      };
+      const updated = await locationRepository.update(id, updateInput);
 
       setLocations((current) =>
         current.map((location) =>
@@ -166,35 +183,16 @@ export function useLocations(productionId: string) {
       const existingLocations = await locationRepository.getByProductionId(
         productionId
       );
-      const existingNames = new Set(
-        existingLocations.map((location) =>
-          location.name.trim().toLowerCase()
-        )
+      const toInsert = planScreenplayLocationCreates(
+        productionId,
+        extracted,
+        existingLocations,
       );
 
-      const newLocations = extracted.filter((location) => {
-        const key = location.name.trim().toLowerCase();
-        if (existingNames.has(key)) {
-          return false;
-        }
-        existingNames.add(key);
-        return true;
-      });
-
-      if (newLocations.length === 0) {
+      if (toInsert.length === 0) {
         setLocations(existingLocations);
         return { createdCount: 0, totalExtracted: extracted.length };
       }
-
-      const toInsert: Partial<Location>[] = newLocations.map((location) => ({
-        productionId,
-        name: location.name,
-        setting: location.setting,
-        description: `Extracted from screenplay scene heading: ${location.sourceHeading}`,
-        notes: `Appears in ${location.occurrences} scene${location.occurrences === 1 ? "" : "s"}. Review and refine this location before production.`,
-        status: "draft",
-        progress: 10,
-      }));
 
       const created = await locationRepository.createMany(toInsert);
       setLocations([...existingLocations, ...created]);

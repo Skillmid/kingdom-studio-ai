@@ -240,7 +240,7 @@ export function useScriptWorkspace(productionId: string) {
     setError(null);
 
     try {
-      const result = await scriptIntelligence.analyze(content);
+      const result = await scriptIntelligence.analyze(content, productionId);
       const saved = await screenplayAnalysisRepository.create({
         productionId,
         screenplayId: screenplay.id,
@@ -286,7 +286,7 @@ export function useScriptWorkspace(productionId: string) {
       setError(null);
 
       try {
-        const result = await scriptIntelligence.review(content, type);
+        const result = await scriptIntelligence.review(content, type, productionId);
         const saved = await screenplayReviewRepository.create({
           productionId,
           screenplayId: screenplay.id,

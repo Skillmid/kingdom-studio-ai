@@ -1,4 +1,4 @@
-import type { Scene } from "@/features/scenes/types/scene";
+import type { Scene, SceneCreateInput } from "@/features/scenes/types/scene";
 import type { Screenplay, ScreenplayRevision } from "../types/screenplay";
 import { findPersistedAnalysisRevision } from "./saved-analysis";
 import type { ProposedScene } from "../types/scene-proposal";
@@ -42,7 +42,7 @@ export function buildApprovedSceneInput(
   proposal: ProposedScene,
   productionId: string,
   currentSource: SceneExtractionSource | null,
-): Partial<Scene> {
+): SceneCreateInput {
   if (!currentSource || !matchesSceneSource(proposal, currentSource)) {
     throw new Error("The saved screenplay revision changed after scene extraction. Extract proposals again from the current saved revision.");
   }

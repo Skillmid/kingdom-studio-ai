@@ -1,7 +1,7 @@
 ﻿import { supabase } from "@/lib/supabase/client";
 
-import type { Scene } from "../types/scene";
-import { fromSceneDatabase, toSceneDatabase, type SceneRow } from "./scene.mapper";
+import type { Scene, SceneCreateInput, SceneUpdateInput } from "../types/scene";
+import { fromSceneDatabase, toSceneDatabase, toSceneUpdateDatabase, type SceneRow } from "./scene.mapper";
 
 const TABLE_NAME = "scenes";
 
@@ -34,7 +34,7 @@ export class SceneRepository {
     return fromSceneDatabase(data as SceneRow);
   }
 
-  async create(scene: Partial<Scene>): Promise<Scene> {
+  async create(scene: SceneCreateInput): Promise<Scene> {
     const { data, error } = await this.supabase
       .from(TABLE_NAME)
       .insert(toSceneDatabase(scene))
@@ -45,7 +45,7 @@ export class SceneRepository {
     return fromSceneDatabase(data as SceneRow);
   }
 
-  async createMany(scenes: Partial<Scene>[]): Promise<Scene[]> {
+  async createMany(scenes: SceneCreateInput[]): Promise<Scene[]> {
     if (scenes.length === 0) return [];
 
     const { data, error } = await this.supabase
@@ -57,10 +57,10 @@ export class SceneRepository {
     return ((data ?? []) as SceneRow[]).map(fromSceneDatabase);
   }
 
-  async update(id: string, updates: Partial<Scene>): Promise<Scene> {
+  async update(id: string, updates: SceneUpdateInput): Promise<Scene> {
     const { data, error } = await this.supabase
       .from(TABLE_NAME)
-      .update(toSceneDatabase(updates))
+      .update(toSceneUpdateDatabase(updates))
       .eq("id", id)
       .select()
       .single();

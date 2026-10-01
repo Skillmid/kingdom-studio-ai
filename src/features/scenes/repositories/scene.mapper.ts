@@ -1,4 +1,4 @@
-import type { Scene } from "../types/scene";
+import type { Scene, SceneCreateInput, SceneUpdateInput } from "../types/scene";
 
 export interface SceneRow {
   id: string;
@@ -16,6 +16,9 @@ export interface SceneRow {
   emotional_beat: string | null;
   story_beat: string | null;
   visual_direction: string | null;
+  camera_direction: string | null;
+  mood: string | null;
+  music_notes: string | null;
   props: string[] | null;
   wardrobe: string | null;
   sound_notes: string | null;
@@ -23,6 +26,7 @@ export interface SceneRow {
   vfx_notes: string | null;
   production_notes: string | null;
   ai_prompt: string | null;
+  video_prompt: string | null;
   source_text: string | null;
   source_screenplay_id: string | null;
   source_revision_id: string | null;
@@ -51,6 +55,9 @@ export function fromSceneDatabase(data: SceneRow): Scene {
     emotionalBeat: data.emotional_beat ?? undefined,
     storyBeat: data.story_beat ?? undefined,
     visualDirection: data.visual_direction ?? undefined,
+    cameraDirection: data.camera_direction ?? undefined,
+    mood: data.mood ?? undefined,
+    musicNotes: data.music_notes ?? undefined,
     props: data.props ?? [],
     wardrobe: data.wardrobe ?? undefined,
     soundNotes: data.sound_notes ?? undefined,
@@ -58,6 +65,7 @@ export function fromSceneDatabase(data: SceneRow): Scene {
     vfxNotes: data.vfx_notes ?? undefined,
     productionNotes: data.production_notes ?? undefined,
     aiPrompt: data.ai_prompt ?? undefined,
+    videoPrompt: data.video_prompt ?? undefined,
     sourceText: data.source_text ?? undefined,
     sourceScreenplayId: data.source_screenplay_id ?? undefined,
     sourceRevisionId: data.source_revision_id ?? undefined,
@@ -70,7 +78,7 @@ export function fromSceneDatabase(data: SceneRow): Scene {
   };
 }
 
-export function toSceneDatabase(scene: Partial<Scene>): Record<string, unknown> {
+export function toSceneDatabase(scene: SceneCreateInput): Record<string, unknown> {
   return {
     production_id: scene.productionId,
     scene_number: scene.number,
@@ -86,6 +94,9 @@ export function toSceneDatabase(scene: Partial<Scene>): Record<string, unknown> 
     emotional_beat: scene.emotionalBeat,
     story_beat: scene.storyBeat,
     visual_direction: scene.visualDirection,
+    camera_direction: scene.cameraDirection,
+    mood: scene.mood,
+    music_notes: scene.musicNotes,
     props: scene.props ?? [],
     wardrobe: scene.wardrobe,
     sound_notes: scene.soundNotes,
@@ -93,6 +104,7 @@ export function toSceneDatabase(scene: Partial<Scene>): Record<string, unknown> 
     vfx_notes: scene.vfxNotes,
     production_notes: scene.productionNotes,
     ai_prompt: scene.aiPrompt,
+    video_prompt: scene.videoPrompt,
     source_text: scene.sourceText,
     source_screenplay_id: scene.sourceScreenplayId,
     source_revision_id: scene.sourceRevisionId,
@@ -101,4 +113,77 @@ export function toSceneDatabase(scene: Partial<Scene>): Record<string, unknown> 
     status: scene.status ?? "draft",
     progress: scene.progress ?? 0,
   };
+}
+
+const updateColumnByField = {
+  number: "scene_number",
+  heading: "heading",
+  sceneType: "scene_type",
+  timeOfDay: "time_of_day",
+  summary: "summary",
+  action: "action",
+  dialogue: "dialogue",
+  characterIds: "character_ids",
+  locationId: "location_id",
+  purpose: "purpose",
+  emotionalBeat: "emotional_beat",
+  storyBeat: "story_beat",
+  visualDirection: "visual_direction",
+  cameraDirection: "camera_direction",
+  mood: "mood",
+  musicNotes: "music_notes",
+  props: "props",
+  wardrobe: "wardrobe",
+  soundNotes: "sound_notes",
+  continuityNotes: "continuity_notes",
+  vfxNotes: "vfx_notes",
+  productionNotes: "production_notes",
+  aiPrompt: "ai_prompt",
+  videoPrompt: "video_prompt",
+  estimatedDurationSeconds: "estimated_duration_seconds",
+  status: "status",
+  progress: "progress",
+} as const satisfies Partial<Record<keyof SceneUpdateInput, string>>;
+
+const nullableUpdateFields = new Set<keyof SceneUpdateInput>([
+  "timeOfDay",
+  "summary",
+  "action",
+  "dialogue",
+  "locationId",
+  "purpose",
+  "emotionalBeat",
+  "storyBeat",
+  "visualDirection",
+  "cameraDirection",
+  "mood",
+  "musicNotes",
+  "wardrobe",
+  "soundNotes",
+  "continuityNotes",
+  "vfxNotes",
+  "productionNotes",
+  "aiPrompt",
+  "videoPrompt",
+  "estimatedDurationSeconds",
+]);
+
+export function toSceneUpdateDatabase(updates: SceneUpdateInput): Record<string, unknown> {
+  const databaseUpdates: Record<string, unknown> = {};
+
+  for (const [field, column] of Object.entries(updateColumnByField)) {
+    if (!Object.hasOwn(updates, field)) continue;
+
+    const value = updates[field as keyof SceneUpdateInput];
+    if (value === undefined) {
+      if (nullableUpdateFields.has(field as keyof SceneUpdateInput)) {
+        databaseUpdates[column] = null;
+      }
+      continue;
+    }
+
+    databaseUpdates[column] = value;
+  }
+
+  return databaseUpdates;
 }

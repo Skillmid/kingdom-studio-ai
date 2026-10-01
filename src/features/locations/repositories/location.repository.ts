@@ -1,21 +1,18 @@
 import { supabase } from "@/lib/supabase/client";
 
-import type { Location } from "../types/location";
+import type {
+  CreateLocationInput,
+  Location,
+  UpdateLocationInput,
+} from "../types/location";
+import {
+  fromLocationDatabase,
+  toLocationInsert,
+  toLocationUpdate,
+  type LocationRow,
+} from "./location.mapper";
 
 const TABLE_NAME = "locations";
-
-type LocationRow = {
-  id: string;
-  production_id: string;
-  name: string;
-  description: string | null;
-  setting: Location["setting"];
-  notes: string | null;
-  status: Location["status"];
-  progress: number | null;
-  created_at: string;
-  updated_at: string;
-};
 
 export class LocationRepository {
   private readonly supabase = supabase;
@@ -33,9 +30,7 @@ export class LocationRepository {
       throw new Error(error.message);
     }
 
-    return (data ?? []).map((row) =>
-      this.mapLocation(row as LocationRow)
-    );
+    return (data ?? []).map((row) => fromLocationDatabase(row as LocationRow));
   }
 
   async getById(id: string): Promise<Location | null> {
@@ -53,15 +48,13 @@ export class LocationRepository {
       throw new Error(error.message);
     }
 
-    return this.mapLocation(data as LocationRow);
+    return fromLocationDatabase(data as LocationRow);
   }
 
-  async create(location: Partial<Location>): Promise<Location> {
-    const payload = this.toDatabase(location);
-
+  async create(location: CreateLocationInput): Promise<Location> {
     const { data, error } = await this.supabase
       .from(TABLE_NAME)
-      .insert(payload)
+      .insert(toLocationInsert(location))
       .select()
       .single();
 
@@ -69,17 +62,15 @@ export class LocationRepository {
       throw new Error(error.message);
     }
 
-    return this.mapLocation(data as LocationRow);
+    return fromLocationDatabase(data as LocationRow);
   }
 
-  async createMany(locations: Partial<Location>[]): Promise<Location[]> {
+  async createMany(locations: CreateLocationInput[]): Promise<Location[]> {
     if (locations.length === 0) {
       return [];
     }
 
-    const payloads = locations.map((location) =>
-      this.toDatabase(location)
-    );
+    const payloads = locations.map(toLocationInsert);
 
     const { data, error } = await this.supabase
       .from(TABLE_NAME)
@@ -90,16 +81,22 @@ export class LocationRepository {
       throw new Error(error.message);
     }
 
-    return ((data ?? []) as LocationRow[]).map((row) =>
-      this.mapLocation(row)
-    );
+    return ((data ?? []) as LocationRow[]).map(fromLocationDatabase);
   }
 
   async update(
     id: string,
-    updates: Partial<Location>
+    updates: UpdateLocationInput
   ): Promise<Location> {
-    const payload = this.toDatabase(updates);
+    const payload = toLocationUpdate(updates);
+
+    if (Object.keys(payload).length === 0) {
+      const existing = await this.getById(id);
+      if (!existing) {
+        throw new Error("Location not found.");
+      }
+      return existing;
+    }
 
     const { data, error } = await this.supabase
       .from(TABLE_NAME)
@@ -112,7 +109,7 @@ export class LocationRepository {
       throw new Error(error.message);
     }
 
-    return this.mapLocation(data as LocationRow);
+    return fromLocationDatabase(data as LocationRow);
   }
 
   async delete(id: string): Promise<void> {
@@ -126,32 +123,6 @@ export class LocationRepository {
     }
   }
 
-  private mapLocation(data: LocationRow): Location {
-    return {
-      id: data.id,
-      productionId: data.production_id,
-      name: data.name,
-      description: data.description ?? undefined,
-      setting: data.setting,
-      notes: data.notes ?? undefined,
-      status: data.status,
-      progress: data.progress ?? 0,
-      createdAt: data.created_at,
-      updatedAt: data.updated_at,
-    };
-  }
-
-  private toDatabase(location: Partial<Location>) {
-    return {
-      production_id: location.productionId,
-      name: location.name,
-      description: location.description,
-      setting: location.setting ?? "interior",
-      notes: location.notes,
-      status: location.status ?? "draft",
-      progress: location.progress ?? 0,
-    };
-  }
 }
 
 export const locationRepository = new LocationRepository();

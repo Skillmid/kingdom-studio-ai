@@ -87,6 +87,32 @@ export default function SceneCard({ scene, locationName, characterNames, onEdit,
           <p className="line-clamp-3 text-sm leading-6 text-zinc-500">{scene.summary?.trim() || "This scene has not been developed yet."}</p>
         </div>
 
+        <div className="rounded-xl border border-zinc-800/80 bg-zinc-950/40 p-3.5">
+          <p className="mb-2 text-[9px] font-black uppercase tracking-[0.16em] text-zinc-600">Scene Direction</p>
+          {[
+            ["Camera Direction", scene.cameraDirection],
+            ["Scene Mood", scene.mood],
+            ["Music Notes", scene.musicNotes],
+            ["Video Prompt", scene.videoPrompt],
+          ].some(([, value]) => typeof value === "string" && value.trim().length > 0) ? (
+            <dl className="space-y-2">
+              {([
+                ["Camera Direction", scene.cameraDirection],
+                ["Scene Mood", scene.mood],
+                ["Music Notes", scene.musicNotes],
+                ["Video Prompt", scene.videoPrompt],
+              ] as const).filter(([, value]) => value?.trim()).map(([label, value]) => (
+                <div key={label}>
+                  <dt className="text-[9px] font-bold uppercase tracking-wide text-zinc-600">{label}</dt>
+                  <dd className="line-clamp-2 text-xs leading-5 text-zinc-400">{value}</dd>
+                </div>
+              ))}
+            </dl>
+          ) : (
+            <p className="text-xs text-zinc-600">No scene direction added yet.</p>
+          )}
+        </div>
+
         <div>
           <div className="mb-2 flex justify-between text-[10px] font-bold uppercase tracking-[0.16em] text-zinc-600"><span>Development</span><span className="text-zinc-300">{progress}%</span></div>
           <div className="h-1.5 overflow-hidden rounded-full bg-zinc-800"><div className="h-full rounded-full bg-yellow-500 transition-all duration-500" style={{ width: `${progress}%` }} /></div>

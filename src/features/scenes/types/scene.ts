@@ -17,6 +17,9 @@ export interface Scene {
   emotionalBeat?: string;
   storyBeat?: string;
   visualDirection?: string;
+  cameraDirection?: string;
+  mood?: string;
+  musicNotes?: string;
   props: string[];
   wardrobe?: string;
   soundNotes?: string;
@@ -24,6 +27,7 @@ export interface Scene {
   vfxNotes?: string;
   productionNotes?: string;
   aiPrompt?: string;
+  videoPrompt?: string;
   sourceText?: string;
   sourceScreenplayId?: string;
   sourceRevisionId?: string;
@@ -34,3 +38,18 @@ export interface Scene {
   createdAt: string;
   updatedAt: string;
 }
+
+export type SceneCreateInput = Pick<Scene, "productionId" | "number" | "heading">
+  & Partial<Omit<Scene, "id" | "productionId" | "number" | "heading" | "createdAt" | "updatedAt">>;
+
+export type SceneUpdateInput = Partial<Omit<
+  Scene,
+  | "id"
+  | "productionId"
+  | "createdAt"
+  | "updatedAt"
+  | "sourceText"
+  | "sourceScreenplayId"
+  | "sourceRevisionId"
+  | "sourceScreenplayVersion"
+>>;

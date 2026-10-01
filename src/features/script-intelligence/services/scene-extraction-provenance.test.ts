@@ -47,6 +47,10 @@ describe("revision-bound scene extraction provenance", () => {
     assert.equal(accepted.sourceScreenplayId, "screenplay-1");
     assert.equal(accepted.sourceRevisionId, "revision-4");
     assert.equal(accepted.sourceScreenplayVersion, 4);
+    assert.equal("cameraDirection" in accepted, false);
+    assert.equal("mood" in accepted, false);
+    assert.equal("musicNotes" in accepted, false);
+    assert.equal("videoPrompt" in accepted, false);
     assert.throws(
       () => buildApprovedSceneInput(proposal, "production-1", null),
       /saved screenplay revision changed/i,

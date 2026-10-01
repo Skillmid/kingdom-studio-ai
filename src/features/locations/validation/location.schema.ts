@@ -12,6 +12,8 @@ export const locationStatusSchema = z.enum([
   "completed",
 ]);
 
+const optionalEnvironmentField = z.string().trim().optional();
+
 export const locationSchema = z.object({
   id: z.string().uuid().optional(),
 
@@ -32,6 +34,16 @@ export const locationSchema = z.object({
   description: z.string().optional(),
 
   setting: locationSettingSchema.default("interior"),
+
+  timePeriod: optionalEnvironmentField,
+
+  weather: optionalEnvironmentField,
+
+  architecture: optionalEnvironmentField,
+
+  lighting: optionalEnvironmentField,
+
+  mood: optionalEnvironmentField,
 
   notes: z.string().optional(),
 

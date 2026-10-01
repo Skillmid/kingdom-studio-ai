@@ -5,14 +5,17 @@ import { useMemo, useState } from "react";
 import { useLocations } from "../hooks/use-locations";
 import type { Location } from "../types/location";
 import DeleteLocationDialog from "./DeleteLocationDialog";
+import LocationDetailDialog from "./LocationDetailDialog";
 import LocationFormDialog from "./LocationFormDialog";
 import LocationList from "./LocationList";
+import {
+  filterLocations,
+  type LocationFilter,
+} from "./locations-view-model";
 
 interface LocationsViewProps {
   productionId: string;
 }
-
-type LocationFilter = "all" | "interior" | "exterior" | "both" | "in-progress" | "completed" | "draft";
 
 export function LocationsView({ productionId }: LocationsViewProps) {
   const {
@@ -30,6 +33,7 @@ export function LocationsView({ productionId }: LocationsViewProps) {
   const [formOpen, setFormOpen] = useState(false);
   const [formMode, setFormMode] = useState<"create" | "edit">("create");
   const [selectedLocation, setSelectedLocation] = useState<Location | null>(null);
+  const [detailLocation, setDetailLocation] = useState<Location | null>(null);
   const [locationToDelete, setLocationToDelete] = useState<Location | null>(null);
   const [notification, setNotification] = useState<string | null>(null);
   const [search, setSearch] = useState("");
@@ -43,18 +47,10 @@ export function LocationsView({ productionId }: LocationsViewProps) {
     completed: locations.filter((location) => location.status === "completed").length,
   }), [locations]);
 
-  const filteredLocations = useMemo(() => {
-    const query = search.trim().toLowerCase();
-    return locations.filter((location) => {
-      const matchesSearch = !query || [location.name, location.description, location.notes]
-        .filter(Boolean)
-        .some((value) => String(value).toLowerCase().includes(query));
-      const matchesFilter = filter === "all"
-        || location.setting === filter
-        || location.status === filter;
-      return matchesSearch && matchesFilter;
-    });
-  }, [filter, locations, search]);
+  const filteredLocations = useMemo(
+    () => filterLocations(locations, search, filter),
+    [filter, locations, search]
+  );
 
   function openCreate() {
     setFormMode("create");
@@ -65,6 +61,7 @@ export function LocationsView({ productionId }: LocationsViewProps) {
   function openEdit(location: Location) {
     setFormMode("edit");
     setSelectedLocation(location);
+    setDetailLocation(null);
     setFormOpen(true);
   }
 
@@ -88,6 +85,11 @@ export function LocationsView({ productionId }: LocationsViewProps) {
     name: string;
     description?: string;
     setting: Location["setting"];
+    timePeriod?: string;
+    weather?: string;
+    architecture?: string;
+    lighting?: string;
+    mood?: string;
     notes?: string;
     status: Location["status"];
     progress: number;
@@ -168,7 +170,29 @@ export function LocationsView({ productionId }: LocationsViewProps) {
         <p className="text-xs font-semibold text-zinc-600">Showing {filteredLocations.length} of {locations.length} locations</p>
       )}
 
-      <LocationList locations={filteredLocations} loading={loading} onEdit={openEdit} onDelete={setLocationToDelete} />
+      {locations.length > 0 && filteredLocations.length === 0 ? (
+        <div className="rounded-2xl border border-dashed border-zinc-700 bg-zinc-900 p-8 text-center">
+          <h2 className="text-lg font-semibold text-white">No matching locations</h2>
+          <p className="mt-2 text-sm text-zinc-400">Try a different search or clear the active filters.</p>
+          <button
+            type="button"
+            onClick={() => { setSearch(""); setFilter("all"); }}
+            className="mt-4 rounded-lg border border-zinc-700 px-4 py-2 text-sm font-semibold text-zinc-200 transition hover:border-yellow-500 hover:text-white"
+          >
+            Clear search and filters
+          </button>
+        </div>
+      ) : (
+        <LocationList locations={filteredLocations} loading={loading} onOpen={setDetailLocation} onDelete={setLocationToDelete} />
+      )}
+
+      <LocationDetailDialog
+        productionId={productionId}
+        location={detailLocation}
+        open={detailLocation !== null}
+        onClose={() => setDetailLocation(null)}
+        onEdit={openEdit}
+      />
 
       <LocationFormDialog
         open={formOpen}

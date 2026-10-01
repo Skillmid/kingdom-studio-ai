@@ -9,5 +9,5 @@ interface LocationsPageProps {
 export default async function LocationsPage({ params }: LocationsPageProps) {
   const { id } = await params;
 
-  return <LocationsView productionId={id} />;
+  return <LocationsView key={id} productionId={id} />;
 }

@@ -4,7 +4,7 @@ import type { Location } from "../types/location";
 
 interface LocationCardProps {
   location: Location;
-  onEdit: (location: Location) => void;
+  onOpen: (location: Location) => void;
   onDelete: (location: Location) => void;
 }
 
@@ -33,7 +33,7 @@ function settingIcon(setting: Location["setting"]) {
   return "◈";
 }
 
-export default function LocationCard({ location, onEdit, onDelete }: LocationCardProps) {
+export default function LocationCard({ location, onOpen, onDelete }: LocationCardProps) {
   const progress = Math.max(0, Math.min(100, location.progress));
 
   return (
@@ -96,7 +96,7 @@ export default function LocationCard({ location, onEdit, onDelete }: LocationCar
             <button type="button" onClick={() => onDelete(location)} className="rounded-lg border border-zinc-800 px-3 py-2 text-xs font-semibold text-zinc-500 transition hover:border-red-500/30 hover:text-red-400">
               Delete
             </button>
-            <button type="button" onClick={() => onEdit(location)} className="rounded-lg bg-yellow-500 px-4 py-2 text-xs font-black text-black transition hover:bg-yellow-400">
+            <button type="button" onClick={() => onOpen(location)} className="rounded-lg bg-yellow-500 px-4 py-2 text-xs font-black text-black transition hover:bg-yellow-400">
               Open Bible
             </button>
           </div>

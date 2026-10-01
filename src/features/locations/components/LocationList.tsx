@@ -6,11 +6,11 @@ import LocationCard from "./LocationCard";
 interface LocationListProps {
   locations: Location[];
   loading?: boolean;
-  onEdit: (location: Location) => void;
+  onOpen: (location: Location) => void;
   onDelete: (location: Location) => void;
 }
 
-export default function LocationList({ locations, loading = false, onEdit, onDelete }: LocationListProps) {
+export default function LocationList({ locations, loading = false, onOpen, onDelete }: LocationListProps) {
   if (loading) {
     return <div className="rounded-2xl border border-zinc-800 bg-zinc-900 p-8 text-center text-zinc-400">Loading locations...</div>;
   }
@@ -27,7 +27,7 @@ export default function LocationList({ locations, loading = false, onEdit, onDel
   return (
     <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
       {locations.map((location) => (
-        <LocationCard key={location.id} location={location} onEdit={onEdit} onDelete={onDelete} />
+        <LocationCard key={location.id} location={location} onOpen={onOpen} onDelete={onDelete} />
       ))}
     </div>
   );

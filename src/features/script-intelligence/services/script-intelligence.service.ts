@@ -737,7 +737,8 @@ function parseExtractedScenes(text: string): ExtractedSceneDraft[] {
 
 export class ScriptIntelligenceService {
   async analyze(
-    screenplay: string
+    screenplay: string,
+    productionId: string
   ): Promise<ScriptAnalysis> {
     if (!screenplay.trim()) {
       return createEmptyAnalysis();
@@ -758,6 +759,8 @@ export class ScriptIntelligenceService {
               screenplay
             ),
 
+        productionId,
+
         temperature: 0.2,
 
         maxTokens: 6000,
@@ -770,7 +773,8 @@ export class ScriptIntelligenceService {
 
   async review(
     screenplay: string,
-    type: ScriptReviewType
+    type: ScriptReviewType,
+    productionId: string
   ): Promise<ScriptReview> {
     if (!screenplay.trim()) {
       throw new Error(
@@ -794,6 +798,8 @@ export class ScriptIntelligenceService {
             .buildUserPrompt(
               screenplay
             ),
+
+        productionId,
 
         temperature: 0.3,
 
