@@ -49,8 +49,11 @@ export async function POST(
   request: Request
 ) {
   try {
-    const supabase = await createClient();
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    const accessToken = request.headers
+      .get("authorization")
+      ?.match(/^Bearer\s+(.+)$/i)?.[1];
+    const supabase = await createClient(accessToken);
+    const { data: { user }, error: authError } = await supabase.auth.getUser(accessToken);
     if (authError || !user) {
       return NextResponse.json({ error: "Authentication is required." }, { status: 401 });
     }
