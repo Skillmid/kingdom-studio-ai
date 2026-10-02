@@ -7,6 +7,7 @@ import { characterRepository } from "@/features/characters/repositories/characte
 import { locationRepository } from "@/features/locations/repositories/location.repository";
 import { shotRepository } from "@/features/shots/repositories/shot.repository";
 import { storyboardRepository } from "@/features/storyboard/repositories/storyboard.repository";
+import { supabase } from "@/lib/supabase/client";
 
 import { assetRepository } from "../repositories/asset.repository";
 import { generationJobRepository } from "../repositories/generation-job.repository";
@@ -24,10 +25,17 @@ import {
 import type { Asset } from "../types/asset";
 import type { GenerationJob } from "../types/generation-job";
 
-async function dispatchJob(queued: GenerationJob): Promise<GenerationJob> {
-  const response = await fetch("/api/generation/run", {
+export async function dispatchJob(
+  queued: GenerationJob,
+  fetchImpl: typeof fetch = fetch,
+): Promise<GenerationJob> {
+  const { data: { session } } = await supabase.auth.getSession();
+  const response = await fetchImpl("/api/generation/run", {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: {
+      "Content-Type": "application/json",
+      ...(session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {}),
+    },
     body: JSON.stringify({ jobId: queued.id }),
   });
   const payload = (await response.json()) as { job?: GenerationJob; error?: string };

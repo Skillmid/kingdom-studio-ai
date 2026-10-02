@@ -8,13 +8,16 @@ import { canDispatchPersistedJob } from "@/platform/generation/dispatch-authoriz
 
 export async function POST(request: Request) {
   try {
+    const accessToken = request.headers
+      .get("authorization")
+      ?.match(/^Bearer\s+(.+)$/i)?.[1];
     const body = (await request.json()) as { jobId?: unknown };
     const parsed = z.string().uuid().safeParse(body.jobId);
     if (!parsed.success) {
       return NextResponse.json({ error: "A persisted generation job ID is required." }, { status: 400 });
     }
-    const supabase = await createClient();
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    const supabase = await createClient(accessToken);
+    const { data: { user }, error: authError } = await supabase.auth.getUser(accessToken);
     if (authError || !user) {
       return NextResponse.json({ error: "Authentication is required." }, { status: 401 });
     }
