@@ -63,6 +63,7 @@ export default function CreateProductionDialog({
           setTitle(e.target.value)
         }
         placeholder="Production title"
+        required
         className="w-full rounded-xl border border-zinc-700 bg-zinc-900 p-3 text-white outline-none focus:border-yellow-500"
       />
 

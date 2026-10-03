@@ -20,25 +20,24 @@ export function useProduction(id: string) {
     async function load() {
       setLoading(true);
 
-      console.log("Loading production:", id);
-
       const result = await supabase
         .from("productions")
         .select("*")
         .eq("id", id)
-        .single();
-
-      console.log("Supabase result:", result);
+        .maybeSingle();
 
       if (result.error) {
-        console.error(result.error);
-
-        setError(JSON.stringify(result.error, null, 2));
+        setError(
+          result.error.code === "PGRST116"
+            ? "The requested production could not be found."
+            : "Unable to load production. Please try again."
+        );
         setLoading(false);
         return;
       }
 
       setProduction(result.data);
+      setError(null);
       setLoading(false);
     }
 
