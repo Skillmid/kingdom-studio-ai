@@ -57,7 +57,14 @@ export default function CreateProductionDialog({
       onSubmit={handleSubmit}
       className="space-y-4"
     >
+      <label
+        htmlFor="production-title"
+        className="block text-sm font-medium text-zinc-200"
+      >
+        Production title
+      </label>
       <input
+        id="production-title"
         value={title}
         onChange={(e) =>
           setTitle(e.target.value)
