@@ -255,6 +255,34 @@ function ProposalRow({
           className="w-full accent-yellow-500"
         />
       </div>
+
+      <div className="mt-4 grid gap-4 md:grid-cols-2">
+        <div>
+          <label className="mb-2 block text-xs uppercase tracking-[0.2em] text-zinc-500">
+            Screenplay action
+          </label>
+          <textarea
+            disabled={disabled}
+            rows={3}
+            value={proposal.action ?? ""}
+            onChange={(event) => onChange({ action: event.target.value })}
+            className="w-full rounded-xl border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm text-white outline-none focus:border-yellow-500"
+          />
+        </div>
+
+        <div>
+          <label className="mb-2 block text-xs uppercase tracking-[0.2em] text-zinc-500">
+            Screenplay dialogue
+          </label>
+          <textarea
+            disabled={disabled}
+            rows={3}
+            value={proposal.dialogue ?? ""}
+            onChange={(event) => onChange({ dialogue: event.target.value })}
+            className="w-full rounded-xl border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm text-white outline-none focus:border-yellow-500"
+          />
+        </div>
+      </div>
     </div>
   );
 }

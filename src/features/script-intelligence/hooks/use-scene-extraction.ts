@@ -4,6 +4,7 @@ import { useCallback, useState } from "react";
 
 import { sceneRepository } from "@/features/scenes/repositories/scene.repository";
 import { sceneSchema } from "@/features/scenes/validation/scene.schema";
+import { sceneExtractor } from "@/features/import-engine/extractors/scene.extractor";
 
 import { scriptIntelligence } from "../services/script-intelligence.service";
 import type { ProposedScene } from "../types/scene-proposal";
@@ -41,10 +42,13 @@ export function useSceneExtraction(productionId: string) {
       setNotice(null);
 
       try {
-        const drafts = await scriptIntelligence.extractScenes(screenplay);
+        const [drafts, parsedDocument] = await Promise.all([
+          scriptIntelligence.extractScenes(screenplay),
+          sceneExtractor.parse(screenplay),
+        ]);
 
         setProposals(
-          createRevisionBoundSceneProposals(drafts, source).map((draft) => ({
+          createRevisionBoundSceneProposals(drafts, source, parsedDocument.scenes).map((draft) => ({
             clientId: createClientId(),
             ...draft,
             selected: true,

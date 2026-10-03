@@ -35,6 +35,42 @@ describe("revision-bound scene extraction provenance", () => {
     assert.equal(proposal?.sourceScreenplayVersion, source.screenplayVersion);
   });
 
+  it("preserves parsed screenplay action, dialogue, heading details, and exact source text", () => {
+    const source = getSceneExtractionSource(screenplay, revisions, false)!;
+    const parsedScene = {
+      number: 1,
+      heading: "EXT. MARKET - DAY",
+      sceneType: "EXT" as const,
+      timeOfDay: "DAY",
+      summary: "A vendor opens the stall.",
+      action: "A vendor opens the stall.",
+      dialogue: "MARA: The market is awake.",
+      dialogues: [{ character: "MARA", text: "The market is awake." }],
+      sourceText: "EXT. MARKET - DAY\nA vendor opens the stall.\nMARA\nThe market is awake.",
+    };
+    const [proposal] = createRevisionBoundSceneProposals(
+      drafts,
+      source,
+      [parsedScene],
+    );
+    const accepted = buildApprovedSceneInput(
+      {
+        ...proposal!,
+        clientId: "proposal-1",
+        selected: true,
+      },
+      "production-1",
+      source,
+    );
+
+    assert.equal(accepted.sceneType, "EXT");
+    assert.equal(accepted.timeOfDay, "DAY");
+    assert.equal(accepted.action, parsedScene.action);
+    assert.equal(accepted.dialogue, parsedScene.dialogue);
+    assert.equal(accepted.sourceText, parsedScene.sourceText);
+    assert.equal(accepted.summary, drafts[0]?.summary);
+  });
+
   it("persists accepted scenes only while their proposal source remains current", () => {
     const source = getSceneExtractionSource(screenplay, revisions, false)!;
     const proposal = {
