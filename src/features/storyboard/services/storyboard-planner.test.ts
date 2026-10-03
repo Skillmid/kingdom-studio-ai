@@ -7,6 +7,7 @@ import {
   selectNewPanelProposals,
   type StoryboardShotInput,
 } from "./storyboard-planner";
+import { loadStoryboardPlanInputs } from "./storyboard-plan-inputs";
 
 const PRODUCTION_ID = "11111111-1111-4111-8111-111111111111";
 const SCENE_ID = "33333333-3333-4333-8333-333333333333";
@@ -200,5 +201,23 @@ describe("selectNewPanelProposals", () => {
 
     assert.equal(selected.length, 1);
     assert.equal(selected[0]?.shotId, "77777777-7777-4777-8777-777777777777");
+  });
+});
+
+describe("loadStoryboardPlanInputs", () => {
+  it("surfaces context repository failures instead of planning with incomplete continuity data", async () => {
+    const failure = new Error("Location records could not be loaded.");
+    await assert.rejects(
+      loadStoryboardPlanInputs({
+        getShots: async () => [],
+        getExistingPanels: async () => [],
+        getScenes: async () => {
+          throw failure;
+        },
+        getCharacters: async () => [],
+        getLocations: async () => [],
+      }),
+      (error: unknown) => error === failure,
+    );
   });
 });

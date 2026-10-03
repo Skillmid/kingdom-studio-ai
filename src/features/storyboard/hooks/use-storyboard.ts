@@ -9,6 +9,7 @@ import { shotRepository } from "@/features/shots/repositories/shot.repository";
 
 import { storyboardRepository } from "../repositories/storyboard.repository";
 import { withCalculatedProgress } from "../services/storyboard-completion";
+import { loadStoryboardPlanInputs } from "../services/storyboard-plan-inputs";
 import { planPanelsFromShots, selectNewPanelProposals } from "../services/storyboard-planner";
 import type { StoryboardPanel } from "../types/storyboard-panel";
 
@@ -196,13 +197,14 @@ export function useStoryboard(productionId: string) {
     setError(null);
 
     try {
-      const [shots, existing, scenes, characters, locations] = await Promise.all([
-        shotRepository.getByProductionId(productionId),
-        storyboardRepository.getByProductionId(productionId),
-        sceneRepository.getByProductionId(productionId).catch(() => []),
-        characterRepository.getByProductionId(productionId).catch(() => []),
-        locationRepository.getByProductionId(productionId).catch(() => []),
-      ]);
+      const { shots, existingPanels: existing, scenes, characters, locations } =
+        await loadStoryboardPlanInputs({
+          getShots: () => shotRepository.getByProductionId(productionId),
+          getExistingPanels: () => storyboardRepository.getByProductionId(productionId),
+          getScenes: () => sceneRepository.getByProductionId(productionId),
+          getCharacters: () => characterRepository.getByProductionId(productionId),
+          getLocations: () => locationRepository.getByProductionId(productionId),
+        });
 
       if (shots.length === 0) {
         setPanels(existing);
