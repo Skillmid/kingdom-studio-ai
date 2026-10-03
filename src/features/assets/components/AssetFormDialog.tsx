@@ -63,7 +63,7 @@ export default function AssetFormDialog({ asset, productionId, saving = false, o
         <form onSubmit={handleSubmit}>
           <header className="border-b border-zinc-800 px-6 py-5">
             <h2 id="asset-form-title" className="text-xl font-black text-white">{asset ? "Review or edit asset" : "Add asset"}</h2>
-            <p className="mt-1 text-sm text-zinc-400">Saving accepts this asset for production use. Generation still needs a prompt and an approved asset.</p>
+            <p className="mt-1 text-sm text-zinc-400">Saving accepts this asset for production use. Image and video generation needs a prompt and an approved asset; audio and document generation is not yet supported.</p>
           </header>
           <div className="grid gap-5 p-6 md:grid-cols-2">
             <label className={labelClass}>

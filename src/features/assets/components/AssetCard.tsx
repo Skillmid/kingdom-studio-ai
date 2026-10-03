@@ -2,7 +2,7 @@
 
 import type { Asset, AssetStatus } from "../types/asset";
 import type { GenerationJob } from "../types/generation-job";
-import { canGenerateAsset } from "../services/generation-job";
+import { canGenerateAsset, isAssetGenerationSupported } from "../services/generation-job";
 
 interface AssetCardProps {
   asset: Asset;
@@ -118,9 +118,11 @@ export default function AssetCard({
             onClick={() => onQueue(asset)}
             className="rounded-lg bg-yellow-500 px-3 py-2 text-xs font-bold text-black disabled:opacity-50"
           >
-            {asset.status === "generating"
-              ? canRetryQueuedJob ? "Retry queued generation" : "Generating..."
-              : asset.userApproved ? "Queue generation" : "Approve asset first"}
+            {!isAssetGenerationSupported(asset)
+              ? "Image/video generation only"
+              : asset.status === "generating"
+                ? canRetryQueuedJob ? "Retry queued generation" : "Generating..."
+                : asset.userApproved ? "Queue generation" : "Approve asset first"}
           </button>
           <button
             type="button"

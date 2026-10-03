@@ -15,17 +15,26 @@ const JOB_TYPE_BY_KIND: Partial<Record<Asset["kind"], GenerationJobType>> = {
   document: "document",
 };
 
-export function canGenerateAsset(asset: Pick<Asset, "userApproved" | "prompt">): boolean {
-  return asset.userApproved && Boolean(asset.prompt?.trim());
-}
-
 export function jobTypeForAsset(asset: Pick<Asset, "kind">): GenerationJobType {
   return JOB_TYPE_BY_KIND[asset.kind] ?? "image";
+}
+
+export function isAssetGenerationSupported(asset: Pick<Asset, "kind">): boolean {
+  const jobType = jobTypeForAsset(asset);
+  return jobType === "image" || jobType === "video";
+}
+
+export function canGenerateAsset(asset: Pick<Asset, "kind" | "userApproved" | "prompt">): boolean {
+  return isAssetGenerationSupported(asset) && asset.userApproved && Boolean(asset.prompt?.trim());
 }
 
 export function draftJobFromAsset(
   asset: Pick<Asset, "id" | "productionId" | "kind" | "prompt" | "sourceKind" | "sourceId">,
 ): GenerationJobDraft {
+  if (!isAssetGenerationSupported(asset)) {
+    throw new Error("Generation is currently supported for image and video assets only.");
+  }
+
   const prompt = asset.prompt?.trim();
   if (!prompt) {
     throw new Error("A generation job requires a prompt grounded in production records or filmmaker input.");
@@ -83,7 +92,12 @@ export function planJobsFromAssets(
 ): GenerationJobDraft[] {
   const drafts: GenerationJobDraft[] = [];
   for (const asset of assets) {
-    if (asset.fileUrl?.trim() || asset.status === "generating" || !asset.prompt?.trim()) continue;
+    if (
+      !isAssetGenerationSupported(asset) ||
+      asset.fileUrl?.trim() ||
+      asset.status === "generating" ||
+      !asset.prompt?.trim()
+    ) continue;
     drafts.push(draftJobFromAsset(asset));
   }
   return drafts;

@@ -17,6 +17,7 @@ import {
   applyJobResultToAsset,
   canGenerateAsset,
   draftJobFromAsset,
+  isAssetGenerationSupported,
   jobPersistencePatch,
   planJobsFromAssets,
   retryJob,
@@ -247,6 +248,9 @@ export function useAssets(productionId: string) {
   async function queueAsset(asset: Asset) {
     if (!asset.userApproved) {
       throw new Error("Approve this asset before starting generation.");
+    }
+    if (!isAssetGenerationSupported(asset)) {
+      throw new Error("Generation is currently supported for image and video assets only.");
     }
     if (!canGenerateAsset(asset)) {
       throw new Error("A generation job requires a prompt grounded in production records or filmmaker input.");

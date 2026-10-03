@@ -59,6 +59,17 @@ describe("generation job lifecycle", () => {
     assert.equal(canGenerateAsset(asset({ userApproved: true })), true);
   });
 
+  it("only allows generation for asset types supported by the media providers", () => {
+    for (const kind of ["audio", "music", "document"] as const) {
+      const unsupported = asset({ kind, userApproved: true });
+      assert.equal(canGenerateAsset(unsupported), false);
+      assert.throws(
+        () => draftJobFromAsset(unsupported),
+        /currently supported for image and video assets only/,
+      );
+    }
+  });
+
   it("drafts an image job and refuses an empty prompt", () => {
     const draft = draftJobFromAsset(asset());
     assert.equal(draft.jobType, "image");
@@ -87,9 +98,28 @@ describe("planJobsFromAssets", () => {
     const drafts = planJobsFromAssets([
       asset(),
       asset({ id: "cccccccc-cccc-4ccc-8ccc-cccccccccccc", fileUrl: "https://cdn.example/existing.png" }),
+      asset({ id: "dddddddd-dddd-4ddd-8ddd-dddddddddddd", kind: "audio" }),
+      asset({ id: "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee", kind: "document" }),
     ]);
     assert.equal(drafts.length, 1);
     assert.deepEqual(selectNewJobProposals(drafts, [job({ status: "queued" })]), []);
+  });
+
+  it("does not dispatch previously queued jobs for unsupported asset types", () => {
+    const unsupportedAsset = asset({ kind: "audio", userApproved: true });
+    const unsupportedJob = job({
+      assetId: unsupportedAsset.id,
+      jobType: "audio",
+    });
+
+    assert.deepEqual(
+      selectQueuedJobsForApprovedAssets(
+        unsupportedAsset.productionId,
+        [unsupportedJob],
+        [unsupportedAsset],
+      ),
+      [],
+    );
   });
 
   it("selects persisted queued jobs only for approved assets in the same production", () => {

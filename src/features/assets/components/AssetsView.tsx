@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import type { Asset } from "../types/asset";
+import { canGenerateAsset } from "../services/generation-job";
 import { useAssets } from "../hooks/use-assets";
 import AssetFormDialog from "./AssetFormDialog";
 import AssetList from "./AssetList";
@@ -24,7 +25,7 @@ export function AssetsView({ productionId }: { productionId: string }) {
   );
   const approvedQueueableCount = useMemo(
     () => assets.filter(
-      (asset) => asset.userApproved && asset.prompt?.trim() && (asset.status !== "generating" || queuedAssetIds.has(asset.id)),
+      (asset) => canGenerateAsset(asset) && (asset.status !== "generating" || queuedAssetIds.has(asset.id)),
     ).length,
     [assets, queuedAssetIds],
   );
@@ -103,7 +104,7 @@ export function AssetsView({ productionId }: { productionId: string }) {
         <div>
           <p className="text-xs font-black uppercase tracking-[0.25em] text-yellow-500">Production workspace</p>
           <h1 className="mt-2 text-3xl font-black text-white">Assets</h1>
-          <p className="mt-2 max-w-2xl text-sm leading-6 text-zinc-400">Review production-derived references, edit prompts, approve assets, and create generation jobs. A media URL appears only when a provider returns one.</p>
+          <p className="mt-2 max-w-2xl text-sm leading-6 text-zinc-400">Review production-derived references, edit prompts, and approve assets. Image and video assets can be sent to configured generation providers; audio and document assets remain production records until supported providers are available.</p>
         </div>
         <div className="flex flex-wrap gap-3">
           <button type="button" disabled={planning || loading} onClick={handlePlan} className="rounded-xl border border-zinc-700 px-4 py-3 text-sm font-bold text-zinc-200 disabled:opacity-50">{planning ? "Planning..." : "Plan from production"}</button>
