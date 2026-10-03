@@ -18,7 +18,14 @@ const TITLE_PREFIX_REGEX =
   /^(?:TITLE|SCRIPT TITLE|PROJECT TITLE):\s*(.+)$/i;
 
 function extractTitle(lines: string[]): string {
-  for (let i = 0; i < Math.min(lines.length, 30); i++) {
+  const firstSceneHeadingIndex = lines.findIndex((line) =>
+    SCENE_HEADING_REGEX.test(line.trim()),
+  );
+  const titlePageEnd = firstSceneHeadingIndex < 0
+    ? Math.min(lines.length, 30)
+    : Math.min(firstSceneHeadingIndex, 30);
+
+  for (let i = 0; i < titlePageEnd; i++) {
     const line = lines[i].trim();
     if (!line) continue;
 
@@ -28,7 +35,11 @@ function extractTitle(lines: string[]): string {
     }
   }
 
-  for (let i = 0; i < Math.min(lines.length, 15); i++) {
+  const fallbackEnd = firstSceneHeadingIndex < 0
+    ? Math.min(lines.length, 15)
+    : Math.min(firstSceneHeadingIndex, 15);
+
+  for (let i = 0; i < fallbackEnd; i++) {
     const line = lines[i].trim();
     if (!line) continue;
 

@@ -47,9 +47,10 @@ interface ImportScriptInput {
 }
 
 function getTitleFromFileName(fileName: string) {
-  return (
-    fileName.replace(/\.[^/.]+$/, "") || "Untitled Screenplay"
-  );
+  const title = fileName.replace(/\.[^/.]+$/, "").trim();
+  return !title || title.toLowerCase() === "pasted-screenplay"
+    ? "Untitled Screenplay"
+    : title;
 }
 
 export function useScriptWorkspace(productionId: string) {
@@ -192,9 +193,11 @@ export function useScriptWorkspace(productionId: string) {
           content: input.content,
         });
 
+        const extractedTitle = result.knowledge.screenplay.title;
         const importedTitle =
-          result.knowledge.screenplay.title ||
-          getTitleFromFileName(input.name);
+          extractedTitle && extractedTitle !== "Untitled Screenplay"
+            ? extractedTitle
+            : getTitleFromFileName(input.name);
 
         setContent(result.screenplay);
         setTitle(importedTitle);

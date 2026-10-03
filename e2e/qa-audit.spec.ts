@@ -1,5 +1,15 @@
 import { expect, test } from "@playwright/test";
 
+async function stubMissingProduction(page: import("@playwright/test").Page) {
+  await page.route("**/rest/v1/productions**", async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: "null",
+    });
+  });
+}
+
 test.describe("QA Audit - Public & Auth Routes", () => {
   test("Homepage renders properly with all key sections", async ({ page }) => {
     const consoleErrors: string[] = [];
@@ -83,6 +93,8 @@ test.describe("QA Audit - Non-existent Production ID (Boundary & Error handling)
       if (msg.type() === "error") consoleErrors.push(msg.text());
     });
 
+    await stubMissingProduction(page);
+
     const response = await page.goto("/studio/productions/00000000-0000-0000-0000-000000000000", {
       waitUntil: "domcontentloaded",
       timeout: 60000,
@@ -91,7 +103,7 @@ test.describe("QA Audit - Non-existent Production ID (Boundary & Error handling)
     expect(response?.status()).toBeLessThan(500);
 
     // Should render the workspace with error layout
-    await expect(page.locator("text=Unable to load production")).toBeVisible({ timeout: 15000 });
+    await expect(page.getByRole("heading", { name: "Unable to load production" })).toBeVisible({ timeout: 15000 });
     await expect(page.locator("text=The requested production could not be found.")).toBeVisible();
     await expect(page.locator("body")).not.toContainText("PGRST116");
   });
@@ -102,33 +114,37 @@ test.describe("QA Audit - Non-existent Production ID (Boundary & Error handling)
       if (msg.type() === "error") consoleErrors.push(msg.text());
     });
 
+    await stubMissingProduction(page);
+
     const response = await page.goto("/studio/productions/00000000-0000-0000-0000-000000000000/storyboard", {
       waitUntil: "domcontentloaded",
       timeout: 60000,
     });
 
     expect(response?.status()).toBeLessThan(500);
-    await expect(page.locator("text=Unable to load production")).toBeVisible({ timeout: 15000 });
+    await expect(page.getByRole("heading", { name: "Unable to load production" })).toBeVisible({ timeout: 15000 });
   });
 
   test("Visiting locations route with invalid production ID", async ({ page }) => {
+    await stubMissingProduction(page);
     const response = await page.goto("/studio/productions/00000000-0000-0000-0000-000000000000/locations", {
       waitUntil: "domcontentloaded",
       timeout: 60000,
     });
 
     expect(response?.status()).toBeLessThan(500);
-    await expect(page.locator("text=Unable to load production")).toBeVisible({ timeout: 15000 });
+    await expect(page.getByRole("heading", { name: "Unable to load production" })).toBeVisible({ timeout: 15000 });
   });
 
   test("Visiting scenes route with invalid production ID", async ({ page }) => {
+    await stubMissingProduction(page);
     const response = await page.goto("/studio/productions/00000000-0000-0000-0000-000000000000/scenes", {
       waitUntil: "domcontentloaded",
       timeout: 60000,
     });
 
     expect(response?.status()).toBeLessThan(500);
-    await expect(page.locator("text=Unable to load production")).toBeVisible({ timeout: 15000 });
+    await expect(page.getByRole("heading", { name: "Unable to load production" })).toBeVisible({ timeout: 15000 });
   });
 });
 
