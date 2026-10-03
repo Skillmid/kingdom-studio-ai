@@ -12,11 +12,11 @@ export default function ProductionLayout({
   return (
     <div className="min-h-screen bg-zinc-950 text-white">
 
-      <div className="flex">
+      <div className="flex min-h-screen flex-col lg:flex-row">
 
         <ProductionSidebar />
 
-        <main className="min-h-screen flex-1 overflow-y-auto">
+        <main className="min-h-screen min-w-0 flex-1 overflow-y-auto">
 
           {children}
 
