@@ -9,5 +9,5 @@ interface ScenesPageProps {
 export default async function ScenesPage({ params }: ScenesPageProps) {
   const { id } = await params;
 
-  return <ScenesView productionId={id} />;
+  return <ScenesView key={id} productionId={id} />;
 }

@@ -9,5 +9,5 @@ interface ShotListPageProps {
 export default async function ShotListPage({ params }: ShotListPageProps) {
   const { id } = await params;
 
-  return <ShotListView productionId={id} />;
+  return <ShotListView key={id} productionId={id} />;
 }

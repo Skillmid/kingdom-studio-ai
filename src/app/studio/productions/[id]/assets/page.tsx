@@ -8,5 +8,5 @@ interface AssetsPageProps {
 
 export default async function AssetsPage({ params }: AssetsPageProps) {
   const { id } = await params;
-  return <AssetsView productionId={id} />;
+  return <AssetsView key={id} productionId={id} />;
 }

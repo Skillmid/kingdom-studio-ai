@@ -11,5 +11,5 @@ export default async function CharactersPage({
 }: CharactersPageProps) {
   const { id } = await params;
 
-  return <CharactersView productionId={id} />;
+  return <CharactersView key={id} productionId={id} />;
 }

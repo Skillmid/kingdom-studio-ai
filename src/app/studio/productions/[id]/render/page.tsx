@@ -8,5 +8,5 @@ interface RenderPageProps {
 
 export default async function RenderPage({ params }: RenderPageProps) {
   const { id } = await params;
-  return <RenderView productionId={id} mode="render" />;
+  return <RenderView key={`${id}:render`} productionId={id} mode="render" />;
 }

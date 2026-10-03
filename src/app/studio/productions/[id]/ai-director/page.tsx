@@ -9,5 +9,5 @@ interface AIDirectorPageProps {
 export default async function AIDirectorPage({ params }: AIDirectorPageProps) {
   const { id } = await params;
 
-  return <DirectorNotesView productionId={id} />;
+  return <DirectorNotesView key={id} productionId={id} />;
 }

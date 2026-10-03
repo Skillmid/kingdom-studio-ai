@@ -8,5 +8,5 @@ interface ExportPageProps {
 
 export default async function ExportPage({ params }: ExportPageProps) {
   const { id } = await params;
-  return <RenderView productionId={id} mode="export" />;
+  return <RenderView key={`${id}:export`} productionId={id} mode="export" />;
 }

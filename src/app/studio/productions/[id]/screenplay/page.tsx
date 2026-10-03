@@ -17,6 +17,7 @@ export default function ScreenplayPage({
 
   return (
     <ScriptWorkspace
+      key={id}
       productionId={id}
     />
   );

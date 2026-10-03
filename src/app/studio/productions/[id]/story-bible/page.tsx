@@ -13,6 +13,7 @@ export default async function StoryBiblePage({
 
   return (
     <StoryBibleWorkspace
+      key={id}
       productionId={id}
     />
   );

@@ -9,5 +9,5 @@ interface StoryboardPageProps {
 export default async function StoryboardPage({ params }: StoryboardPageProps) {
   const { id } = await params;
 
-  return <StoryboardView productionId={id} />;
+  return <StoryboardView key={id} productionId={id} />;
 }

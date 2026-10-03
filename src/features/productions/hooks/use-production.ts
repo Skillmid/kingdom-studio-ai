@@ -17,14 +17,19 @@ export function useProduction(id: string) {
     useState<string | null>(null);
 
   useEffect(() => {
+    let cancelled = false;
+
     async function load() {
       setLoading(true);
+      setError(null);
 
       const result = await supabase
         .from("productions")
         .select("*")
         .eq("id", id)
         .maybeSingle();
+
+      if (cancelled) return;
 
       if (result.error) {
         setError(
@@ -41,7 +46,11 @@ export function useProduction(id: string) {
       setLoading(false);
     }
 
-    load();
+    void load();
+
+    return () => {
+      cancelled = true;
+    };
   }, [id]);
 
   return {
