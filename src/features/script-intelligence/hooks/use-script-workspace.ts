@@ -43,7 +43,7 @@ import type {
 interface ImportScriptInput {
   name: string;
   type: ImportFileType;
-  content: string;
+  content: string | ArrayBuffer;
 }
 
 function getTitleFromFileName(fileName: string) {

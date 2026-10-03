@@ -7,11 +7,12 @@ export type ImportFileType =
   | "markdown";
 
 export interface ImportedFile {
+
   name: string;
 
   type: ImportFileType;
 
-  content: string;
+  content: string | ArrayBuffer;
 }
 
 export interface ImportResult {

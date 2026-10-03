@@ -15,7 +15,7 @@ interface ScriptImportProps {
   onImport: (input: {
     name: string;
     type: ImportFileType;
-    content: string;
+    content: string | ArrayBuffer;
   }) => Promise<unknown>;
 }
 
@@ -51,17 +51,6 @@ function detectFileType(
     default:
       return null;
   }
-}
-
-function canReadAsText(
-  type: ImportFileType
-) {
-  return (
-    type === "txt" ||
-    type === "fountain" ||
-    type === "markdown" ||
-    type === "fdx"
-  );
 }
 
 export default function ScriptImport({
@@ -106,19 +95,17 @@ export default function ScriptImport({
       return;
     }
 
-    if (!canReadAsText(type)) {
-      setLocalError(
-        `${type.toUpperCase()} import is prepared but binary extraction is not connected yet. Use Paste Script, TXT, Fountain, Markdown, or FDX for now.`
-      );
-
-      return;
-    }
-
     try {
       const content =
-        await file.text();
+        type === "pdf" || type === "docx"
+          ? await file.arrayBuffer()
+          : await file.text();
 
-      if (!content.trim()) {
+      if (
+        typeof content === "string"
+          ? !content.trim()
+          : content.byteLength === 0
+      ) {
         setLocalError(
           "The selected screenplay file is empty."
         );
@@ -189,11 +176,11 @@ export default function ScriptImport({
           </h2>
 
           <p className="mt-2 max-w-3xl text-sm leading-6 text-zinc-400">
-            Choose an existing screenplay
-            file or paste a complete script.
-            The screenplay will be placed
-            into the editor below for review
-            before you save it to the
+            Choose a TXT, Fountain, Markdown,
+            Final Draft, Word, or PDF screenplay
+            file, or paste a complete script.
+            Review the extracted text in the
+            editor before saving it to the
             production.
           </p>
 

@@ -5,21 +5,33 @@ import type {
 import { fdxParser } from "../parsers/fdx-parser";
 
 export class ImportEngineService {
-  async import(
-    file: ImportedFile
-  ): Promise<ImportResult> {
-    if (file.type === "pdf" || file.type === "docx") {
-      return {
-        success: false,
-        screenplay: "",
-        errors: [`${file.type.toUpperCase()} screenplay extraction is not available yet.`],
-      };
-    }
-
+  async import(file: ImportedFile): Promise<ImportResult> {
     try {
-      const screenplay = file.type === "fdx"
-        ? fdxParser.parse(file.content)
-        : file.content;
+      let screenplay: string;
+
+      if (file.type === "pdf") {
+        if (typeof file.content === "string") {
+          throw new Error("PDF import requires the original binary file content.");
+        }
+
+        const { pdfParser } = await import("../parsers/pdf-parser");
+        screenplay = await pdfParser.parse(file.content);
+      } else if (file.type === "docx") {
+        if (typeof file.content === "string") {
+          throw new Error("DOCX import requires the original binary file content.");
+        }
+
+        const { docxParser } = await import("../parsers/docx-parser");
+        screenplay = await docxParser.parse(file.content);
+      } else {
+        if (typeof file.content !== "string") {
+          throw new Error(`${file.type.toUpperCase()} import requires text content.`);
+        }
+
+        screenplay = file.type === "fdx"
+          ? fdxParser.parse(file.content)
+          : file.content;
+      }
 
       if (!screenplay.trim()) {
         return {
@@ -48,5 +60,4 @@ export class ImportEngineService {
   }
 }
 
-export const importEngine =
-  new ImportEngineService();
+export const importEngine = new ImportEngineService();
