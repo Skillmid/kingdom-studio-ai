@@ -101,6 +101,29 @@ export function selectNewJobProposals(
   return drafts.filter((draft) => !draft.assetId || !blocking.has(`${draft.assetId}:${draft.jobType}`));
 }
 
+export function selectQueuedJobsForApprovedAssets(
+  productionId: string,
+  jobs: GenerationJob[],
+  assets: Array<Pick<Asset, "id" | "productionId" | "kind" | "prompt" | "userApproved">>,
+): Array<{ job: GenerationJob; assetId: string }> {
+  const approvedById = new Map(
+    assets
+      .filter((asset) => asset.productionId === productionId && canGenerateAsset(asset))
+      .map((asset) => [asset.id, asset]),
+  );
+
+  return jobs.flatMap((job) => {
+    if (job.status !== "queued" || job.productionId !== productionId || !job.assetId) {
+      return [];
+    }
+
+    const asset = approvedById.get(job.assetId);
+    if (!asset || job.jobType !== jobTypeForAsset(asset)) return [];
+
+    return [{ job, assetId: asset.id }];
+  });
+}
+
 export function applyJobResultToAsset(
   asset: Asset,
   job: Pick<GenerationJob, "status" | "outputUrl" | "errorMessage">,

@@ -21,6 +21,7 @@ import {
   planJobsFromAssets,
   retryJob,
   selectNewJobProposals,
+  selectQueuedJobsForApprovedAssets,
 } from "../services/generation-job";
 import type { Asset } from "../types/asset";
 import type { GenerationJob } from "../types/generation-job";
@@ -274,6 +275,7 @@ export function useAssets(productionId: string) {
       if (queued.status === "failed" || queued.status === "cancelled") {
         queued = await generationJobRepository.update(queued.id, jobPersistencePatch(retryJob(queued)));
       }
+      setJobs((current) => [queued!, ...current.filter((item) => item.id !== queued!.id)]);
 
       await assetRepository.update(asset.id, { status: "generating" });
       setAssets((current) =>
@@ -297,22 +299,34 @@ export function useAssets(productionId: string) {
     try {
       const existingJobs = await generationJobRepository.getByProductionId(productionId);
       const approvedAssets = assets.filter((asset) => asset.userApproved);
+      const queuedJobs = selectQueuedJobsForApprovedAssets(productionId, existingJobs, approvedAssets);
       const drafts = selectNewJobProposals(planJobsFromAssets(approvedAssets), existingJobs);
       const created = await generationJobRepository.createMany(
         drafts.map((draft) => ({ ...draft, productionId })),
       );
-      setJobs((current) => [...created, ...current]);
+      const assetsById = new Map(approvedAssets.map((asset) => [asset.id, asset]));
+      const dispatchQueue = [
+        ...queuedJobs.flatMap(({ job, assetId }) => {
+          const asset = assetsById.get(assetId);
+          return asset ? [{ job, asset }] : [];
+        }),
+        ...created.flatMap((job) => {
+          const asset = job.assetId ? assetsById.get(job.assetId) : undefined;
+          return asset ? [{ job, asset }] : [];
+        }),
+      ];
+      setJobs((current) => {
+        const combined = [...dispatchQueue.map(({ job }) => job), ...current];
+        return [...new Map(combined.map((job) => [job.id, job])).values()];
+      });
 
-      let queuedCount = 0;
-      for (const job of created) {
-        const asset = assets.find((item) => item.id === job.assetId);
-        if (!asset) continue;
+      for (const { job, asset } of dispatchQueue) {
         const dispatched = await dispatchJob(job);
         await persistDispatch(asset, job, dispatched);
-        queuedCount += 1;
       }
 
-      return { queuedCount, skippedCount: assets.length - drafts.length };
+      const queuedAssetIds = new Set(dispatchQueue.map(({ asset }) => asset.id));
+      return { queuedCount: dispatchQueue.length, skippedCount: assets.length - queuedAssetIds.size };
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to queue generation jobs.");
       throw err;

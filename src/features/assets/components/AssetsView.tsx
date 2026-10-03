@@ -18,9 +18,15 @@ export function AssetsView({ productionId }: { productionId: string }) {
   const [deletingAsset, setDeletingAsset] = useState<Asset | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
+  const queuedAssetIds = useMemo(
+    () => new Set(jobs.filter((job) => job.status === "queued" && job.assetId).map((job) => job.assetId)),
+    [jobs],
+  );
   const approvedQueueableCount = useMemo(
-    () => assets.filter((asset) => asset.userApproved && asset.prompt?.trim() && asset.status !== "generating").length,
-    [assets],
+    () => assets.filter(
+      (asset) => asset.userApproved && asset.prompt?.trim() && (asset.status !== "generating" || queuedAssetIds.has(asset.id)),
+    ).length,
+    [assets, queuedAssetIds],
   );
 
   function openNewAsset() {

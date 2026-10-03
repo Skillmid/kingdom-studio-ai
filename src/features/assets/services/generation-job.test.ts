@@ -9,6 +9,7 @@ import {
   draftJobFromAsset,
   canGenerateAsset,
   planJobsFromAssets,
+  selectQueuedJobsForApprovedAssets,
   selectNewJobProposals,
   startJob,
 } from "./generation-job";
@@ -89,5 +90,38 @@ describe("planJobsFromAssets", () => {
     ]);
     assert.equal(drafts.length, 1);
     assert.deepEqual(selectNewJobProposals(drafts, [job({ status: "queued" })]), []);
+  });
+
+  it("selects persisted queued jobs only for approved assets in the same production", () => {
+    const approvedAsset = asset({ userApproved: true });
+    const unapprovedAsset = asset({
+      id: "cccccccc-cccc-4ccc-8ccc-cccccccccccc",
+      userApproved: false,
+    });
+    const approvedJob = job();
+    const unapprovedJob = job({
+      id: "dddddddd-dddd-4ddd-8ddd-dddddddddddd",
+      assetId: unapprovedAsset.id,
+    });
+    const otherProductionJob = job({
+      id: "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee",
+      productionId: "99999999-9999-4999-8999-999999999999",
+    });
+    const activeJob = job({
+      id: "ffffffff-ffff-4fff-8fff-ffffffffffff",
+      status: "running",
+    });
+    const wrongTypeJob = job({
+      id: "12121212-1212-4212-8212-121212121212",
+      jobType: "video",
+    });
+
+    const selected = selectQueuedJobsForApprovedAssets(
+      approvedAsset.productionId,
+      [approvedJob, unapprovedJob, otherProductionJob, activeJob, wrongTypeJob],
+      [approvedAsset, unapprovedAsset],
+    );
+
+    assert.deepEqual(selected.map(({ job: selectedJob }) => selectedJob.id), [approvedJob.id]);
   });
 });
