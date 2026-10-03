@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { buildExportManifest, serializeExportPackage } from "./export-planner";
+import { downloadExportPackage } from "./export-download";
 
 describe("export package planning", () => {
   it("sorts arbitrary production clips and preserves missing media explicitly", () => {
@@ -14,5 +15,43 @@ describe("export package planning", () => {
     const edl = serializeExportPackage("edit-decision-list", manifest);
     assert.match(edl, /MEDIA MISSING/);
     assert.doesNotMatch(edl, /fabricated/i);
+  });
+
+  it("keeps the download URL alive until after the browser click has been dispatched", () => {
+    const events: string[] = [];
+    let deferredRevocation: (() => void) | undefined;
+
+    downloadExportPackage(
+      {
+        title: "Harbour Assembly",
+        format: "edit-decision-list",
+        serializedPackage: "TITLE: Harbour Assembly",
+      },
+      {
+        createObjectURL: (blob) => {
+          assert.ok(blob instanceof Blob);
+          events.push("create");
+          return "blob:export";
+        },
+        clickDownload: (url, fileName) => {
+          assert.equal(url, "blob:export");
+          assert.equal(fileName, "Harbour-Assembly.edl");
+          events.push("click");
+        },
+        defer: (callback) => {
+          events.push("defer");
+          deferredRevocation = callback;
+        },
+        revokeObjectURL: (url) => {
+          assert.equal(url, "blob:export");
+          events.push("revoke");
+        },
+      },
+    );
+
+    assert.deepEqual(events, ["create", "click", "defer"]);
+    assert.ok(deferredRevocation);
+    deferredRevocation();
+    assert.deepEqual(events, ["create", "click", "defer", "revoke"]);
   });
 });

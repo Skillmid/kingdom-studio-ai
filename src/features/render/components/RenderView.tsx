@@ -4,23 +4,13 @@ import { useState } from "react";
 import type { ExportFormat, ExportPackageProposal } from "../types/render";
 import { useRender } from "../hooks/use-render";
 import { planRenderSequenceFromClips } from "../services/render-planner";
+import { downloadExportPackage } from "../services/export-download";
 
 const formats: Array<{ value: ExportFormat; label: string }> = [
   { value: "delivery-manifest", label: "Delivery manifest (JSON)" },
   { value: "edit-decision-list", label: "Edit decision list (EDL)" },
   { value: "preview-package", label: "Preview package (JSON)" },
 ];
-
-function downloadPackage(item: { title?: string; format: ExportFormat; serializedPackage: string }) {
-  const extension = item.format === "edit-decision-list" ? "edl" : "json";
-  const type = item.format === "edit-decision-list" ? "text/plain" : "application/json";
-  const blobUrl = URL.createObjectURL(new Blob([item.serializedPackage], { type }));
-  const link = document.createElement("a");
-  link.href = blobUrl;
-  link.download = `${(item.title || "kingdom-studio-export").replace(/[^a-z0-9-_]+/gi, "-")}.${extension}`;
-  link.click();
-  URL.revokeObjectURL(blobUrl);
-}
 
 export function RenderView({ productionId, mode = "render" }: { productionId: string; mode?: "render" | "export" }) {
   const {
@@ -73,7 +63,7 @@ export function RenderView({ productionId, mode = "render" }: { productionId: st
     setActionError(null);
     try {
       const saved = await saveExport(exportPreview);
-      downloadPackage(saved);
+      downloadExportPackage(saved);
       setNotice(`Saved and downloaded ${saved.format.replace(/-/g, " ")}. The package contains a manifest, not an encoded video file.`);
       setExportPreview(null);
     } catch (saveError) {
@@ -178,7 +168,7 @@ export function RenderView({ productionId, mode = "render" }: { productionId: st
           </section>
           <section className="space-y-3">
             <h2 className="text-lg font-bold text-white">Saved packages</h2>
-            {exports.map((item) => <article key={item.id} className="flex flex-wrap items-center justify-between gap-4 rounded-xl border border-zinc-800 bg-zinc-900 p-4"><div><p className="font-bold text-white">{item.title || item.format}</p><p className="mt-1 text-xs text-zinc-500">{item.format.replace(/-/g, " ")} | {item.manifest.clipCount} clips | saved {new Date(item.createdAt).toLocaleString()}</p></div><button type="button" onClick={() => downloadPackage(item)} className="rounded-lg border border-zinc-700 px-3 py-2 text-xs font-bold text-zinc-200">Download again</button></article>)}
+            {exports.map((item) => <article key={item.id} className="flex flex-wrap items-center justify-between gap-4 rounded-xl border border-zinc-800 bg-zinc-900 p-4"><div><p className="font-bold text-white">{item.title || item.format}</p><p className="mt-1 text-xs text-zinc-500">{item.format.replace(/-/g, " ")} | {item.manifest.clipCount} clips | saved {new Date(item.createdAt).toLocaleString()}</p></div><button type="button" onClick={() => downloadExportPackage(item)} className="rounded-lg border border-zinc-700 px-3 py-2 text-xs font-bold text-zinc-200">Download again</button></article>)}
             {!loading && exports.length === 0 ? <p className="rounded-xl border border-dashed border-zinc-700 p-6 text-sm text-zinc-500">No export packages have been saved.</p> : null}
           </section>
         </>
