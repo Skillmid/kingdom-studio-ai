@@ -6,6 +6,7 @@ import type {
   AIRequest,
   AIResponse,
 } from "../types/ai-provider";
+import { supabase } from "@/lib/supabase/client";
 
 interface OpenRouterAPIResponse {
   text?: string;
@@ -25,6 +26,7 @@ export class OpenRouterProvider
   async generate(
     request: AIRequest
   ): Promise<AIResponse> {
+    const { data: { session } } = await supabase.auth.getSession();
     const response = await fetch(
       "/api/ai/generate",
       {
@@ -33,6 +35,9 @@ export class OpenRouterProvider
         headers: {
           "Content-Type":
             "application/json",
+          ...(session?.access_token
+            ? { Authorization: `Bearer ${session.access_token}` }
+            : {}),
         },
 
         body: JSON.stringify({
