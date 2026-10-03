@@ -3,13 +3,12 @@
 import { useCallback, useState } from "react";
 
 import { sceneRepository } from "@/features/scenes/repositories/scene.repository";
-import { sceneSchema } from "@/features/scenes/validation/scene.schema";
 import { sceneExtractor } from "@/features/import-engine/extractors/scene.extractor";
 
 import { scriptIntelligence } from "../services/script-intelligence.service";
+import { persistApprovedSceneProposals } from "../services/approved-scene-persistence";
 import type { ProposedScene } from "../types/scene-proposal";
 import {
-  buildApprovedSceneInput,
   createRevisionBoundSceneProposals,
   type SceneExtractionSource,
 } from "../services/scene-extraction-provenance";
@@ -109,20 +108,12 @@ export function useSceneExtraction(productionId: string) {
       setError(null);
 
       try {
-        const validated = scenes.map((scene) => {
-          const input = buildApprovedSceneInput(scene, productionId, currentSource);
-          const result = sceneSchema.safeParse(input);
-          if (!result.success) {
-            const firstIssue = result.error.issues[0];
-            throw new Error(firstIssue?.message ?? `Scene ${scene.number} is not valid and was not saved.`);
-          }
-          return result.data;
-        });
-        const created = [];
-
-        for (const scene of validated) {
-          created.push(await sceneRepository.create(scene));
-        }
+        const created = await persistApprovedSceneProposals(
+          scenes,
+          productionId,
+          currentSource,
+          sceneRepository,
+        );
 
         const savedIds = new Set(scenes.map((scene) => scene.clientId));
         setProposals((current) =>

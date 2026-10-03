@@ -5,6 +5,8 @@ import {
   createRevisionBoundSceneProposals,
   getSceneExtractionSource,
 } from "./scene-extraction-provenance";
+import { persistApprovedSceneProposals } from "./approved-scene-persistence";
+import type { Scene, SceneCreateInput } from "@/features/scenes/types/scene";
 
 const screenplay = { id: "screenplay-1", version: 4 };
 const revisions = [
@@ -91,5 +93,63 @@ describe("revision-bound scene extraction provenance", () => {
       () => buildApprovedSceneInput(proposal, "production-1", null),
       /saved screenplay revision changed/i,
     );
+  });
+
+  it("validates all selected scenes before writing them as one batch", async () => {
+    const source = {
+      screenplayId: "11111111-1111-4111-8111-111111111111",
+      revisionId: "22222222-2222-4222-8222-222222222222",
+      screenplayVersion: 4,
+    };
+    const [proposal] = createRevisionBoundSceneProposals(drafts, source);
+    const approvedProposal = {
+      ...proposal!,
+      clientId: "proposal-1",
+      selected: true,
+    };
+    const secondProposal = {
+      ...approvedProposal,
+      clientId: "proposal-2",
+      number: 2,
+    };
+    const writes: unknown[][] = [];
+    const repository = {
+      async createMany(scenes: SceneCreateInput[]) {
+        writes.push(scenes);
+        return [] as Scene[];
+      },
+    };
+
+    await persistApprovedSceneProposals(
+      [approvedProposal, { ...approvedProposal, clientId: "proposal-2", heading: "" }],
+      "33333333-3333-4333-8333-333333333333",
+      source,
+      repository,
+    ).then(
+      () => assert.fail("Invalid proposals must not be written."),
+      (error: unknown) => assert.match(
+        error instanceof Error ? error.message : "",
+        /heading/i,
+      ),
+    );
+
+    assert.equal(writes.length, 0);
+    await persistApprovedSceneProposals(
+      [approvedProposal],
+      "33333333-3333-4333-8333-333333333333",
+      source,
+      repository,
+    );
+    assert.equal(writes.length, 1);
+    assert.equal(writes[0]?.length, 1);
+
+    await persistApprovedSceneProposals(
+      [approvedProposal, secondProposal],
+      "33333333-3333-4333-8333-333333333333",
+      source,
+      repository,
+    );
+    assert.equal(writes.length, 2);
+    assert.equal(writes[1]?.length, 2);
   });
 });
