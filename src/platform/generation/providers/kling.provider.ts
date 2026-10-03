@@ -53,17 +53,16 @@ export class KlingMediaProvider implements MediaGenerationProvider {
     }
   }
 
-  async checkStatus(providerJobId: string): Promise<MediaGenerationResult> {
+  async checkStatus(providerJobId: string, jobType: MediaJobType): Promise<MediaGenerationResult> {
     if (!this.isConfigured()) return { status: "failed", provider: this.id, errorMessage: UNCONFIGURED_MEDIA_ERROR };
     const encodedId = encodeURIComponent(providerJobId);
     try {
-      return this.mapPayload(await this.requestJson("GET", `/v1/videos/text2video/${encodedId}`));
-    } catch {
-      try {
-        return this.mapPayload(await this.requestJson("GET", `/v1/images/generations/${encodedId}`));
-      } catch (error) {
-        return { status: "failed", provider: this.id, providerJobId, errorMessage: error instanceof Error ? error.message : "Kling status request failed." };
-      }
+      const path = jobType === "video"
+        ? `/v1/videos/text2video/${encodedId}`
+        : `/v1/images/generations/${encodedId}`;
+      return this.mapPayload(await this.requestJson("GET", path));
+    } catch (error) {
+      return { status: "failed", provider: this.id, providerJobId, errorMessage: error instanceof Error ? error.message : "Kling status request failed." };
     }
   }
 

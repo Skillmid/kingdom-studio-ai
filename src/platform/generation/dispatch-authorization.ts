@@ -1,4 +1,5 @@
 import type { GenerationJob } from "@/features/assets/types/generation-job";
+import { canCheckGenerationJobStatus } from "@/features/assets/services/generation-job";
 
 export interface DispatchAssetAuthority {
   id: string;
@@ -7,15 +8,18 @@ export interface DispatchAssetAuthority {
 }
 
 export function canDispatchPersistedJob(
-  job: Pick<GenerationJob, "status" | "productionId" | "assetId">,
+  job: Pick<GenerationJob, "status" | "productionId" | "assetId" | "provider" | "parameters">,
   asset: DispatchAssetAuthority | null,
 ): boolean {
+  const isDispatchable = job.status === "queued";
+  const isPollable = canCheckGenerationJobStatus(job);
+
   return Boolean(
-    job.status === "queued" &&
+    (isDispatchable || isPollable) &&
       job.assetId &&
       asset &&
       asset.id === job.assetId &&
       asset.productionId === job.productionId &&
-      asset.userApproved,
+      (isPollable || asset.userApproved),
   );
 }

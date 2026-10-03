@@ -56,7 +56,10 @@ export async function POST(request: Request) {
       updatedAt: row.updated_at,
     };
     if (!canDispatchPersistedJob(job, asset ?? null)) {
-      return NextResponse.json({ error: "Only queued jobs for creator-approved assets can be dispatched." }, { status: 409 });
+      return NextResponse.json(
+        { error: "Only queued jobs or running jobs with a provider task ID for creator-approved assets can be dispatched." },
+        { status: 409 },
+      );
     }
     return NextResponse.json({ job: await dispatchGenerationJob(job) });
   } catch (error) {

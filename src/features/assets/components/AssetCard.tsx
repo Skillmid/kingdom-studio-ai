@@ -2,7 +2,11 @@
 
 import type { Asset, AssetStatus } from "../types/asset";
 import type { GenerationJob } from "../types/generation-job";
-import { canGenerateAsset, isAssetGenerationSupported } from "../services/generation-job";
+import {
+  canCheckGenerationJobStatus,
+  canGenerateAsset,
+  isAssetGenerationSupported,
+} from "../services/generation-job";
 
 interface AssetCardProps {
   asset: Asset;
@@ -11,6 +15,7 @@ interface AssetCardProps {
   onDelete: (asset: Asset) => void;
   onApprove: (asset: Asset) => void;
   onQueue: (asset: Asset) => void;
+  onCheckStatus: (job: GenerationJob) => void;
   queueing?: boolean;
 }
 
@@ -34,10 +39,12 @@ export default function AssetCard({
   onDelete,
   onApprove,
   onQueue,
+  onCheckStatus,
   queueing = false,
 }: AssetCardProps) {
   const progress = Math.max(0, Math.min(100, asset.progress));
   const canRetryQueuedJob = job?.status === "queued";
+  const canCheckStatus = job ? canCheckGenerationJobStatus(job) : false;
   const canQueue = canGenerateAsset(asset) && (asset.status !== "generating" || canRetryQueuedJob);
 
   return (
@@ -124,6 +131,16 @@ export default function AssetCard({
                 ? canRetryQueuedJob ? "Retry queued generation" : "Generating..."
                 : asset.userApproved ? "Queue generation" : "Approve asset first"}
           </button>
+          {job && canCheckStatus ? (
+            <button
+              type="button"
+              disabled={queueing}
+              onClick={() => onCheckStatus(job)}
+              className="rounded-lg border border-yellow-500/40 px-3 py-2 text-xs font-bold text-yellow-300 disabled:opacity-50"
+            >
+              {queueing ? "Checking..." : "Check provider status"}
+            </button>
+          ) : null}
           <button
             type="button"
             onClick={() => onDelete(asset)}

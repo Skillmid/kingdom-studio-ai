@@ -4,6 +4,7 @@ import { describe, it } from "node:test";
 import {
   UNCONFIGURED_PROVIDER_ERROR,
   applyJobResultToAsset,
+  canCheckGenerationJobStatus,
   completeJob,
   dispatchUnconfiguredProvider,
   draftJobFromAsset,
@@ -68,6 +69,25 @@ describe("generation job lifecycle", () => {
         /currently supported for image and video assets only/,
       );
     }
+  });
+
+  it("allows status checks only for running jobs with a provider task ID", () => {
+    assert.equal(
+      canCheckGenerationJobStatus(job({
+        status: "running",
+        provider: "kling",
+        parameters: { providerJobId: "provider-task-123" },
+      })),
+      true,
+    );
+    assert.equal(canCheckGenerationJobStatus(job({ status: "queued" })), false);
+    assert.equal(
+      canCheckGenerationJobStatus(job({
+        status: "running",
+        provider: "kling",
+      })),
+      false,
+    );
   });
 
   it("drafts an image job and refuses an empty prompt", () => {

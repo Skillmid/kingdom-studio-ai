@@ -36,11 +36,14 @@ export async function dispatchGenerationJob(job: GenerationJob, deps: DispatchDe
   const labeled: GenerationJob = { ...running, provider: provider.id };
   if (!provider.isConfigured()) return failJob(labeled, UNCONFIGURED_MEDIA_ERROR, now);
   const existingJobId = typeof labeled.parameters.providerJobId === "string" ? labeled.parameters.providerJobId : undefined;
+  if (existingJobId && !provider.checkStatus) {
+    return failJob(labeled, `The ${provider.id} provider cannot check the status of an existing generation job.`, now);
+  }
   let result: MediaGenerationResult;
   try {
     result =
       existingJobId && provider.checkStatus
-        ? await provider.checkStatus(existingJobId)
+        ? await provider.checkStatus(existingJobId, running.jobType)
         : await provider.generate({
             jobType: running.jobType,
             prompt,
@@ -50,6 +53,13 @@ export async function dispatchGenerationJob(job: GenerationJob, deps: DispatchDe
           });
   } catch (error) {
     return failJob(labeled, error instanceof Error ? error.message : "Generation provider failed.", now);
+  }
+  if (result.status === "running" && !result.providerJobId?.trim()) {
+    return failJob(
+      labeled,
+      "Generation provider returned a running job without a task ID, so its status cannot be checked.",
+      now,
+    );
   }
   const withProvider: GenerationJob = {
     ...labeled,

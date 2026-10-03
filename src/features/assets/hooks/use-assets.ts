@@ -15,6 +15,7 @@ import { planAssetsFromProduction, selectNewAssetProposals } from "../services/a
 import { withCalculatedProgress } from "../services/asset-completion";
 import {
   applyJobResultToAsset,
+  canCheckGenerationJobStatus,
   canGenerateAsset,
   draftJobFromAsset,
   isAssetGenerationSupported,
@@ -245,6 +246,30 @@ export function useAssets(productionId: string) {
     return { asset: persistedAsset, job: persistedJob };
   }
 
+  async function checkJobStatus(job: GenerationJob) {
+    if (!canCheckGenerationJobStatus(job)) {
+      throw new Error("This generation job does not have a provider task that can be checked.");
+    }
+
+    const asset = assets.find((item) => item.id === job.assetId);
+    if (!asset) {
+      throw new Error("The asset for this generation job could not be found.");
+    }
+
+    setQueueing(true);
+    setError(null);
+
+    try {
+      const dispatched = await dispatchJob(job);
+      return await persistDispatch(asset, job, dispatched);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Unable to check generation status.");
+      throw err;
+    } finally {
+      setQueueing(false);
+    }
+  }
+
   async function queueAsset(asset: Asset) {
     if (!asset.userApproved) {
       throw new Error("Approve this asset before starting generation.");
@@ -359,5 +384,6 @@ export function useAssets(productionId: string) {
     planFromProduction,
     queueAsset,
     queueMissing,
+    checkJobStatus,
   };
 }

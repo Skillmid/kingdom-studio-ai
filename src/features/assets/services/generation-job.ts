@@ -28,6 +28,17 @@ export function canGenerateAsset(asset: Pick<Asset, "kind" | "userApproved" | "p
   return isAssetGenerationSupported(asset) && asset.userApproved && Boolean(asset.prompt?.trim());
 }
 
+export function canCheckGenerationJobStatus(
+  job: Pick<GenerationJob, "status" | "provider" | "parameters">,
+): boolean {
+  return (
+    job.status === "running" &&
+    Boolean(job.provider?.trim()) &&
+    typeof job.parameters.providerJobId === "string" &&
+    Boolean(job.parameters.providerJobId.trim())
+  );
+}
+
 export function draftJobFromAsset(
   asset: Pick<Asset, "id" | "productionId" | "kind" | "prompt" | "sourceKind" | "sourceId">,
 ): GenerationJobDraft {

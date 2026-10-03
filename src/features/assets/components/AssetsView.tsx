@@ -12,7 +12,7 @@ export function AssetsView({ productionId }: { productionId: string }) {
   const {
     assets, jobs, loading, saving, planning, queueing, error,
     createAsset, updateAsset, deleteAsset, approveAsset, planFromProduction,
-    queueAsset, queueMissing,
+    queueAsset, queueMissing, checkJobStatus,
   } = useAssets(productionId);
   const [formOpen, setFormOpen] = useState(false);
   const [editingAsset, setEditingAsset] = useState<Asset | null>(null);
@@ -81,6 +81,20 @@ export function AssetsView({ productionId }: { productionId: string }) {
     }
   }
 
+  async function handleCheckStatus(job: Parameters<typeof checkJobStatus>[0]) {
+    setActionError(null);
+    try {
+      const result = await checkJobStatus(job);
+      setNotice(
+        result.job.status === "running"
+          ? `Generation for ${result.asset.title || result.asset.kind} is still running.`
+          : `Generation for ${result.asset.title || result.asset.kind} ${result.job.status}.`,
+      );
+    } catch (statusError) {
+      setActionError(statusError instanceof Error ? statusError.message : "Unable to check generation status.");
+    }
+  }
+
   async function handleApprove(asset: Asset) {
     setActionError(null);
     try {
@@ -121,7 +135,7 @@ export function AssetsView({ productionId }: { productionId: string }) {
 
       {error || actionError ? <p role="alert" className="rounded-xl border border-red-500/20 bg-red-950/30 p-4 text-sm text-red-200">{actionError || error}</p> : null}
       {notice ? <p role="status" className="rounded-xl border border-emerald-500/20 bg-emerald-950/20 p-4 text-sm text-emerald-200">{notice}</p> : null}
-      <AssetList assets={assets} jobs={jobs} loading={loading} queueing={queueing} onEdit={openEditAsset} onDelete={setDeletingAsset} onApprove={handleApprove} onQueue={handleQueue} />
+      <AssetList assets={assets} jobs={jobs} loading={loading} queueing={queueing} onEdit={openEditAsset} onDelete={setDeletingAsset} onApprove={handleApprove} onQueue={handleQueue} onCheckStatus={handleCheckStatus} />
 
       {formOpen ? <AssetFormDialog asset={editingAsset} productionId={productionId} saving={saving} onClose={() => setFormOpen(false)} onSave={saveAsset} /> : null}
       <DeleteAssetDialog asset={deletingAsset} open={Boolean(deletingAsset)} loading={saving} onClose={() => setDeletingAsset(null)} onDelete={handleDelete} />

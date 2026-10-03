@@ -13,6 +13,7 @@ interface AssetListProps {
   onDelete: (asset: Asset) => void;
   onApprove: (asset: Asset) => void;
   onQueue: (asset: Asset) => void;
+  onCheckStatus: (job: GenerationJob) => void;
 }
 
 export default function AssetList({
@@ -24,6 +25,7 @@ export default function AssetList({
   onDelete,
   onApprove,
   onQueue,
+  onCheckStatus,
 }: AssetListProps) {
   const latestByAsset = new Map<string, GenerationJob>();
   for (const job of jobs) {
@@ -64,6 +66,7 @@ export default function AssetList({
           onDelete={onDelete}
           onApprove={onApprove}
           onQueue={onQueue}
+          onCheckStatus={onCheckStatus}
         />
       ))}
     </div>

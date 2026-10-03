@@ -23,7 +23,7 @@ export interface MediaGenerationProvider {
   readonly supports: readonly MediaJobType[];
   isConfigured(): boolean;
   generate(request: MediaGenerationRequest): Promise<MediaGenerationResult>;
-  checkStatus?(providerJobId: string): Promise<MediaGenerationResult>;
+  checkStatus?(providerJobId: string, jobType: MediaJobType): Promise<MediaGenerationResult>;
 }
 
 export interface GenerationEnvironment {
