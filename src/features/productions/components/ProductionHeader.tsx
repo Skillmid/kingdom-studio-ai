@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 
 interface ProductionHeaderProps {
@@ -13,6 +14,20 @@ export default function ProductionHeader({
   productionTitle = "Loading...",
   productionStatus = "Draft",
 }: ProductionHeaderProps) {
+  const [copied, setCopied] = useState(false);
+
+  const handleShare = async () => {
+    try {
+      if (typeof window !== "undefined") {
+        await navigator.clipboard.writeText(window.location.href);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+      }
+    } catch {
+      // Gracefully handle unsupported clipboard environments
+    }
+  };
+
   return (
     <header className="sticky top-0 z-40 border-b border-zinc-800 bg-zinc-950/95 backdrop-blur">
 
@@ -52,9 +67,12 @@ export default function ProductionHeader({
         <div className="flex flex-wrap items-center gap-2 sm:gap-3">
 
           <button
+            type="button"
+            onClick={handleShare}
             className="rounded-xl border border-zinc-700 px-3 py-2 text-sm transition hover:border-yellow-500 sm:px-4"
+            title="Copy production link to clipboard"
           >
-            Share
+            {copied ? "Link Copied!" : "Share"}
           </button>
 
           <Link
@@ -64,11 +82,12 @@ export default function ProductionHeader({
             Export
           </Link>
 
-          <button
+          <Link
+            href="/studio/settings"
             className="rounded-xl bg-yellow-500 px-4 py-2 text-sm font-semibold text-black transition hover:bg-yellow-400 sm:px-5"
           >
             Settings
-          </button>
+          </Link>
 
         </div>
 
