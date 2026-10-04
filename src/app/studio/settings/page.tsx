@@ -1,35 +1,53 @@
+import Link from "next/link";
 import StudioLayout from "@/features/studio/components/StudioLayout";
 
-const settings = [
+interface SettingItem {
+  title: string;
+  description: string;
+  href?: string;
+  badge: string;
+}
+
+const settings: SettingItem[] = [
   {
     title: "Profile",
     description:
-      "Manage your personal information and account details.",
-  },
-  {
-    title: "Security",
-    description:
-      "Update your password and account security.",
-  },
-  {
-    title: "Appearance",
-    description:
-      "Customize your Studio experience.",
+      "Manage your personal creator profile, workspace role, and account details.",
+    href: "/studio/profile",
+    badge: "Open Profile",
   },
   {
     title: "Notifications",
     description:
-      "Choose how Kingdom Studio AI notifies you.",
+      "Review production alerts, generation updates, and director notifications.",
+    href: "/studio/notifications",
+    badge: "Open Notifications",
   },
   {
     title: "AI Preferences",
     description:
-      "Configure AI Director behavior and defaults.",
+      "Review AI Director assistance models, creative suggestions, and generation limits.",
+    href: "/studio/ai-director",
+    badge: "AI Director",
   },
   {
     title: "Production Defaults",
     description:
-      "Default language, aspect ratio and production settings.",
+      "Manage your project defaults, aspect ratios, and production workspace.",
+    href: "/studio/productions",
+    badge: "View Projects",
+  },
+  {
+    title: "Appearance",
+    description:
+      "Kingdom Studio AI is crafted in Dark Cinema theme with Gold Accents.",
+    badge: "Dark Cinema (Active)",
+  },
+  {
+    title: "Security",
+    description:
+      "Session authentication and database row-level security are managed via Supabase.",
+    badge: "Supabase Protected",
   },
 ];
 
@@ -58,24 +76,54 @@ export default function SettingsPage() {
 
         <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
 
-          {settings.map((setting) => (
+          {settings.map((setting) => {
+            const content = (
+              <div className="flex h-full flex-col justify-between">
+                <div>
+                  <div className="flex items-center justify-between gap-3">
+                    <h2 className="text-2xl font-semibold">
+                      {setting.title}
+                    </h2>
+                    <span className="rounded-full border border-zinc-700 bg-zinc-800/80 px-3 py-1 text-xs font-medium text-zinc-300">
+                      {setting.badge}
+                    </span>
+                  </div>
 
-            <button
-              key={setting.title}
-              className="rounded-3xl border border-zinc-800 bg-zinc-900 p-8 text-left transition duration-300 hover:border-yellow-500 hover:bg-zinc-800"
-            >
+                  <p className="mt-4 leading-7 text-zinc-400">
+                    {setting.description}
+                  </p>
+                </div>
 
-              <h2 className="text-2xl font-semibold">
-                {setting.title}
-              </h2>
+                {setting.href ? (
+                  <div className="mt-6 flex items-center text-sm font-semibold text-yellow-500 group-hover:text-yellow-400">
+                    <span>Go to {setting.title}</span>
+                    <span className="ml-2 transition-transform group-hover:translate-x-1">→</span>
+                  </div>
+                ) : null}
+              </div>
+            );
 
-              <p className="mt-4 leading-7 text-zinc-400">
-                {setting.description}
-              </p>
+            if (setting.href) {
+              return (
+                <Link
+                  key={setting.title}
+                  href={setting.href}
+                  className="group rounded-3xl border border-zinc-800 bg-zinc-900 p-8 text-left transition duration-300 hover:border-yellow-500 hover:bg-zinc-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-yellow-500"
+                >
+                  {content}
+                </Link>
+              );
+            }
 
-            </button>
-
-          ))}
+            return (
+              <div
+                key={setting.title}
+                className="rounded-3xl border border-zinc-800 bg-zinc-900/60 p-8 text-left"
+              >
+                {content}
+              </div>
+            );
+          })}
 
         </div>
 
