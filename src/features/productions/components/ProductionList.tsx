@@ -2,9 +2,15 @@
 
 import { useState } from "react";
 
+import {
+  Dialog,
+  DialogContent,
+} from "@/components/ui/dialog";
+
 import ProductionCard from "./ProductionCard";
 import ProductionToolbar from "./ProductionToolbar";
 import ArchivedProductionList from "./ArchivedProductionList";
+import CreateProductionDialog from "./CreateProductionDialog";
 
 import { useProductions } from "../hooks/use-productions";
 
@@ -21,9 +27,8 @@ export default function ProductionList() {
     duplicateProduction,
   } = useProductions();
 
-  const [tab, setTab] = useState<
-    "active" | "archived"
-  >("active");
+  const [tab, setTab] = useState<"active" | "archived">("active");
+  const [createOpen, setCreateOpen] = useState(false);
 
   if (loading) {
     return (
@@ -44,7 +49,8 @@ export default function ProductionList() {
   }
 
   return (
-    <section className="mt-10">
+    <>
+      <section className="mt-10">
       <div className="mb-6 flex items-center gap-3">
         <button
           type="button"
@@ -82,15 +88,39 @@ export default function ProductionList() {
           />
 
           {productions.length === 0 ? (
-            <div className="mt-6 rounded-3xl border border-dashed border-zinc-700 bg-zinc-900 p-20 text-center">
-              <h3 className="text-3xl font-bold">
-                No Productions
-              </h3>
+            search.trim() ? (
+              <div className="mt-6 rounded-3xl border border-dashed border-zinc-700 bg-zinc-900 p-16 text-center">
+                <h3 className="text-2xl font-bold">No matching productions</h3>
+                <p className="mt-3 text-zinc-400">
+                  No productions matched &ldquo;{search}&rdquo;. Try another title or clear your search.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setSearch("")}
+                  className="mt-6 rounded-xl border border-zinc-700 px-5 py-2.5 text-sm font-semibold transition hover:border-yellow-500 hover:text-yellow-400"
+                >
+                  Clear search
+                </button>
+              </div>
+            ) : (
+              <div className="mt-6 rounded-3xl border border-dashed border-zinc-700 bg-zinc-900 p-20 text-center">
+                <h3 className="text-3xl font-bold">
+                  No Productions
+                </h3>
 
-              <p className="mt-4 text-zinc-400">
-                Create your first Kingdom production.
-              </p>
-            </div>
+                <p className="mt-4 text-zinc-400">
+                  Start building your first Kingdom film project.
+                </p>
+
+                <button
+                  type="button"
+                  onClick={() => setCreateOpen(true)}
+                  className="mt-6 inline-flex items-center gap-2 rounded-xl bg-yellow-500 px-6 py-3 font-semibold text-black transition hover:bg-yellow-400"
+                >
+                  + New Production
+                </button>
+              </div>
+            )
           ) : (
             <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
               {productions.map((production) => (
@@ -122,5 +152,20 @@ export default function ProductionList() {
         <ArchivedProductionList />
       )}
     </section>
+
+    <Dialog
+      open={createOpen}
+      onOpenChange={setCreateOpen}
+    >
+      <DialogContent
+        title="Create New Production"
+        description="Create a new Kingdom film project."
+      >
+        <CreateProductionDialog
+          onClose={() => setCreateOpen(false)}
+        />
+      </DialogContent>
+    </Dialog>
+  </>
   );
 }
