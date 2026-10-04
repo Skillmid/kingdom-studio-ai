@@ -32,9 +32,12 @@ export default function AIDirectorCard() {
           Start with AI Director
         </Link>
 
-        <button className="rounded-xl border border-zinc-700 px-6 py-3 transition hover:border-yellow-500">
-          Learn More
-        </button>
+        <Link
+          href="/studio/templates"
+          className="rounded-xl border border-zinc-700 px-6 py-3 font-semibold transition hover:border-yellow-500 hover:text-yellow-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-yellow-500 focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-950"
+        >
+          Explore Templates
+        </Link>
 
       </div>
 
