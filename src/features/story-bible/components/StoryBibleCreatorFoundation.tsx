@@ -33,8 +33,9 @@ export default function StoryBibleCreatorFoundation({
 
       <div className="space-y-6">
         <div>
-          <label className="mb-2 block text-sm font-medium text-zinc-300">Burden</label>
+          <label htmlFor="story-bible-burden" className="mb-2 block text-sm font-medium text-zinc-300">Burden</label>
           <textarea
+            id="story-bible-burden"
             rows={5}
             value={burden}
             onChange={(e) => onBurdenChange(e.target.value)}
@@ -44,8 +45,9 @@ export default function StoryBibleCreatorFoundation({
         </div>
 
         <div>
-          <label className="mb-2 block text-sm font-medium text-zinc-300">Truth</label>
+          <label htmlFor="story-bible-truth" className="mb-2 block text-sm font-medium text-zinc-300">Truth</label>
           <textarea
+            id="story-bible-truth"
             rows={5}
             value={truth}
             onChange={(e) => onTruthChange(e.target.value)}
@@ -55,8 +57,9 @@ export default function StoryBibleCreatorFoundation({
         </div>
 
         <div>
-          <label className="mb-2 block text-sm font-medium text-zinc-300">Human Problem</label>
+          <label htmlFor="story-bible-human-problem" className="mb-2 block text-sm font-medium text-zinc-300">Human Problem</label>
           <textarea
+            id="story-bible-human-problem"
             rows={5}
             value={humanProblem}
             onChange={(e) => onHumanProblemChange(e.target.value)}

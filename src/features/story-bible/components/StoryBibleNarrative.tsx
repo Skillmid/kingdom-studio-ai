@@ -15,11 +15,11 @@ export default function StoryBibleNarrative({ beginning, conflict, midpoint, cli
         <p className="mt-3 max-w-3xl text-zinc-400">Define the major story beats that guide the screenplay, scene planner and AI Director.</p>
       </div>
       <div className="space-y-8">
-        <div><label className="mb-2 block text-sm font-medium text-zinc-300">Beginning</label><textarea rows={5} value={beginning} onChange={(e) => onBeginningChange(e.target.value)} placeholder="Describe how the story begins..." className={fieldClass} /></div>
-        <div><label className="mb-2 block text-sm font-medium text-zinc-300">Central Conflict</label><textarea rows={5} value={conflict} onChange={(e) => onConflictChange(e.target.value)} placeholder="What major conflict drives the story?" className={fieldClass} /></div>
-        <div><label className="mb-2 block text-sm font-medium text-zinc-300">Midpoint</label><textarea rows={5} value={midpoint} onChange={(e) => onMidpointChange(e.target.value)} placeholder="Describe the turning point of the story..." className={fieldClass} /></div>
-        <div><label className="mb-2 block text-sm font-medium text-zinc-300">Climax</label><textarea rows={5} value={climax} onChange={(e) => onClimaxChange(e.target.value)} placeholder="Describe the climax..." className={fieldClass} /></div>
-        <div><label className="mb-2 block text-sm font-medium text-zinc-300">Ending</label><textarea rows={5} value={ending} onChange={(e) => onEndingChange(e.target.value)} placeholder="Describe how the story ends..." className={fieldClass} /></div>
+        <div><label htmlFor="story-bible-beginning" className="mb-2 block text-sm font-medium text-zinc-300">Beginning</label><textarea id="story-bible-beginning" rows={5} value={beginning} onChange={(e) => onBeginningChange(e.target.value)} placeholder="Describe how the story begins..." className={fieldClass} /></div>
+        <div><label htmlFor="story-bible-conflict" className="mb-2 block text-sm font-medium text-zinc-300">Central Conflict</label><textarea id="story-bible-conflict" rows={5} value={conflict} onChange={(e) => onConflictChange(e.target.value)} placeholder="What major conflict drives the story?" className={fieldClass} /></div>
+        <div><label htmlFor="story-bible-midpoint" className="mb-2 block text-sm font-medium text-zinc-300">Midpoint</label><textarea id="story-bible-midpoint" rows={5} value={midpoint} onChange={(e) => onMidpointChange(e.target.value)} placeholder="Describe the turning point of the story..." className={fieldClass} /></div>
+        <div><label htmlFor="story-bible-climax" className="mb-2 block text-sm font-medium text-zinc-300">Climax</label><textarea id="story-bible-climax" rows={5} value={climax} onChange={(e) => onClimaxChange(e.target.value)} placeholder="Describe the climax..." className={fieldClass} /></div>
+        <div><label htmlFor="story-bible-ending" className="mb-2 block text-sm font-medium text-zinc-300">Ending</label><textarea id="story-bible-ending" rows={5} value={ending} onChange={(e) => onEndingChange(e.target.value)} placeholder="Describe how the story ends..." className={fieldClass} /></div>
       </div>
     </section>
   );

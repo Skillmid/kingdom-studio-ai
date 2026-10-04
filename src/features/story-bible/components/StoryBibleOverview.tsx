@@ -42,11 +42,12 @@ export default function StoryBibleOverview({
 
         <div>
 
-          <label className="mb-2 block text-sm font-medium text-zinc-300">
+          <label htmlFor="story-bible-production-title" className="mb-2 block text-sm font-medium text-zinc-300">
             Production Title
           </label>
 
           <input
+            id="story-bible-production-title"
             value={title}
             onChange={(e) =>
               onTitleChange(
@@ -61,11 +62,12 @@ export default function StoryBibleOverview({
 
         <div>
 
-          <label className="mb-2 block text-sm font-medium text-zinc-300">
+          <label htmlFor="story-bible-logline" className="mb-2 block text-sm font-medium text-zinc-300">
             Logline
           </label>
 
           <textarea
+            id="story-bible-logline"
             rows={3}
             value={logline}
             onChange={(e) =>
@@ -81,11 +83,12 @@ export default function StoryBibleOverview({
 
         <div>
 
-          <label className="mb-2 block text-sm font-medium text-zinc-300">
+          <label htmlFor="story-bible-synopsis" className="mb-2 block text-sm font-medium text-zinc-300">
             Synopsis
           </label>
 
           <textarea
+            id="story-bible-synopsis"
             rows={10}
             value={synopsis}
             onChange={(e) =>
