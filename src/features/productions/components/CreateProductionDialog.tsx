@@ -7,14 +7,16 @@ import { useCreateProduction } from "../hooks/use-create-production";
 
 interface CreateProductionDialogProps {
   onClose?: () => void;
+  initialTitle?: string;
 }
 
 export default function CreateProductionDialog({
   onClose,
+  initialTitle = "",
 }: CreateProductionDialogProps) {
   const router = useRouter();
 
-  const [title, setTitle] = useState("");
+  const [title, setTitle] = useState(initialTitle);
 
   const { create, loading } =
     useCreateProduction();
