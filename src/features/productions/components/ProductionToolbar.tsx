@@ -35,6 +35,7 @@ export default function ProductionToolbar({
       <div className="flex flex-col gap-3 md:flex-row">
 
         <input
+          aria-label="Search productions"
           type="search"
           value={search}
           onChange={(e) =>
@@ -45,6 +46,7 @@ export default function ProductionToolbar({
         />
 
         <select
+          aria-label="Sort productions"
           value={sort}
           onChange={(e) =>
             onSort(

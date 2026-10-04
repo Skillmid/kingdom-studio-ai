@@ -149,7 +149,7 @@ export function LocationsView({ productionId }: LocationsViewProps) {
           </div>
           <div className="flex flex-1 flex-col gap-2 sm:flex-row lg:max-w-xl">
             <div className="relative flex-1">
-              <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search locations, descriptions or notes..." className="w-full rounded-xl border border-zinc-800 bg-zinc-900 px-4 py-3 text-sm text-white outline-none transition placeholder:text-zinc-600 focus:border-yellow-500/50" />
+              <input aria-label="Search production locations" type="search" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search locations, descriptions or notes..." className="w-full rounded-xl border border-zinc-800 bg-zinc-900 px-4 py-3 text-sm text-white outline-none transition placeholder:text-zinc-600 focus:border-yellow-500/50" />
               {search && <button type="button" onClick={() => setSearch("")} className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-zinc-500 hover:text-white">Clear</button>}
             </div>
           </div>

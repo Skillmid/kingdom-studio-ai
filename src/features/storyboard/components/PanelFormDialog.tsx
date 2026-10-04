@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type FormEvent, type ReactNode } from "react";
+import { cloneElement, isValidElement, useId, useState, type FormEvent, type ReactNode } from "react";
 
 import type { Character } from "@/features/characters/types/character";
 import type { Location } from "@/features/locations/types/location";
@@ -30,11 +30,22 @@ const STATUSES: StoryboardStatus[] = ["draft", "in-progress", "completed"];
 const inputClass =
   "w-full rounded-xl border border-zinc-800 bg-zinc-950 px-4 py-3 text-sm text-white outline-none transition placeholder:text-zinc-600 focus:border-yellow-500/70";
 
-function Field({ label, children }: { label: string; children: ReactNode }) {
+function Field({ label, children, group = false }: { label: string; children: ReactNode; group?: boolean }) {
+  const fieldId = useId();
+
+  if (group) {
+    return (
+      <fieldset className="min-w-0">
+        <legend className="mb-2 text-sm font-semibold text-zinc-200">{label}</legend>
+        {children}
+      </fieldset>
+    );
+  }
+
   return (
     <div>
-      <label className="mb-2 block text-sm font-semibold text-zinc-200">{label}</label>
-      {children}
+      <label htmlFor={fieldId} className="mb-2 block text-sm font-semibold text-zinc-200">{label}</label>
+      {isValidElement<{ id?: string }>(children) ? cloneElement(children, { id: fieldId }) : children}
     </div>
   );
 }
@@ -203,7 +214,7 @@ function PanelFormDialogFields({
           <input className={inputClass} value={imageUrl} onChange={(event) => setImageUrl(event.target.value)} placeholder="Optional until generation jobs exist" />
         </Field>
         {characters.length > 0 && (
-          <Field label="Characters in frame">
+          <Field label="Characters in frame" group>
             <div className="flex flex-wrap gap-2">
               {characters.map((character) => {
                 const active = characterIds.includes(character.id);

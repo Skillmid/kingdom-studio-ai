@@ -263,6 +263,7 @@ export default function ScriptImport({
           </div>
 
           <textarea
+            aria-label="Paste screenplay"
             value={pastedScript}
             disabled={processing}
             onChange={(event) =>

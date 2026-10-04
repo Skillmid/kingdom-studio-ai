@@ -175,10 +175,11 @@ export function CharactersView({ productionId }: CharactersViewProps) {
 
             <form onSubmit={handleCreate} className="space-y-5">
               <div>
-                <label className="mb-2 block text-sm font-medium text-zinc-300">
+                <label htmlFor="new-character-name" className="mb-2 block text-sm font-medium text-zinc-300">
                   Name
                 </label>
                 <input
+                  id="new-character-name"
                   value={newName}
                   onChange={(event) => setNewName(event.target.value)}
                   placeholder="Character name"
@@ -188,10 +189,11 @@ export function CharactersView({ productionId }: CharactersViewProps) {
               </div>
 
               <div>
-                <label className="mb-2 block text-sm font-medium text-zinc-300">
+                <label htmlFor="new-character-role" className="mb-2 block text-sm font-medium text-zinc-300">
                   Role
                 </label>
                 <select
+                  id="new-character-role"
                   value={newRole}
                   onChange={(event) =>
                     setNewRole(event.target.value as CharacterRole)
@@ -206,10 +208,11 @@ export function CharactersView({ productionId }: CharactersViewProps) {
               </div>
 
               <div>
-                <label className="mb-2 block text-sm font-medium text-zinc-300">
+                <label htmlFor="new-character-occupation" className="mb-2 block text-sm font-medium text-zinc-300">
                   Occupation
                 </label>
                 <input
+                  id="new-character-occupation"
                   value={newOccupation}
                   onChange={(event) => setNewOccupation(event.target.value)}
                   placeholder="e.g. Teacher"
@@ -218,10 +221,11 @@ export function CharactersView({ productionId }: CharactersViewProps) {
               </div>
 
               <div>
-                <label className="mb-2 block text-sm font-medium text-zinc-300">
+                <label htmlFor="new-character-biography" className="mb-2 block text-sm font-medium text-zinc-300">
                   Biography
                 </label>
                 <textarea
+                  id="new-character-biography"
                   value={newBiography}
                   onChange={(event) => setNewBiography(event.target.value)}
                   placeholder="Brief character description"

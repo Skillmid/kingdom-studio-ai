@@ -33,6 +33,7 @@ export default function ScriptEditor({
       </div>
 
       <textarea
+        aria-label="Screenplay text"
         value={value}
         disabled={disabled}
         onChange={(event) =>

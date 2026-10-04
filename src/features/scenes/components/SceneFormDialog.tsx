@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { cloneElement, isValidElement, useId, useState } from "react";
 
 import type { Character } from "@/features/characters/types/character";
 import type { Location } from "@/features/locations/types/location";
@@ -63,14 +63,34 @@ const STATUS_OPTIONS: Array<{ value: SceneStatus; label: string }> = [
 
 const TYPE_OPTIONS: SceneType[] = ["INT", "EXT", "BOTH"];
 
-function Field({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) {
+function Field({ label, hint, children, group = false }: { label: string; hint?: string; children: React.ReactNode; group?: boolean }) {
+  const fieldId = useId();
+
+  if (group) {
+    return (
+      <fieldset className="min-w-0">
+        <legend className="mb-2 text-sm font-semibold text-zinc-200">{label}</legend>
+        {hint && <p className="mb-2 text-[11px] text-zinc-600">{hint}</p>}
+        {children}
+      </fieldset>
+    );
+  }
+
+  const hintId = `${fieldId}-hint`;
+  const control = isValidElement<{ id?: string; "aria-describedby"?: string }>(children)
+    ? cloneElement(children, {
+        id: fieldId,
+        "aria-describedby": hint ? hintId : undefined,
+      })
+    : children;
+
   return (
     <div>
       <div className="mb-2 flex items-baseline justify-between gap-3">
-        <label className="text-sm font-semibold text-zinc-200">{label}</label>
-        {hint && <span className="text-[11px] text-zinc-600">{hint}</span>}
+        <label htmlFor={fieldId} className="text-sm font-semibold text-zinc-200">{label}</label>
+        {hint && <span id={hintId} className="text-[11px] text-zinc-600">{hint}</span>}
       </div>
-      {children}
+      {control}
     </div>
   );
 }
@@ -231,7 +251,7 @@ function SceneFormDialogFields({
                 <Field label="Dialogue"><textarea value={dialogue} onChange={(e) => setDialogue(e.target.value)} placeholder="Scene dialogue..." className={textareaClass} /></Field>
                 <Field label="Emotional Beat"><textarea value={emotionalBeat} onChange={(e) => setEmotionalBeat(e.target.value)} placeholder="How does the emotional state change?" className={textareaClass} /></Field>
                 <Field label="Story Beat"><textarea value={storyBeat} onChange={(e) => setStoryBeat(e.target.value)} placeholder="Setup, conflict, turn, revelation, consequence..." className={textareaClass} /></Field>
-                <Field label="Characters in Scene">
+                <Field label="Characters in Scene" group>
                   <div className="rounded-xl border border-zinc-800 bg-zinc-950 p-3">
                     {charactersLoading ? <p className="p-2 text-sm text-zinc-500">Loading characters...</p> : characters.length === 0 ? <p className="p-2 text-sm text-zinc-500">No characters available yet.</p> : <div className="flex flex-wrap gap-2">{characters.map((character) => <button key={character.id} type="button" onClick={() => toggleCharacter(character.id)} className={`rounded-full border px-3 py-2 text-xs font-semibold transition ${characterIds.includes(character.id) ? "border-yellow-500 bg-yellow-500/15 text-yellow-300" : "border-zinc-800 bg-zinc-900 text-zinc-400 hover:text-white"}`}>{character.name}</button>)}</div>}
                   </div>
@@ -266,7 +286,7 @@ function SceneFormDialogFields({
                   <p className="text-xs font-bold uppercase tracking-[0.18em] text-zinc-500">Source Traceability</p>
                   <p className="mt-2 text-sm text-zinc-400">The original screenplay extraction is preserved so manual development never destroys the source material.</p>
                   <button type="button" onClick={() => setShowSource((value) => !value)} className="mt-4 rounded-lg border border-zinc-700 px-3 py-2 text-xs font-semibold text-zinc-300 hover:text-white">{showSource ? "Hide Source" : "View Source"}</button>
-                  {showSource && <textarea value={sourceText} onChange={(e) => setSourceText(e.target.value)} className="mt-4 min-h-56 w-full rounded-xl border border-zinc-800 bg-black/30 p-4 font-mono text-xs leading-6 text-zinc-400 outline-none focus:border-zinc-600" />}
+                  {showSource && <textarea aria-label="Original screenplay source" value={sourceText} onChange={(e) => setSourceText(e.target.value)} className="mt-4 min-h-56 w-full rounded-xl border border-zinc-800 bg-black/30 p-4 font-mono text-xs leading-6 text-zinc-400 outline-none focus:border-zinc-600" />}
                 </div>
               </div>
             )}

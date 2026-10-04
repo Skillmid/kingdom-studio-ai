@@ -122,20 +122,20 @@ function LocationFormDialogFields({
 
         <form onSubmit={handleSubmit} className="space-y-5">
           <div>
-            <label className="mb-2 block text-sm font-medium text-zinc-300">Name</label>
-            <input value={name} onChange={(event) => setName(event.target.value)} placeholder="e.g. Main House" autoFocus className="w-full rounded-xl border border-zinc-700 bg-zinc-900 px-4 py-3 text-sm text-white outline-none placeholder:text-zinc-600 focus:border-yellow-500" />
+            <label htmlFor="location-name" className="mb-2 block text-sm font-medium text-zinc-300">Name</label>
+            <input id="location-name" value={name} onChange={(event) => setName(event.target.value)} placeholder="e.g. Main House" autoFocus className="w-full rounded-xl border border-zinc-700 bg-zinc-900 px-4 py-3 text-sm text-white outline-none placeholder:text-zinc-600 focus:border-yellow-500" />
           </div>
 
           <div className="grid gap-5 md:grid-cols-2">
             <div>
-              <label className="mb-2 block text-sm font-medium text-zinc-300">Setting</label>
-              <select value={setting} onChange={(event) => setSetting(event.target.value as LocationSetting)} className="w-full rounded-xl border border-zinc-700 bg-zinc-900 px-4 py-3 text-sm text-white outline-none focus:border-yellow-500">
+              <label htmlFor="location-setting" className="mb-2 block text-sm font-medium text-zinc-300">Setting</label>
+              <select id="location-setting" value={setting} onChange={(event) => setSetting(event.target.value as LocationSetting)} className="w-full rounded-xl border border-zinc-700 bg-zinc-900 px-4 py-3 text-sm text-white outline-none focus:border-yellow-500">
                 {SETTING_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
               </select>
             </div>
             <div>
-              <label className="mb-2 block text-sm font-medium text-zinc-300">Status</label>
-              <select value={status} onChange={(event) => setStatus(event.target.value as LocationStatus)} className="w-full rounded-xl border border-zinc-700 bg-zinc-900 px-4 py-3 text-sm text-white outline-none focus:border-yellow-500">
+              <label htmlFor="location-status" className="mb-2 block text-sm font-medium text-zinc-300">Status</label>
+              <select id="location-status" value={status} onChange={(event) => setStatus(event.target.value as LocationStatus)} className="w-full rounded-xl border border-zinc-700 bg-zinc-900 px-4 py-3 text-sm text-white outline-none focus:border-yellow-500">
                 {STATUS_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
               </select>
             </div>
@@ -168,18 +168,18 @@ function LocationFormDialogFields({
           </fieldset>
 
           <div>
-            <label className="mb-2 block text-sm font-medium text-zinc-300">Description</label>
-            <textarea value={description} onChange={(event) => setDescription(event.target.value)} placeholder="Describe the place, set, or environment." rows={4} className="w-full rounded-xl border border-zinc-700 bg-zinc-900 px-4 py-3 text-sm text-white outline-none placeholder:text-zinc-600 focus:border-yellow-500" />
+            <label htmlFor="location-description" className="mb-2 block text-sm font-medium text-zinc-300">Description</label>
+            <textarea id="location-description" value={description} onChange={(event) => setDescription(event.target.value)} placeholder="Describe the place, set, or environment." rows={4} className="w-full rounded-xl border border-zinc-700 bg-zinc-900 px-4 py-3 text-sm text-white outline-none placeholder:text-zinc-600 focus:border-yellow-500" />
           </div>
 
           <div>
-            <label className="mb-2 block text-sm font-medium text-zinc-300">Notes</label>
-            <textarea value={notes} onChange={(event) => setNotes(event.target.value)} placeholder="Production notes, access details, continuity notes, etc." rows={3} className="w-full rounded-xl border border-zinc-700 bg-zinc-900 px-4 py-3 text-sm text-white outline-none placeholder:text-zinc-600 focus:border-yellow-500" />
+            <label htmlFor="location-notes" className="mb-2 block text-sm font-medium text-zinc-300">Notes</label>
+            <textarea id="location-notes" value={notes} onChange={(event) => setNotes(event.target.value)} placeholder="Production notes, access details, continuity notes, etc." rows={3} className="w-full rounded-xl border border-zinc-700 bg-zinc-900 px-4 py-3 text-sm text-white outline-none placeholder:text-zinc-600 focus:border-yellow-500" />
           </div>
 
           <div>
-            <label className="mb-2 block text-sm font-medium text-zinc-300">Progress ({progress || 0}%)</label>
-            <input type="range" min={0} max={100} value={Number.isFinite(parsedProgress) ? parsedProgress : 0} onChange={(event) => setProgress(event.target.value)} className="w-full accent-yellow-500" />
+            <label htmlFor="location-progress" className="mb-2 block text-sm font-medium text-zinc-300">Progress ({progress || 0}%)</label>
+            <input id="location-progress" type="range" min={0} max={100} value={Number.isFinite(parsedProgress) ? parsedProgress : 0} onChange={(event) => setProgress(event.target.value)} className="w-full accent-yellow-500" />
           </div>
 
           {fieldError && <p className="rounded-xl bg-red-950/40 p-3 text-sm text-red-400">{fieldError}</p>}

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useId, useState } from "react";
 import type { Character, CharacterRole, CharacterStatus } from "../types/character";
 import type { CharacterProposalField } from "../types/character";
 import type { CharacterAIProposal } from "../utils/review-character-proposal";
@@ -35,11 +35,14 @@ function Field({
   placeholder?: string;
   multiline?: boolean;
 }) {
+  const id = useId();
+
   return (
     <div>
-      <label className={labelClass}>{label}</label>
+      <label htmlFor={id} className={labelClass}>{label}</label>
       {multiline ? (
         <textarea
+          id={id}
           value={value}
           onChange={(event) => onChange(event.target.value)}
           placeholder={placeholder}
@@ -48,6 +51,7 @@ function Field({
         />
       ) : (
         <input
+          id={id}
           value={value}
           onChange={(event) => onChange(event.target.value)}
           placeholder={placeholder}
@@ -200,7 +204,7 @@ export default function CharacterEditor({
               <div className="mt-5 space-y-3 border-t border-zinc-800 pt-4">
                 <p className="text-xs text-zinc-400">
                   Source: {proposal.source.screenplayTitle}, version {proposal.source.screenplayVersion}
-                  {proposal.source.revisionId ? " � revision " + proposal.source.revisionId : ""}
+                  {proposal.source.revisionId ? ", revision " + proposal.source.revisionId : ""}
                 </p>
                 {Object.keys(proposal.fields).length === 0 ? (
                   <p className="text-sm text-zinc-400">No profile fields had verifiable screenplay evidence.</p>
@@ -251,8 +255,9 @@ export default function CharacterEditor({
               />
 
               <div>
-                <label className={labelClass}>Role</label>
+                <label htmlFor="character-role" className={labelClass}>Role</label>
                 <select
+                  id="character-role"
                   value={form.role ?? "supporting"}
                   onChange={(event) =>
                     update("role", event.target.value as CharacterRole)
@@ -267,8 +272,9 @@ export default function CharacterEditor({
               </div>
 
               <div>
-                <label className={labelClass}>Status</label>
+                <label htmlFor="character-status" className={labelClass}>Status</label>
                 <select
+                  id="character-status"
                   value={form.status ?? "draft"}
                   onChange={(event) =>
                     update("status", event.target.value as CharacterStatus)
