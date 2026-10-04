@@ -26,6 +26,7 @@ export default function ProductionWorkspace({
     return (
       <ProductionLayout>
         <ProductionHeader
+          productionId={id}
           productionTitle="Loading..."
           productionStatus="Loading"
         />
@@ -41,6 +42,7 @@ export default function ProductionWorkspace({
     return (
       <ProductionLayout>
         <ProductionHeader
+          productionId={id}
           productionTitle="Unknown Production"
           productionStatus="Error"
         />
@@ -62,6 +64,7 @@ export default function ProductionWorkspace({
   return (
     <ProductionLayout>
       <ProductionHeader
+        productionId={id}
         productionTitle={production.title}
         productionStatus={production.status}
       />

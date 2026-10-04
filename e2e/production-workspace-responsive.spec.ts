@@ -33,7 +33,7 @@ test("production workspace stays usable and keeps every section reachable across
   expect(contentWidth).toBeGreaterThan(340);
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(375);
   await expect(page.getByRole("button", { name: "Share" })).toBeVisible();
-  await expect(page.getByRole("button", { name: "Export" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Export", exact: true })).toBeVisible();
   await expect(page.getByRole("button", { name: "Settings" })).toBeVisible();
 
   const mobileNavigationButton = page.getByRole("button", { name: /Navigate production/ });
@@ -61,4 +61,18 @@ test("production workspace stays usable and keeps every section reachable across
       await expect(page.getByRole("button", { name: /Navigate production/ })).toBeHidden();
     }
   }
+});
+
+test("production header Export action opens the export workspace", async ({ page }) => {
+  await page.route("**/rest/v1/**", async (route) => {
+    const pathname = new URL(route.request().url()).pathname;
+    const body = pathname.endsWith("/productions") ? JSON.stringify(production) : "[]";
+    await route.fulfill({ status: 200, contentType: "application/json", body });
+  });
+
+  await page.goto(`/studio/productions/${productionId}/scenes`, { waitUntil: "domcontentloaded" });
+  await page.getByRole("link", { name: "Export", exact: true }).click();
+
+  await expect(page).toHaveURL(new RegExp(`/studio/productions/${productionId}/export$`));
+  await expect(page.getByRole("heading", { name: "Export packages" })).toBeVisible();
 });

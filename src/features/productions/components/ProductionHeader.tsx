@@ -3,11 +3,13 @@
 import Link from "next/link";
 
 interface ProductionHeaderProps {
+  productionId: string;
   productionTitle?: string;
   productionStatus?: string;
 }
 
 export default function ProductionHeader({
+  productionId,
   productionTitle = "Loading...",
   productionStatus = "Draft",
 }: ProductionHeaderProps) {
@@ -55,11 +57,12 @@ export default function ProductionHeader({
             Share
           </button>
 
-          <button
+          <Link
+            href={`/studio/productions/${productionId}/export`}
             className="rounded-xl border border-zinc-700 px-3 py-2 text-sm transition hover:border-yellow-500 sm:px-4"
           >
             Export
-          </button>
+          </Link>
 
           <button
             className="rounded-xl bg-yellow-500 px-4 py-2 text-sm font-semibold text-black transition hover:bg-yellow-400 sm:px-5"
