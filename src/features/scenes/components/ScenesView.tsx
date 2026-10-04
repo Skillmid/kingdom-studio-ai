@@ -146,6 +146,9 @@ export function ScenesView({ productionId }: ScenesViewProps) {
         loading={loading}
         onEdit={openEdit}
         onDelete={setSceneToDelete}
+        onCreate={openCreate}
+        onSync={handleSyncFromScreenplay}
+        syncing={syncing}
         locationNames={locationNames}
         characterNames={characterNames}
       />
