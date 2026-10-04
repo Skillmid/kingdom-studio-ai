@@ -1,8 +1,6 @@
 import type { Production } from "../types/production";
 
 import ProductionHero from "./ProductionHero";
-import ProductionStats from "./ProductionStats";
-import RecentActivity from "./RecentActivity";
 import NextSteps from "./NextSteps";
 
 interface ProductionOverviewProps {
@@ -19,34 +17,24 @@ export default function ProductionOverview({
         production={production}
       />
 
-      <ProductionStats />
-
-      <section className="rounded-3xl border border-zinc-800 bg-zinc-900 p-10">
+      <section className="rounded-3xl border border-zinc-800 bg-zinc-900 p-5 sm:p-8 lg:p-10">
 
         <p className="text-sm uppercase tracking-[0.3em] text-yellow-500">
-          Kingdom Vision
+          Creative foundation
         </p>
 
         <h2 className="mt-3 text-3xl font-bold">
-          Build with Purpose
+          Set the direction
         </h2>
 
         <p className="mt-6 text-lg leading-8 text-zinc-400">
-          Every Kingdom production begins by seeking God&apos;s direction.
-          Define the mission, biblical foundation, audience,
-          scripture, purpose, and desired transformation before
-          writing your screenplay.
+          Clarify the purpose, audience, and intended impact of this production
+          in its Story Bible as you develop the screenplay and production plan.
         </p>
 
       </section>
 
-      <div className="grid gap-8 xl:grid-cols-2">
-
-        <RecentActivity />
-
-        <NextSteps />
-
-      </div>
+      <NextSteps productionId={production.id} />
 
     </div>
   );

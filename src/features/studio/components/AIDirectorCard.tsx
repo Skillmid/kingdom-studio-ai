@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 export default function AIDirectorCard() {
   return (
     <section className="mt-10 rounded-3xl border border-yellow-500/20 bg-gradient-to-br from-yellow-500/10 via-zinc-900 to-zinc-950 p-10">
@@ -26,9 +28,9 @@ export default function AIDirectorCard() {
 
       <div className="mt-8 flex flex-wrap gap-4">
 
-        <button className="rounded-xl bg-yellow-500 px-6 py-3 font-semibold text-black transition hover:bg-yellow-400">
+        <Link href="/studio/ai-director" className="rounded-xl bg-yellow-500 px-6 py-3 font-semibold text-black transition hover:bg-yellow-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-yellow-500 focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-950">
           Start with AI Director
-        </button>
+        </Link>
 
         <button className="rounded-xl border border-zinc-700 px-6 py-3 transition hover:border-yellow-500">
           Learn More

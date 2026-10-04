@@ -222,7 +222,7 @@ function SceneFormDialogFields({
 
           <div className="mt-6 grid gap-3 md:grid-cols-[100px_1fr_150px]">
             <Field label="No."><input type="number" min={1} value={number} onChange={(e) => setNumber(e.target.value)} className={inputClass} /></Field>
-            <Field label="Scene Heading"><input value={heading} onChange={(e) => setHeading(e.target.value)} placeholder="INT. DAVID'S BEDROOM — MORNING" className={inputClass} /></Field>
+            <Field label="Scene Heading"><input value={heading} onChange={(e) => setHeading(e.target.value)} placeholder="INT. LOCATION - DAY" className={inputClass} /></Field>
             <Field label="Time"><input value={timeOfDay} onChange={(e) => setTimeOfDay(e.target.value)} placeholder="MORNING" className={inputClass} /></Field>
           </div>
 
@@ -268,8 +268,8 @@ function SceneFormDialogFields({
                   <select value={locationId} onChange={(e) => setLocationId(e.target.value)} disabled={locationsLoading} className={inputClass}><option value="">{locationsLoading ? "Loading locations..." : "Select location"}</option>{locations.map((location) => <option key={location.id} value={location.id}>{location.name}</option>)}</select>
                 </Field>
                 <Field label="Estimated Duration" hint="seconds"><input type="number" min={0} value={duration} onChange={(e) => setDuration(e.target.value)} placeholder="60" className={inputClass} /></Field>
-                <Field label="Props" hint="comma or line separated"><textarea value={props} onChange={(e) => setProps(e.target.value)} placeholder="Bible, phone, contract..." className={textareaClass} /></Field>
-                <Field label="Wardrobe"><textarea value={wardrobe} onChange={(e) => setWardrobe(e.target.value)} placeholder="David: university casual, backpack..." className={textareaClass} /></Field>
+                <Field label="Props" hint="comma or line separated"><textarea value={props} onChange={(e) => setProps(e.target.value)} placeholder="List props relevant to this scene..." className={textareaClass} /></Field>
+                <Field label="Wardrobe"><textarea value={wardrobe} onChange={(e) => setWardrobe(e.target.value)} placeholder="Describe established costume details..." className={textareaClass} /></Field>
                 <Field label="Sound & Music"><textarea value={soundNotes} onChange={(e) => setSoundNotes(e.target.value)} placeholder="Room tone, phone vibration, score cue..." className={textareaClass} /></Field>
                 <Field label="Music Notes"><textarea value={musicNotes} onChange={(e) => setMusicNotes(e.target.value)} placeholder="Score, musical cues, or silence..." className={textareaClass} /></Field>
                 <Field label="Continuity Notes"><textarea value={continuityNotes} onChange={(e) => setContinuityNotes(e.target.value)} placeholder="Carry-over details from previous/next scene..." className={textareaClass} /></Field>

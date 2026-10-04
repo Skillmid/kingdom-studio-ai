@@ -33,7 +33,7 @@ export default function QuickActions() {
   const [open, setOpen] =
     useState(false);
 
-  const { production } =
+  const { production, loading } =
     useLatestProduction();
 
   function handleAction(
@@ -47,7 +47,7 @@ export default function QuickActions() {
       case "Continue Story":
         if (production) {
           router.push(
-            `/studio/productions/${production.id}`
+            `/studio/productions/${production.id}/screenplay`
           );
         } else {
           setOpen(true);
@@ -82,7 +82,8 @@ export default function QuickActions() {
                   action.title
                 )
               }
-              className="h-full rounded-2xl p-6 text-left"
+              disabled={action.title === "Continue Story" && (loading || !production)}
+              className="h-full rounded-2xl p-6 text-left disabled:cursor-not-allowed disabled:opacity-60"
             >
               <div>
 
@@ -91,7 +92,9 @@ export default function QuickActions() {
                 </h3>
 
                 <p className="mt-3 text-sm leading-7 text-zinc-400">
-                  {action.description}
+                  {action.title === "Continue Story" && !loading && !production
+                    ? "Create a production first to begin writing your screenplay."
+                    : action.description}
                 </p>
 
               </div>

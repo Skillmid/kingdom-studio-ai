@@ -37,9 +37,9 @@ export default function WelcomeCard() {
       </h1>
 
       <p className="mt-6 max-w-3xl text-lg leading-8 text-zinc-400">
-        Continue building stories that glorify Christ,
-        inspire people, and communicate biblical truth
-        through cinematic excellence.
+        Develop a meaningful story, then shape its screenplay, characters, and
+        scenes into a cinematic production. Your creative decisions stay yours;
+        AI helps with the work around them.
       </p>
 
     </section>
