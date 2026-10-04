@@ -1,22 +1,24 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 
 import { useCurrentUser } from "@/features/auth/hooks/use-current-user";
+import { useProductions } from "@/features/productions/hooks/use-productions";
 import { signOut } from "@/services/auth/auth";
 
 export default function ProfileWorkspace() {
   const router = useRouter();
 
-  const { user, loading } =
-    useCurrentUser();
+  const { user, loading: loadingUser } = useCurrentUser();
+  const { productions, loading: loadingProductions } = useProductions();
 
   async function handleSignOut() {
     await signOut();
     router.replace("/login");
   }
 
-  if (loading) {
+  if (loadingUser) {
     return (
       <div className="rounded-3xl border border-zinc-800 bg-zinc-900 p-12">
         Loading profile...
@@ -36,7 +38,7 @@ export default function ProfileWorkspace() {
         </h1>
 
         <p className="mt-6 text-lg text-zinc-400">
-          Manage your Kingdom Studio account.
+          Manage your Kingdom Studio account and creative workspace.
         </p>
       </section>
 
@@ -63,63 +65,70 @@ export default function ProfileWorkspace() {
 
       <section className="grid gap-6 md:grid-cols-4">
         <div className="rounded-3xl border border-zinc-800 bg-zinc-900 p-8">
-          <h3 className="text-4xl font-bold">
-            —
+          <h3 className="text-4xl font-bold text-yellow-500">
+            {loadingProductions ? "..." : productions.length}
           </h3>
 
           <p className="mt-3 text-zinc-400">
-            Productions
+            Active Productions
           </p>
         </div>
 
         <div className="rounded-3xl border border-zinc-800 bg-zinc-900 p-8">
-          <h3 className="text-4xl font-bold">
-            —
+          <h3 className="text-2xl font-bold text-zinc-100">
+            Creator Led
           </h3>
 
           <p className="mt-3 text-zinc-400">
-            Characters
+            Creative Direction
           </p>
         </div>
 
         <div className="rounded-3xl border border-zinc-800 bg-zinc-900 p-8">
-          <h3 className="text-4xl font-bold">
-            —
+          <h3 className="text-2xl font-bold text-zinc-100">
+            Studio
           </h3>
 
           <p className="mt-3 text-zinc-400">
-            Scenes
+            Workspace Edition
           </p>
         </div>
 
         <div className="rounded-3xl border border-zinc-800 bg-zinc-900 p-8">
-          <h3 className="text-4xl font-bold">
-            —
+          <h3 className="text-2xl font-bold text-green-400">
+            Active
           </h3>
 
           <p className="mt-3 text-zinc-400">
-            AI Requests
+            Account Status
           </p>
         </div>
       </section>
 
       <section className="rounded-3xl border border-zinc-800 bg-zinc-900 p-10">
         <h2 className="text-2xl font-semibold">
-          Account
+          Account &amp; Workspace
         </h2>
 
-        <div className="mt-8 flex gap-4">
-          <button className="rounded-2xl border border-zinc-700 px-6 py-3 transition hover:border-yellow-500">
-            Edit Profile
-          </button>
+        <div className="mt-8 flex flex-wrap gap-4">
+          <Link
+            href="/studio/settings"
+            className="rounded-2xl border border-zinc-700 px-6 py-3 font-semibold transition hover:border-yellow-500 hover:text-yellow-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-yellow-500"
+          >
+            Studio Settings
+          </Link>
 
-          <button className="rounded-2xl border border-zinc-700 px-6 py-3 transition hover:border-yellow-500">
-            Change Password
-          </button>
+          <Link
+            href="/studio/productions"
+            className="rounded-2xl border border-zinc-700 px-6 py-3 font-semibold transition hover:border-yellow-500 hover:text-yellow-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-yellow-500"
+          >
+            View Productions
+          </Link>
 
           <button
+            type="button"
             onClick={handleSignOut}
-            className="rounded-2xl bg-red-600 px-6 py-3 font-semibold transition hover:bg-red-500"
+            className="rounded-2xl bg-red-600 px-6 py-3 font-semibold text-white transition hover:bg-red-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400"
           >
             Sign Out
           </button>
