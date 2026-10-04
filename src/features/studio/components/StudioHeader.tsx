@@ -8,11 +8,11 @@ export default function StudioHeader() {
   const { user } = useCurrentUser();
 
   return (
-    <header className="flex h-20 items-center justify-between border-b border-zinc-800 bg-zinc-950 px-8">
+    <header className="flex min-h-20 flex-col gap-3 border-b border-zinc-800 bg-zinc-950 px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-8 sm:py-0">
 
       <div>
 
-        <h2 className="text-2xl font-semibold">
+        <h2 className="text-xl font-semibold sm:text-2xl">
           Studio
         </h2>
 
@@ -25,7 +25,7 @@ export default function StudioHeader() {
 
       </div>
 
-      <div className="flex items-center gap-4">
+      <div className="flex flex-wrap items-center gap-2 sm:gap-4">
 
         <Link
           href="/studio/notifications"
