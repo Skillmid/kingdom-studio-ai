@@ -301,6 +301,8 @@ export function StoryboardView({ productionId }: StoryboardViewProps) {
         onToggleApproval={handleToggleApproval}
         onMoveUp={handleMoveUp}
         onMoveDown={handleMoveDown}
+        onCreate={openCreate}
+        onPlanFromShots={handlePlanFromShots}
         sceneHeadings={sceneHeadings}
         shotLabels={shotLabels}
         locationNames={locationNames}
