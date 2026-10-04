@@ -86,7 +86,7 @@ export default function AssetFormDialog({ asset, productionId, saving = false, o
             </label>
             <label className={`${labelClass} md:col-span-2`}>
               Media URL (optional)
-              <input type="url" value={form.fileUrl ?? ""} onChange={(event) => update("fileUrl", event.target.value)} className={inputClass} placeholder="https://�" />
+              <input type="url" value={form.fileUrl ?? ""} onChange={(event) => update("fileUrl", event.target.value)} className={inputClass} placeholder="https://example.com/media" />
             </label>
             {asset?.sourceEvidence ? <p className="rounded-xl border border-zinc-800 bg-zinc-950 p-3 text-xs leading-5 text-zinc-400 md:col-span-2"><span className="font-bold text-zinc-300">Source evidence: </span>{asset.sourceEvidence}</p> : null}
             {asset?.uncertaintyNotes ? <p className="rounded-xl border border-amber-500/20 bg-amber-500/5 p-3 text-xs leading-5 text-amber-200 md:col-span-2">{asset.uncertaintyNotes}</p> : null}
