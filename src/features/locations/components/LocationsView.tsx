@@ -94,19 +94,15 @@ export function LocationsView({ productionId }: LocationsViewProps) {
     status: Location["status"];
     progress: number;
   }) {
-    try {
-      if (formMode === "edit" && selectedLocation) {
-        await updateLocation(selectedLocation.id, values);
-        setNotification("Location saved.");
-      } else {
-        await createLocation(values);
-        setNotification("Location created.");
-      }
-      setFormOpen(false);
-      setSelectedLocation(null);
-    } catch {
-      // Hook exposes error state.
+    if (formMode === "edit" && selectedLocation) {
+      await updateLocation(selectedLocation.id, values);
+      setNotification("Location saved.");
+    } else {
+      await createLocation(values);
+      setNotification("Location created.");
     }
+    setFormOpen(false);
+    setSelectedLocation(null);
   }
 
   return (
@@ -163,7 +159,7 @@ export function LocationsView({ productionId }: LocationsViewProps) {
         </div>
       </div>
 
-      {error && <div className="rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-300">{error}</div>}
+      {error && !formOpen && <div role="alert" className="rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-300">{error}</div>}
       {notification && <div className="flex items-center justify-between rounded-xl border border-zinc-800 bg-zinc-900 px-4 py-3 text-sm text-zinc-300"><span>{notification}</span><button type="button" onClick={() => setNotification(null)} className="ml-4 text-zinc-500 hover:text-white">Dismiss</button></div>}
 
       {filteredLocations.length !== locations.length && (

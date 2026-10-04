@@ -209,12 +209,12 @@ function SceneFormDialogFields({
 
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto bg-black/85 p-4 backdrop-blur-md">
-      <div className="mx-auto my-8 max-w-5xl overflow-hidden rounded-3xl border border-zinc-800 bg-zinc-950 shadow-2xl shadow-black/60">
+      <div role="dialog" aria-modal="true" aria-labelledby="scene-form-title" className="mx-auto my-8 max-w-5xl overflow-hidden rounded-3xl border border-zinc-800 bg-zinc-950 shadow-2xl shadow-black/60">
         <div className="border-b border-zinc-800 bg-zinc-950/95 px-6 py-5 md:px-8">
           <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
             <div>
               <p className="text-[11px] font-bold uppercase tracking-[0.25em] text-yellow-500">Scene Planner · {mode === "edit" ? "Edit" : "New"}</p>
-              <h2 className="mt-1 text-2xl font-black tracking-tight text-white">Scene {number || "—"}</h2>
+              <h2 id="scene-form-title" className="mt-1 text-2xl font-black tracking-tight text-white">Scene {number || "—"}</h2>
               <p className="mt-1 text-sm text-zinc-500">Build the scene as a production-ready creative record.</p>
             </div>
             <button type="button" onClick={onClose} className="rounded-xl border border-zinc-800 px-4 py-2 text-sm text-zinc-400 hover:border-zinc-600 hover:text-white">Close</button>
@@ -291,7 +291,7 @@ function SceneFormDialogFields({
               </div>
             )}
 
-            {fieldError && <div className="rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-300">{fieldError}</div>}
+            {fieldError && <div role="alert" className="rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-300">{fieldError}</div>}
           </div>
 
           <div className="flex flex-col gap-4 border-t border-zinc-800 bg-zinc-900/30 px-6 py-5 md:flex-row md:items-center md:justify-between md:px-8">

@@ -136,18 +136,18 @@ function PanelFormDialogFields({
 
   return (
     <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/70 p-4 backdrop-blur-sm">
-      <form onSubmit={handleSubmit} className="my-8 w-full max-w-3xl space-y-5 rounded-3xl border border-zinc-800 bg-zinc-900 p-8 shadow-2xl">
+      <form role="dialog" aria-modal="true" aria-labelledby="panel-form-title" onSubmit={handleSubmit} className="my-8 w-full max-w-3xl space-y-5 rounded-3xl border border-zinc-800 bg-zinc-900 p-8 shadow-2xl">
         <div className="flex items-start justify-between gap-4">
           <div>
             <p className="text-[11px] font-bold uppercase tracking-[0.25em] text-yellow-500">Storyboard</p>
-            <h2 className="mt-2 text-2xl font-black text-white">{mode === "edit" ? "Edit Panel" : "New Panel"}</h2>
+            <h2 id="panel-form-title" className="mt-2 text-2xl font-black text-white">{mode === "edit" ? "Edit Panel" : "New Panel"}</h2>
             <p className="mt-1 text-sm text-zinc-500">Keep visual continuity grounded in shot, scene, character and location records.</p>
           </div>
           <button type="button" onClick={onClose} className="text-sm text-zinc-500 hover:text-white">
             Close
           </button>
         </div>
-        {formError && <p className="rounded-xl bg-red-950/40 p-3 text-sm text-red-400">{formError}</p>}
+        {formError && <p role="alert" className="rounded-xl bg-red-950/40 p-3 text-sm text-red-400">{formError}</p>}
         <div className="grid gap-4 md:grid-cols-2">
           <Field label="Panel number">
             <input className={inputClass} value={panelNumber} onChange={(event) => setPanelNumber(event.target.value)} />

@@ -160,13 +160,13 @@ export default function CharacterEditor({
 
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto bg-black/80 p-4 backdrop-blur-sm">
-      <div className="mx-auto my-8 max-w-5xl rounded-3xl border border-zinc-800 bg-zinc-950 shadow-2xl">
+      <div role="dialog" aria-modal="true" aria-labelledby="character-editor-title" className="mx-auto my-8 max-w-5xl rounded-3xl border border-zinc-800 bg-zinc-950 shadow-2xl">
         <div className="sticky top-0 z-10 flex items-center justify-between border-b border-zinc-800 bg-zinc-950/95 px-6 py-5 backdrop-blur">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.2em] text-yellow-500">
               Character Profile
             </p>
-            <h2 className="mt-1 text-2xl font-bold text-white">
+            <h2 id="character-editor-title" className="mt-1 text-2xl font-bold text-white">
               {character.name}
             </h2>
           </div>

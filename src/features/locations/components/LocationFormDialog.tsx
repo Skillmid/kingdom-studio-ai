@@ -106,16 +106,20 @@ function LocationFormDialogFields({
       return;
     }
 
-    await onSubmit(result.data);
+    try {
+      await onSubmit(result.data);
+    } catch (error) {
+      setFieldError(error instanceof Error ? error.message : "Unable to save this location. Try again.");
+    }
   }
 
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto bg-black/80 p-4 backdrop-blur-sm">
-      <div className="mx-auto my-16 max-w-2xl rounded-3xl border border-zinc-800 bg-zinc-950 p-6 shadow-2xl">
+      <div role="dialog" aria-modal="true" aria-labelledby="location-form-title" className="mx-auto my-16 max-w-2xl rounded-3xl border border-zinc-800 bg-zinc-950 p-6 shadow-2xl">
         <div className="mb-6 flex items-start justify-between">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.2em] text-yellow-500">{mode === "edit" ? "Location" : "New Location"}</p>
-            <h2 className="mt-1 text-2xl font-bold text-white">{mode === "edit" ? "Edit Location" : "Add Location"}</h2>
+            <h2 id="location-form-title" className="mt-1 text-2xl font-bold text-white">{mode === "edit" ? "Edit Location" : "Add Location"}</h2>
           </div>
           <button type="button" onClick={onClose} className="rounded-xl border border-zinc-700 px-3 py-2 text-sm text-zinc-400 transition hover:text-white">Close</button>
         </div>
@@ -123,7 +127,7 @@ function LocationFormDialogFields({
         <form onSubmit={handleSubmit} className="space-y-5">
           <div>
             <label htmlFor="location-name" className="mb-2 block text-sm font-medium text-zinc-300">Name</label>
-            <input id="location-name" value={name} onChange={(event) => setName(event.target.value)} placeholder="e.g. Main House" autoFocus className="w-full rounded-xl border border-zinc-700 bg-zinc-900 px-4 py-3 text-sm text-white outline-none placeholder:text-zinc-600 focus:border-yellow-500" />
+            <input id="location-name" value={name} onChange={(event) => { setName(event.target.value); setFieldError(null); }} placeholder="e.g. Main House" autoFocus required aria-invalid={fieldError ? true : undefined} aria-describedby={fieldError ? "location-form-error" : undefined} className="w-full rounded-xl border border-zinc-700 bg-zinc-900 px-4 py-3 text-sm text-white outline-none placeholder:text-zinc-600 focus:border-yellow-500" />
           </div>
 
           <div className="grid gap-5 md:grid-cols-2">
@@ -182,7 +186,7 @@ function LocationFormDialogFields({
             <input id="location-progress" type="range" min={0} max={100} value={Number.isFinite(parsedProgress) ? parsedProgress : 0} onChange={(event) => setProgress(event.target.value)} className="w-full accent-yellow-500" />
           </div>
 
-          {fieldError && <p className="rounded-xl bg-red-950/40 p-3 text-sm text-red-400">{fieldError}</p>}
+          {fieldError && <p id="location-form-error" role="alert" className="rounded-xl bg-red-950/40 p-3 text-sm text-red-400">{fieldError}</p>}
 
           <div className="flex justify-end gap-3 border-t border-zinc-800 pt-5">
             <button type="button" onClick={onClose} className="rounded-xl border border-zinc-700 px-5 py-3 font-semibold text-zinc-300 transition hover:text-white">Cancel</button>
