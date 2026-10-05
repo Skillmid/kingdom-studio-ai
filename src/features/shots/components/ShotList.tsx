@@ -8,6 +8,9 @@ interface ShotListProps {
   loading?: boolean;
   onEdit: (shot: Shot) => void;
   onDelete: (shot: Shot) => void;
+  onCreate?: () => void;
+  onPlanFromScenes?: () => void;
+  planning?: boolean;
   sceneHeadings?: ReadonlyMap<string, string>;
   locationNames?: ReadonlyMap<string, string>;
   characterNames?: ReadonlyMap<string, string>;
@@ -18,6 +21,9 @@ export default function ShotList({
   loading = false,
   onEdit,
   onDelete,
+  onCreate,
+  onPlanFromScenes,
+  planning = false,
   sceneHeadings,
   locationNames,
   characterNames,
@@ -37,6 +43,29 @@ export default function ShotList({
       <div className="rounded-2xl border border-dashed border-zinc-700 bg-zinc-900/40 p-12 text-center">
         <h3 className="text-xl font-bold text-white">No Shots Match This View</h3>
         <p className="mt-2 text-sm text-zinc-500">Create a shot or generate coverage from the Scene Planner.</p>
+        {(onCreate || onPlanFromScenes) && (
+          <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
+            {onCreate && (
+              <button
+                type="button"
+                onClick={onCreate}
+                className="rounded-xl bg-amber-500 px-4 py-2 text-sm font-semibold text-zinc-950 transition hover:bg-amber-400"
+              >
+                + Add First Shot
+              </button>
+            )}
+            {onPlanFromScenes && (
+              <button
+                type="button"
+                onClick={onPlanFromScenes}
+                disabled={planning}
+                className="rounded-xl border border-zinc-700 bg-zinc-800 px-4 py-2 text-sm font-medium text-white transition hover:bg-zinc-700 disabled:opacity-50"
+              >
+                {planning ? "Planning Coverage..." : "Plan from Scenes"}
+              </button>
+            )}
+          </div>
+        )}
       </div>
     );
   }
