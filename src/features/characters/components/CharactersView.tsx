@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useState } from "react";
 import CharacterEditor from "./CharacterEditor";
@@ -149,6 +149,9 @@ export function CharactersView({ productionId }: CharactersViewProps) {
         characters={characters}
         loading={loading}
         onOpen={setSelectedCharacter}
+        onCreate={() => setShowCreateForm(true)}
+        onSync={handleSync}
+        syncing={syncing}
       />
 
       {showCreateForm && (
