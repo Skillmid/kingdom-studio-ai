@@ -179,7 +179,15 @@ export function LocationsView({ productionId }: LocationsViewProps) {
           </button>
         </div>
       ) : (
-        <LocationList locations={filteredLocations} loading={loading} onOpen={setDetailLocation} onDelete={setLocationToDelete} />
+        <LocationList
+          locations={filteredLocations}
+          loading={loading}
+          onOpen={setDetailLocation}
+          onDelete={setLocationToDelete}
+          onCreate={openCreate}
+          onSync={handleSyncFromScreenplay}
+          syncing={syncing}
+        />
       )}
 
       <LocationDetailDialog
