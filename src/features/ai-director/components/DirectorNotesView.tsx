@@ -87,7 +87,22 @@ export function DirectorNotesView({ productionId }: { productionId: string }) {
             {note.sourceEvidence ? <p className="mt-4 border-l-2 border-yellow-500/50 pl-3 text-xs leading-5 text-zinc-400">Source evidence: {note.sourceEvidence}</p> : null}
           </article>
         ))}
-        {!loading && notes.length === 0 && proposals.length === 0 ? <p className="rounded-xl border border-dashed border-zinc-700 p-6 text-sm text-zinc-500">No direction notes are saved yet. Plan uncovered scenes to prepare grounded proposals.</p> : null}
+        {!loading && notes.length === 0 && proposals.length === 0 ? (
+          <div className="rounded-2xl border border-dashed border-zinc-700 bg-zinc-900/40 p-10 text-center">
+            <h3 className="text-xl font-bold text-white">No Direction Notes Saved</h3>
+            <p className="mt-2 text-sm text-zinc-400">
+              Generate grounded creative direction proposals from this production&apos;s scenes and approved shot records.
+            </p>
+            <button
+              type="button"
+              disabled={planning}
+              onClick={planNotes}
+              className="mt-6 rounded-xl bg-amber-500 px-5 py-2.5 text-sm font-bold text-zinc-950 transition hover:bg-amber-400 disabled:opacity-50"
+            >
+              {planning ? "Planning Direction..." : "Plan Direction from Scenes"}
+            </button>
+          </div>
+        ) : null}
         {loading ? <p className="text-sm text-zinc-500">Loading saved direction notes...</p> : null}
       </section>
     </main>
