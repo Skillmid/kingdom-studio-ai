@@ -2,6 +2,7 @@ import { supabase } from "@/lib/supabase/client";
 import type { Asset, AssetKind, AssetProvenance, AssetSourceKind, AssetStatus } from "../types/asset";
 import { toAssetDatabase } from "./asset.mapper";
 import { filterLocationReferenceAssets } from "./location-reference-assets";
+import { filterCharacterReferenceAssets } from "@/features/characters/repositories/character-reference-assets";
 
 const TABLE_NAME = "assets";
 
@@ -52,6 +53,21 @@ export class AssetRepository {
       (data ?? []).map((row) => this.mapAsset(row as AssetRow)),
       productionId,
       locationId,
+    );
+  }
+  async getCharacterReferences(productionId: string, characterId: string): Promise<Asset[]> {
+    const { data, error } = await this.supabase
+      .from(TABLE_NAME)
+      .select("*")
+      .eq("production_id", productionId)
+      .eq("character_id", characterId)
+      .eq("kind", "character-reference")
+      .order("created_at", { ascending: false });
+    if (error) throw new Error(error.message);
+    return filterCharacterReferenceAssets(
+      (data ?? []).map((row) => this.mapAsset(row as AssetRow)),
+      productionId,
+      characterId,
     );
   }
   async create(asset: Partial<Asset>): Promise<Asset> {

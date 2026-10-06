@@ -7,6 +7,7 @@ import type { CharacterAIProposal } from "../utils/review-character-proposal";
 import { applyAcceptedCharacterProposal, markCreatorEdit } from "../utils/review-character-proposal";
 import { calculateCharacterProgress } from "../utils/character-progress";
 import { hydrateCharacterForm } from "../utils/hydrate-character-form";
+import CharacterReferenceLibrary from "./CharacterReferenceLibrary";
 
 interface CharacterEditorProps {
   character: Character;
@@ -385,6 +386,12 @@ export default function CharacterEditor({
               </div>
             </div>
           </section>
+
+          {/* Character Visual References & Identity */}
+          <CharacterReferenceLibrary
+            productionId={character.productionId}
+            character={{ ...character, ...form } as Character}
+          />
 
           <section>
             <h3 className="mb-4 text-lg font-semibold text-white">

@@ -1,5 +1,8 @@
 import { supabase } from "@/lib/supabase/client";
 
+import type { Asset } from "@/features/assets/types/asset";
+import { assetRepository } from "@/features/assets/repositories/asset.repository";
+
 import type { Character } from "../types/character";
 import { characterProfileProvenancePatch } from "./character.mapper";
 
@@ -161,6 +164,34 @@ export class CharacterRepository {
     if (error) {
       throw new Error(error.message);
     }
+  }
+
+  async getCharacterReferences(
+    productionId: string,
+    characterId: string
+  ): Promise<Asset[]> {
+    return assetRepository.getCharacterReferences(productionId, characterId);
+  }
+
+  async createCharacterReference(
+    asset: Partial<Asset>
+  ): Promise<Asset> {
+    return assetRepository.create({
+      ...asset,
+      kind: "character-reference",
+      sourceKind: "character",
+    });
+  }
+
+  async updateCharacterReference(
+    id: string,
+    updates: Partial<Asset>
+  ): Promise<Asset> {
+    return assetRepository.update(id, updates);
+  }
+
+  async deleteCharacterReference(id: string): Promise<void> {
+    return assetRepository.delete(id);
   }
 
   private mapCharacter(data: CharacterRow): Character {
