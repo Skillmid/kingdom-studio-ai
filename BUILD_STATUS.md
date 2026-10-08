@@ -1,26 +1,16 @@
 # Kingdom Studio AI — Build Status
 
-Last updated: 2026-09-28
+Last updated: 2026-10-08
 
 This file is the persistent engineering status for autonomous sessions. Treat the repository as the source of truth.
 
 ## Current milestone
 
-Assets workspace is mid-landing on main. The hook and supporting card/list/delete UI are on main. The production Assets page still renders the older generate-only view because `AssetsView` and `AssetFormDialog` have not been pushed yet.
+Character extraction integrity is fixed on top of the partial Assets workspace landing.
 
-On main now:
+Known false characters (`The Last Light`, `He Types`, `Inside Is A Hard Drive Labelled`) came from all-caps lines being accepted as character cues without dialogue evidence or element classification. The deterministic extractor in `src/features/import-engine/extractors/character.extractor.ts` now classifies screenplay lines and requires a name-shaped cue followed by dialogue. Canonical AI screenplay analysis is not present in this tree; this extractor remains the sync source used by the Characters workspace.
 
-- `use-assets` hook with production-derived planning, approval and persisted dispatch
-- `jobPersistencePatch` so dispatch results can be written without inventing a media URL
-- Asset card, list and delete dialog components
-- Changelog 0.7.1 and environment helper `readGenerationEnvironment`
-
-Still required to finish the Assets workspace on main:
-
-- Replace `AssetsView` with the plan/approve/edit/queue workspace
-- Add `AssetFormDialog`
-- Point asset and generation-job repositories at compact mappers (`createMany` for jobs)
-- Make Kling/OpenAI constructors strip-types compatible
+Previously synced false characters are not deleted automatically. The creator removes them. New syncs should not recreate them.
 
 ## Pipeline
 
@@ -34,6 +24,11 @@ Still required to finish the Assets workspace on main:
 | Render / export | Partial | Planner and persistence exist; production page is still a thin view |
 
 ## Verification
+
+Executed 2026-10-08 for the extraction fix:
+
+- Character extraction and shot-planner tests passed on Node 22 (strip-types loader)
+- Full `npm test` still cannot complete in this environment: schema tests need installed dependencies, and `dispatch.test.ts` hits a pre-existing parameter-property strip-types failure
 
 Executed 2026-09-28 against the complete local Assets workspace before the GitHub file split:
 

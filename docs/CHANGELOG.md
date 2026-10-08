@@ -2,6 +2,16 @@
 
 ---
 
+## Version 0.7.2
+
+### Fixed
+
+- Character sync no longer treats title lines, action lines, camera direction, sound cues, or object descriptions as characters
+- Screenplay cues now require name shape plus following dialogue evidence; capitalized text alone is not a character
+- Shot beat parsing uses the same character-cue rules so action lines are not speakers
+
+---
+
 ## Version 0.7.1
 
 ### Added
