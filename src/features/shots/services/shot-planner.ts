@@ -1,3 +1,4 @@
+import { isNameShapedCharacterCue, sanitizeCharacterCue } from "@/features/import-engine/screenplay-elements";
 import { withCalculatedProgress } from "./shot-completion";
 import type { Shot, ShotFraming, ShotProposal, ShotType } from "../types/shot";
 
@@ -29,7 +30,6 @@ const SCENE_HEADING_PATTERN =
   /^(?:\d+[A-Z]?\.\s*)?(?:INT\.?\/EXT\.?|EXT\.?\/INT\.?|INT|EXT|I\/E|E\/I|EST)(?:[\.\s:/]|$)/i;
 const TRANSITION_PATTERN =
   /^(?:CUT TO|FADE IN|FADE OUT|FADE TO|DISSOLVE TO|SMASH CUT|MATCH CUT|WIPE TO|JUMP CUT TO)[:.]?$/i;
-const SPEAKER_PATTERN = /^([A-Z][A-Z0-9 .'\\-]{1,48})(?:\s*\([^)]*\))?$/;
 const PARENTHETICAL_PATTERN = /^\([^)]+\)$/;
 
 const FRAMING_BY_TYPE: Record<ShotType, ShotFraming> = {
@@ -106,10 +106,8 @@ export function extractBeats(sourceText: string): SceneBeat[] {
 }
 
 function isSpeakerCue(line: string): boolean {
-  if (!SPEAKER_PATTERN.test(line)) return false;
-  if (SCENE_HEADING_PATTERN.test(line) || TRANSITION_PATTERN.test(line)) return false;
-  if (line.includes(".") && /\b(?:INT|EXT)\b/i.test(line)) return false;
-  const letters = line.replace(/[^A-Za-z]/g, "");
+  if (!isNameShapedCharacterCue(line)) return false;
+  const letters = sanitizeCharacterCue(line).replace(/[^A-Za-z]/g, "");
   return letters.length >= 2 && letters === letters.toUpperCase();
 }
 

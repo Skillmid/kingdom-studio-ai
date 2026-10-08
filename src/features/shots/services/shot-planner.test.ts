@@ -134,3 +134,16 @@ describe("selectNewShotProposals", () => {
     );
   });
 });
+
+describe("extractBeats character integrity", () => {
+  it("does not treat action, title, or object lines as speakers", () => {
+    const beats = extractBeats(`THE LAST LIGHT
+HE TYPES.
+INSIDE IS A HARD DRIVE LABELLED "ARCHIVE".
+DAVID
+We missed the last bus.`);
+    const speakers = beats.filter((beat) => beat.kind === "dialogue").map((beat) => beat.speaker);
+    assert.deepEqual(speakers, ["DAVID"]);
+    assert.equal(beats.some((beat) => beat.speaker && /LAST LIGHT|HE TYPES|HARD DRIVE/i.test(beat.speaker)), false);
+  });
+});

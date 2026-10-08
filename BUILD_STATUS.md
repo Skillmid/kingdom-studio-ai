@@ -1,6 +1,6 @@
 # Kingdom Studio AI - Build Status
 
-Last updated: 2026-09-29
+Last updated: 2026-10-08
 
 This file records repository findings verified during engineering work. Database migration application state is not available from the repository alone.
 
@@ -55,6 +55,12 @@ The dedicated branch `codex/character-ai-profile-sync-integration` was based on 
 - Proposals carry screenplay ID, revision ID, and version through creator review. Accepted scenes persist those identifiers; scene validation and database foreign keys require the provenance fields together and tie them to the same screenplay and production.
 - Manually created scenes remain valid without screenplay provenance. The `202609290001_add_scene_screenplay_provenance.sql` migration preserves exact revision relationships; database application state is unverified.
 
+### Character extraction integrity (merged from `main` on 2026-10-08)
+
+Known false characters (`The Last Light`, `He Types`, `Inside Is A Hard Drive Labelled`) came from all-caps lines being accepted as character cues without dialogue evidence or element classification. The deterministic extractor in `src/features/import-engine/extractors/character.extractor.ts` now classifies screenplay lines (`src/features/import-engine/screenplay-elements.ts`) and requires a name-shaped cue followed by dialogue.
+
+Previously synced false characters are not deleted automatically. The creator removes them. New syncs should not recreate them.
+
 ## Pipeline
 
 | Stage | Status | Notes |
@@ -72,6 +78,8 @@ The dedicated branch `codex/character-ai-profile-sync-integration` was based on 
 | Render / export | Partial | Creator-reviewed assembly and persisted EDL/JSON packages; no video encoder or hosted package storage |
 
 ## Verification
+
+Executed 2026-10-08 on `main` for the character extraction fix: character extraction and shot-planner tests passed on Node 22 (strip-types loader). That fix has since been merged into this branch.
 
 Executed on 2026-09-29 against the revision-bound scene extraction working tree, including the existing AI Director, Render/Export, and earlier integrations:
 
