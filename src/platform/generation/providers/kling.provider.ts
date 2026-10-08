@@ -44,10 +44,11 @@ export class KlingMediaProvider implements MediaGenerationProvider {
     if (!this.isConfigured()) return { status: "failed", provider: this.id, errorMessage: UNCONFIGURED_MEDIA_ERROR };
     const path = request.jobType === "video" ? "/v1/videos/text2video" : "/v1/images/generations";
     const model = typeof request.parameters?.model === "string" ? request.parameters.model : request.jobType === "video" ? "kling-v2-6" : "kling-v1";
+    const aspectRatio = typeof request.parameters?.aspect_ratio === "string" ? request.parameters.aspect_ratio : "16:9";
     try {
       return this.mapPayload(await this.requestJson("POST", path, request.jobType === "video"
-        ? { model_name: model, prompt: request.prompt, duration: String(request.parameters?.duration ?? "5"), mode: "std", aspect_ratio: "16:9" }
-        : { model_name: model, prompt: request.prompt, n: 1, aspect_ratio: "16:9" }), model);
+        ? { model_name: model, prompt: request.prompt, duration: String(request.parameters?.duration ?? "5"), mode: "std", aspect_ratio: aspectRatio }
+        : { model_name: model, prompt: request.prompt, n: 1, aspect_ratio: aspectRatio }), model);
     } catch (error) {
       return { status: "failed", provider: this.id, model, errorMessage: error instanceof Error ? error.message : "Kling request failed." };
     }

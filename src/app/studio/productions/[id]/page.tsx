@@ -20,6 +20,7 @@ export default function ProductionPage({
     production,
     loading,
     error,
+    updateProduction,
   } = useProduction(id);
 
   if (loading) {
@@ -49,6 +50,7 @@ export default function ProductionPage({
     <div className="p-4 sm:p-6 lg:p-10">
       <ProductionOverview
         production={production}
+        onUpdate={updateProduction}
       />
     </div>
   );

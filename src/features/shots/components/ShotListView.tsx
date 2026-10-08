@@ -194,9 +194,6 @@ export function ShotListView({ productionId }: ShotListViewProps) {
         loading={loading}
         onEdit={openEdit}
         onDelete={setShotToDelete}
-        onCreate={openCreate}
-        onPlanFromScenes={handlePlanFromScenes}
-        planning={planning}
         sceneHeadings={sceneHeadings}
         locationNames={locationNames}
         characterNames={characterNames}

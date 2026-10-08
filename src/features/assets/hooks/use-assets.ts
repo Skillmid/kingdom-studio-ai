@@ -5,6 +5,7 @@ import { useCallback, useEffect, useState } from "react";
 import { directorNoteRepository } from "@/features/ai-director/repositories/director-note.repository";
 import { characterRepository } from "@/features/characters/repositories/character.repository";
 import { locationRepository } from "@/features/locations/repositories/location.repository";
+import { productionRepository } from "@/features/productions/repositories/production.repository";
 import { shotRepository } from "@/features/shots/repositories/shot.repository";
 import { storyboardRepository } from "@/features/storyboard/repositories/storyboard.repository";
 import { supabase } from "@/lib/supabase/client";
@@ -181,18 +182,21 @@ export function useAssets(productionId: string) {
     setError(null);
 
     try {
-      const [characters, locations, shots, panels, directorNotes, existing] = await Promise.all([
+      const [characters, locations, shots, panels, directorNotes, existing, production] = await Promise.all([
         characterRepository.getByProductionId(productionId),
         locationRepository.getByProductionId(productionId),
         shotRepository.getByProductionId(productionId),
         storyboardRepository.getByProductionId(productionId),
         directorNoteRepository.getByProductionId(productionId),
         assetRepository.getByProductionId(productionId),
+        productionRepository.getById(productionId).catch(() => null),
       ]);
 
       const sourceCount = characters.length + locations.length + shots.length + panels.length + directorNotes.length;
       const proposals = planAssetsFromProduction({
         productionId,
+        artStyle: production?.art_style,
+        aspectRatio: production?.aspect_ratio,
         characters,
         locations,
         shots,

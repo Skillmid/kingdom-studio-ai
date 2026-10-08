@@ -27,6 +27,25 @@ describe("planAssetsFromProduction", () => {
     });
     assert.deepEqual(proposals, []);
   });
+
+  it("incorporates canonical creative DNA into planned asset prompts when provided", () => {
+    const proposals = planAssetsFromProduction({
+      productionId: PRODUCTION_ID,
+      artStyle: "Cinematic Realism",
+      aspectRatio: "2.39:1",
+      characters: [{ id: "22222222-2222-4222-8222-222222222222", name: "Harbour Clerk", appearance: "salt-stained coat" }],
+      locations: [{ id: "33333333-3333-4333-8333-333333333333", name: "Harbour Gate", description: "Stone arch over the morning tide." }],
+    });
+    assert.equal(proposals.length, 2);
+    assert.match(
+      proposals[0]?.prompt ?? "",
+      /\[Creative Direction: Visual style: Cinematic Realism, Framing: 2\.39:1\]/,
+    );
+    assert.match(
+      proposals[1]?.prompt ?? "",
+      /\[Creative Direction: Visual style: Cinematic Realism, Framing: 2\.39:1\]/,
+    );
+  });
 });
 
 describe("selectNewAssetProposals", () => {
