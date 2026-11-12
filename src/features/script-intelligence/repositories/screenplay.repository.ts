@@ -83,14 +83,22 @@ function mapRevision(
   };
 }
 
+type SupabaseLike = Pick<typeof supabase, "from">;
+
 export class ScreenplayRepository {
+  private readonly supabase: SupabaseLike;
+
+  constructor(client: SupabaseLike = supabase) {
+    this.supabase = client;
+  }
+
   async getByProductionId(
     productionId: string
   ): Promise<Screenplay | null> {
     const {
       data,
       error,
-    } = await supabase
+    } = await this.supabase
       .from("screenplays")
       .select("*")
       .eq(
@@ -121,7 +129,7 @@ export class ScreenplayRepository {
     const {
       data,
       error,
-    } = await supabase
+    } = await this.supabase
       .from("screenplays")
       .insert({
         production_id:
@@ -154,6 +162,12 @@ export class ScreenplayRepository {
     if (error) {
       throw new Error(
         error.message
+      );
+    }
+
+    if (!data) {
+      throw new Error(
+        "Unable to create screenplay: no data returned."
       );
     }
 
@@ -193,7 +207,7 @@ export class ScreenplayRepository {
     const {
       data,
       error,
-    } = await supabase
+    } = await this.supabase
       .from("screenplays")
       .update({
         title:
@@ -231,6 +245,12 @@ export class ScreenplayRepository {
       );
     }
 
+    if (!data) {
+      throw new Error(
+        "Unable to save screenplay: no data returned."
+      );
+    }
+
     const screenplay =
       mapScreenplay(
         data as ScreenplayRow
@@ -252,7 +272,7 @@ export class ScreenplayRepository {
     const {
       data,
       error,
-    } = await supabase
+    } = await this.supabase
       .from(
         "screenplay_revisions"
       )
@@ -280,6 +300,12 @@ export class ScreenplayRepository {
       );
     }
 
+    if (!data) {
+      throw new Error(
+        "Unable to create revision: no data returned."
+      );
+    }
+
     return mapRevision(
       data as RevisionRow
     );
@@ -293,7 +319,7 @@ export class ScreenplayRepository {
     const {
       data,
       error,
-    } = await supabase
+    } = await this.supabase
       .from(
         "screenplay_revisions"
       )
@@ -326,7 +352,7 @@ export class ScreenplayRepository {
     const {
       data,
       error,
-    } = await supabase
+    } = await this.supabase
       .from(
         "screenplay_revisions"
       )
@@ -340,6 +366,12 @@ export class ScreenplayRepository {
     if (error) {
       throw new Error(
         error.message
+      );
+    }
+
+    if (!data) {
+      throw new Error(
+        "Revision not found."
       );
     }
 
