@@ -117,3 +117,38 @@ The character, Assets, generation jobs, render sequences, render clips, export p
 
 1. Integrate a production video renderer and durable export-file storage. This repository has no render-worker or storage integration; the local FFmpeg executable is not a deployment contract, and current outputs remain EDL/JSON manifests.
 2. Connect the separate general AI Director tools page to production-scoped, creator-reviewed workflows.
+
+## 2026-11-11 screenplay workspace recovery
+
+### Findings and changes
+
+- The working branch is `codex/character-ai-profile-sync-integration` at `d0c4ba0`; the repository already had extensive staged/unstaged-equivalent user work in its worktree. That work was preserved and not included in this recovery change.
+- The screenplay page uses the supported Next.js 16 dynamic route parameter contract. Its production layout verifies the session and production ownership on the server; screenplays and revisions are retrieved by the existing client repository under Supabase RLS.
+- The route-specific blocker was an auth-session storage mismatch: sign-in used the plain `@supabase/supabase-js` browser client (local-storage session), while the production layout and server access helper required a verified cookie-backed session. A browser login could therefore be rejected by the server before the screenplay workspace rendered.
+- Updated `src/lib/supabase/client.ts` to use `createBrowserClient` from `@supabase/ssr` for configured browser sessions. The existing fail-closed missing-configuration client is unchanged; server-side user verification and production-owner checks remain enabled.
+- Added a mocked owned-production fixture for the supplied route ID and an authenticated integration test of `/studio/productions/86794874-c848-495f-9043-f983a88cea4b/screenplay`. This exercises the real dynamic route and protected layouts without connecting to or changing hosted data.
+- Other high-priority release blockers remain: hosted migration state/RLS and production schema are unverified; video render/export still lacks production media storage/encoder integration; generation has no production worker/webhook recovery; generated-media reference storage and non-destructive asset Takes are absent.
+
+### Files changed for this recovery
+
+- `src/lib/supabase/client.ts`
+- `e2e/support/mock-supabase.mjs`
+- `e2e/studio-auth.spec.ts`
+- `BUILD_STATUS.md`
+
+### Verification
+
+- `npm test` — passed: 319 main tests, 8 screenplay import tests, and 6 render-security tests; no failures. The PDF import test took about 5.4 minutes on this machine.
+- `npm run lint` — passed.
+- `npx tsc --noEmit` — passed.
+- `npm run build` — passed; Next.js generated the dynamic `/studio/productions/[id]/screenplay` route.
+- Exact authenticated URL integration test — passed: `npx playwright test e2e/studio-auth.spec.ts --grep "requested screenplay URL"` returned HTTP 200 and rendered the Screenplay workspace for the test owner of the supplied production ID.
+- This exact-route result uses the local authenticated mock Supabase fixture; it verifies the route, server auth, ownership lookup, and workspace rendering, not the availability/ownership of the corresponding record in hosted Supabase. A standalone request to port 3000 was not reliable because no server was running initially and the local dev server's first compilation stalled on the slow filesystem.
+- No hosted Supabase request, migration, database reset, or provider call was made.
+
+### Outstanding blockers and next work order
+
+1. Verify normal browser sign-in establishes the cookie session used by protected Studio routes (E2E used a signed test cookie).
+2. Verify required production and screenplay migrations/RLS against a non-production Supabase environment, then validate owner access and screenplay save/revision persistence end-to-end.
+3. Check hosted schema drift before considering migrations; do not apply migrations without environment and backup review.
+4. Prioritize a deployable render worker plus durable video storage/encoding; then address provider-job reconciliation and non-destructive generated-media Takes.

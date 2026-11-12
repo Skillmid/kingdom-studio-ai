@@ -1,4 +1,5 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+import { createBrowserClient as createSupabaseBrowserClient } from "@supabase/ssr";
 
 const FALLBACK_URL = "https://example.supabase.co";
 const FALLBACK_KEY = "public-anon-key";
@@ -11,7 +12,7 @@ function createBrowserClient(): SupabaseClient {
     return createClient(FALLBACK_URL, FALLBACK_KEY);
   }
 
-  return createClient(url, key);
+  return createSupabaseBrowserClient(url, key);
 }
 
 export const supabase = createBrowserClient();
