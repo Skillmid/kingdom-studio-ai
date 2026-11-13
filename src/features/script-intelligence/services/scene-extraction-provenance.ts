@@ -3,6 +3,7 @@ import type { ParsedScreenplayScene } from "@/features/import-engine/types/parse
 import type { Screenplay, ScreenplayRevision } from "../types/screenplay";
 import { findPersistedAnalysisRevision } from "./saved-analysis";
 import type { ProposedScene } from "../types/scene-proposal";
+import { resolveSceneLinks, type SceneLinkContext } from "@/features/scenes/services/scene-linking";
 
 export interface SceneExtractionSource {
   screenplayId: string;
@@ -64,6 +65,7 @@ export function buildApprovedSceneInput(
   proposal: ProposedScene,
   productionId: string,
   currentSource: SceneExtractionSource | null,
+  linkContext?: SceneLinkContext,
 ): SceneCreateInput {
   if (!currentSource || !matchesSceneSource(proposal, currentSource)) {
     throw new Error("The saved screenplay revision changed after scene extraction. Extract proposals again from the current saved revision.");
@@ -79,11 +81,25 @@ export function buildApprovedSceneInput(
     action: proposal.action?.trim() || undefined,
     dialogue: proposal.dialogue?.trim() || undefined,
     sourceText: proposal.sourceText?.trim() || undefined,
-    characterIds: [],
+    // Same deterministic linking as "Sync from screenplay" (no links when no context is given).
+    ...linksFor(proposal, linkContext),
     status: proposal.status,
     progress: proposal.progress,
     ...toSceneSourceFields(currentSource),
   };
+}
+
+function linksFor(proposal: ProposedScene, linkContext?: SceneLinkContext): Pick<SceneCreateInput, "characterIds" | "locationId"> {
+  if (!linkContext) return { characterIds: [] };
+  const links = resolveSceneLinks(
+    {
+      heading: proposal.heading,
+      sourceText: proposal.sourceText,
+      fallbackText: [proposal.summary, proposal.action, proposal.dialogue],
+    },
+    linkContext,
+  );
+  return links.locationId ? { characterIds: links.characterIds, locationId: links.locationId } : { characterIds: links.characterIds };
 }
 
 export function matchesSceneSource(

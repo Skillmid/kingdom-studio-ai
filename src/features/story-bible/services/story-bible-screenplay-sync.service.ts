@@ -133,7 +133,7 @@ ${screenplay}`;
 }
 
 export class StoryBibleScreenplaySyncService {
-  async propose(screenplay: string): Promise<StoryBibleScreenplayProposal> {
+  async propose(screenplay: string, productionId: string): Promise<StoryBibleScreenplayProposal> {
     if (!screenplay.trim()) {
       throw new Error("Screenplay content is required to sync the Story Bible.");
     }
@@ -144,6 +144,7 @@ export class StoryBibleScreenplaySyncService {
       userPrompt: buildUserPrompt(screenplay),
       temperature: 0.2,
       maxTokens: 5000,
+      productionId,
     });
 
     return parseProposal(response.text);

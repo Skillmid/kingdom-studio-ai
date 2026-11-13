@@ -34,21 +34,21 @@ test("production workspace stays usable and keeps every section reachable across
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(375);
   await expect(page.getByRole("button", { name: "Share" })).toBeVisible();
   await expect(page.getByRole("link", { name: "Export", exact: true })).toBeVisible();
-  await expect(page.getByRole("button", { name: "Settings" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Settings" })).toBeVisible();
 
   const mobileNavigationButton = page.getByRole("button", { name: /Navigate production/ });
   await expect(mobileNavigationButton).toBeVisible();
   await mobileNavigationButton.click();
   await page.getByRole("navigation", { name: "Production sections" }).getByRole("link", { name: "World Building" }).click();
   await expect(page).toHaveURL(new RegExp(`/studio/productions/${productionId}/world-building$`));
-  await expect(page.getByRole("heading", { name: "World Building" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "World Building", exact: true })).toBeVisible();
 
   for (const width of [768, 1024, 1280]) {
     await page.setViewportSize({ width, height: 900 });
-    await expect(page.getByRole("heading", { name: "World Building" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "World Building", exact: true })).toBeVisible();
     expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(width);
 
-    const mainWidth = await page.getByRole("heading", { name: "World Building" }).evaluate((heading) =>
+    const mainWidth = await page.getByRole("heading", { name: "World Building", exact: true }).evaluate((heading) =>
       heading.closest("main")?.getBoundingClientRect().width ?? 0,
     );
     expect(mainWidth).toBeGreaterThan(width < 1024 ? width - 24 : width - 320);

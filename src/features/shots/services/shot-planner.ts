@@ -1,4 +1,4 @@
-import { isNameShapedCharacterCue, sanitizeCharacterCue } from "@/features/import-engine/screenplay-elements";
+import { detectCharacterCues } from "@/features/import-engine/screenplay-elements";
 import { withCalculatedProgress } from "./shot-completion";
 import type { Shot, ShotFraming, ShotProposal, ShotType } from "../types/shot";
 
@@ -69,8 +69,11 @@ export function extractBeats(sourceText: string): SceneBeat[] {
     speaker = undefined;
   }
 
-  for (const rawLine of lines) {
-    const line = rawLine.trim();
+  // Shared cue detection: the same rules as the cast extractor (slug lines, titles, dialogue evidence).
+  const cueByIndex = new Map(detectCharacterCues(lines).map((cue) => [cue.index, cue]));
+
+  for (let index = 0; index < lines.length; index++) {
+    const line = lines[index].trim();
     if (!line) {
       flushDialogue();
       continue;
@@ -82,9 +85,15 @@ export function extractBeats(sourceText: string): SceneBeat[] {
     if (PARENTHETICAL_PATTERN.test(line)) {
       continue;
     }
-    if (isSpeakerCue(line)) {
+    const cue = cueByIndex.get(index);
+    if (cue) {
       flushDialogue();
       speaker = line.replace(/\s*\([^)]*\)$/, "").trim();
+      if (cue.inlineDialogue) {
+        speaker = cue.name;
+        dialogueBuffer.push(cue.inlineDialogue);
+        flushDialogue();
+      }
       continue;
     }
     if (speaker) {
@@ -105,11 +114,6 @@ export function extractBeats(sourceText: string): SceneBeat[] {
   return beats;
 }
 
-function isSpeakerCue(line: string): boolean {
-  if (!isNameShapedCharacterCue(line)) return false;
-  const letters = sanitizeCharacterCue(line).replace(/[^A-Za-z]/g, "");
-  return letters.length >= 2 && letters === letters.toUpperCase();
-}
 
 export function inferActionShotType(action: string): ShotType {
   const text = action.toLowerCase();

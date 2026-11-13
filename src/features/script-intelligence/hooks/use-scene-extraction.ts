@@ -6,6 +6,8 @@ import { sceneRepository } from "@/features/scenes/repositories/scene.repository
 import { sceneExtractor } from "@/features/import-engine/extractors/scene.extractor";
 
 import { scriptIntelligence } from "../services/script-intelligence.service";
+import { characterRepository } from "@/features/characters/repositories/character.repository";
+import { locationRepository } from "@/features/locations/repositories/location.repository";
 import { persistApprovedSceneProposals } from "../services/approved-scene-persistence";
 import type { ProposedScene } from "../types/scene-proposal";
 import {
@@ -42,7 +44,7 @@ export function useSceneExtraction(productionId: string) {
 
       try {
         const [drafts, parsedDocument] = await Promise.all([
-          scriptIntelligence.extractScenes(screenplay),
+          scriptIntelligence.extractScenes(screenplay, productionId),
           sceneExtractor.parse(screenplay),
         ]);
 
@@ -72,7 +74,7 @@ export function useSceneExtraction(productionId: string) {
         setExtracting(false);
       }
     },
-    [],
+    [productionId],
   );
 
   const updateProposal = useCallback(
@@ -108,11 +110,17 @@ export function useSceneExtraction(productionId: string) {
       setError(null);
 
       try {
+        // Link characters and the location exactly like "Sync from screenplay" does.
+        const [characters, locations] = await Promise.all([
+          characterRepository.getByProductionId(productionId),
+          locationRepository.getByProductionId(productionId),
+        ]);
         const created = await persistApprovedSceneProposals(
           scenes,
           productionId,
           currentSource,
           sceneRepository,
+          { characters, locations },
         );
 
         const savedIds = new Set(scenes.map((scene) => scene.clientId));

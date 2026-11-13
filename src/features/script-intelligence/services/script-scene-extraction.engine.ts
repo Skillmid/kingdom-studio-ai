@@ -81,6 +81,7 @@ function parseExtractedScenes(text: string): ExtractedSceneDraft[] {
 
 export async function extractScenesFromScreenplay(
   screenplay: string,
+  productionId: string,
 ): Promise<ExtractedSceneDraft[]> {
   if (!screenplay.trim()) {
     throw new Error("Screenplay content is required for scene extraction.");
@@ -92,6 +93,7 @@ export async function extractScenesFromScreenplay(
     userPrompt: scriptSceneExtractionPrompt.buildUserPrompt(screenplay),
     temperature: 0.2,
     maxTokens: 5000,
+    productionId,
   });
 
   return parseExtractedScenes(response.text);

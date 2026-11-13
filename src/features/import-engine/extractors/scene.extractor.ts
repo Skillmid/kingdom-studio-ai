@@ -2,6 +2,14 @@ import {
   parseSceneHeading,
   splitScreenplayLines,
 } from "../scene-heading";
+import {
+  classifyScreenplayLine,
+  detectCharacterCues,
+  isParenthetical,
+  isTransition,
+  readsAsSceneDescription,
+  type CharacterCueMatch,
+} from "../screenplay-elements";
 
 import type {
   ParsedScreenplayDocument,
@@ -10,14 +18,26 @@ import type {
 
 export type ExtractedScene = ParsedScreenplayScene;
 
-const CHARACTER_CUE_PATTERN = /^\(?[A-Z][A-Z0-9 .'-]{1,35}\)?(?:\s*\([^)]*\))?$/;
-const TRANSITION_PATTERN = /^(FADE IN|FADE OUT|CUT TO|DISSOLVE TO|SMASH CUT TO|MATCH CUT TO)\b/i;
+/** Line kinds that end a dialogue block (all-caps action, camera, sound, objects, transitions). */
+const NON_DIALOGUE_KINDS = new Set(["action", "object", "camera", "sound", "transition", "scene_heading"]);
+
+function endsDialogue(line: string): boolean {
+  const kind = classifyScreenplayLine(line);
+  const isAllCaps = line === line.toLocaleUpperCase() && /\p{Lu}/u.test(line);
+  return (isAllCaps && NON_DIALOGUE_KINDS.has(kind)) || readsAsSceneDescription(line);
+}
 
 export class SceneExtractor {
   async parse(screenplay: string): Promise<ParsedScreenplayDocument> {
     if (!screenplay?.trim()) return { scenes: [] };
 
     const lines = splitScreenplayLines(screenplay);
+    // Same structural cue rules as the character extractor, so the cast and scene dialogue agree
+    // (previously any all-caps line, e.g. "HE TYPES.", was treated as a speaker).
+    const cueByIndex = new Map<number, CharacterCueMatch>(
+      detectCharacterCues(lines).map((cue) => [cue.index, cue]),
+    );
+    let linesSinceCue = 0;
     const scenes: ParsedScreenplayScene[] = [];
     let current: ParsedScreenplayScene | null = null;
     let nextNumber = 1;
@@ -44,15 +64,13 @@ export class SceneExtractor {
       });
     };
 
-    for (const line of lines) {
+    for (let index = 0; index < lines.length; index++) {
+      const line = lines[index];
       const heading = parseSceneHeading(line);
-
       if (heading) {
         flush();
-
         const explicitNumber = line.match(/^(?:SCENE\s*#?\s*)?(\d+)[\s:.)-]+/i);
         const number = explicitNumber ? Number(explicitNumber[1]) : nextNumber;
-
         current = {
           number,
           heading: heading.heading,
@@ -65,30 +83,34 @@ export class SceneExtractor {
           sourceText: line,
           locationName: heading.locationName,
         };
-
         inDialogue = false;
         currentSpeaker = null;
         nextNumber = Math.max(nextNumber, number + 1);
         continue;
       }
-
       if (!current) continue;
-
       current.sourceText = `${current.sourceText}\n${line}`;
-
-      if (TRANSITION_PATTERN.test(line)) continue;
-
-      if (CHARACTER_CUE_PATTERN.test(line)) {
-        inDialogue = true;
-        currentSpeaker = line
-          .replace(/\s*\([^)]*\)\s*$/, "")
-          .replace(/^\(|\)$/g, "")
-          .trim();
-        current.dialogues.push({ character: currentSpeaker, text: "" });
+      if (isTransition(line)) {
+        inDialogue = false;
+        currentSpeaker = null;
         continue;
       }
-
-      if (/^\(.*\)$/.test(line)) {
+      const cue = cueByIndex.get(index);
+      if (cue) {
+        currentSpeaker = cue.name;
+        linesSinceCue = 0;
+        if (cue.inlineDialogue) {
+          current.dialogues.push({ character: cue.name, text: cue.inlineDialogue });
+          current.dialogue = `${current.dialogue} ${cue.inlineDialogue}`.trim();
+          inDialogue = false;
+          currentSpeaker = null;
+        } else {
+          inDialogue = true;
+          current.dialogues.push({ character: cue.name, text: "" });
+        }
+        continue;
+      }
+      if (isParenthetical(line)) {
         if (inDialogue) {
           current.dialogue = `${current.dialogue} ${line}`.trim();
           const dialogue = current.dialogues.at(-1);
@@ -98,8 +120,14 @@ export class SceneExtractor {
         }
         continue;
       }
-
+      // The first line after a cue is its dialogue evidence; later lines end the block when they
+      // are structurally not speech (all-caps action/camera/sound, or scene description).
+      if (inDialogue && linesSinceCue > 0 && endsDialogue(line)) {
+        inDialogue = false;
+        currentSpeaker = null;
+      }
       if (inDialogue) {
+        linesSinceCue += 1;
         current.dialogue = `${current.dialogue} ${line}`.trim();
         const dialogue = current.dialogues.at(-1);
         if (dialogue && currentSpeaker) {
@@ -108,7 +136,6 @@ export class SceneExtractor {
       } else {
         current.action = `${current.action} ${line}`.trim();
       }
-
       // A non-indented sentence after dialogue is normally action in plain-text
       // imports. This keeps extraction useful without losing the original text.
       if (inDialogue && /[.!?]$/.test(line) && line.length > 80) {
@@ -116,7 +143,6 @@ export class SceneExtractor {
         currentSpeaker = null;
       }
     }
-
     flush();
     return { scenes };
   }

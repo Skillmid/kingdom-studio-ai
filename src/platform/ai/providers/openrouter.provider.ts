@@ -49,8 +49,10 @@ export class OpenRouterProvider
       }
     );
 
-    const data =
-      (await response.json()) as OpenRouterAPIResponse;
+    // Platform timeouts can return non-JSON bodies; surface the status instead of a parse error.
+    const data = (await response
+      .json()
+      .catch(() => ({ error: `AI request failed (HTTP ${response.status}).` }))) as OpenRouterAPIResponse;
 
     if (!response.ok) {
       throw new Error(

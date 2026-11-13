@@ -1,9 +1,11 @@
 "use client";
 
-import type { StoryBibleScreenplayProposal } from "../services/story-bible-screenplay-sync.service";
+import type { ProposalFieldReview } from "../services/story-bible-proposal-merge";
 
 interface StoryBibleScreenplaySyncPanelProps {
-  proposal: StoryBibleScreenplayProposal;
+  reviews: ProposalFieldReview[];
+  selectedFields: ReadonlySet<string>;
+  onToggleField: (key: string, checked: boolean) => void;
   screenplayTitle: string;
   screenplayVersion: number;
   onApply: () => void;
@@ -44,15 +46,17 @@ const labels: Record<string, string> = {
 };
 
 export default function StoryBibleScreenplaySyncPanel({
-  proposal,
+  reviews,
+  selectedFields,
+  onToggleField,
   screenplayTitle,
   screenplayVersion,
   onApply,
   onCancel,
 }: StoryBibleScreenplaySyncPanelProps) {
-  const entries = Object.entries(proposal).filter(
-    ([, value]) => value !== undefined && value !== null && String(value).trim()
-  );
+  const entries = reviews.filter((review) => review.status !== "same");
+  const unchangedCount = reviews.length - entries.length;
+  const selectedCount = entries.filter((review) => selectedFields.has(review.key)).length;
 
   return (
     <section className="rounded-3xl border border-yellow-500/40 bg-yellow-500/5 p-6 shadow-xl">
@@ -80,15 +84,19 @@ export default function StoryBibleScreenplaySyncPanel({
           <button
             type="button"
             onClick={onApply}
-            className="rounded-xl bg-yellow-500 px-5 py-3 text-sm font-semibold text-black transition hover:opacity-90"
+            disabled={selectedCount === 0}
+            className="rounded-xl bg-yellow-500 px-5 py-3 text-sm font-semibold text-black transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
           >
-            Apply Proposal
+            Apply {selectedCount} selected field{selectedCount === 1 ? "" : "s"}
           </button>
         </div>
       </div>
 
       <p className="mt-5 rounded-2xl border border-zinc-800 bg-zinc-950/60 p-4 text-sm text-zinc-400">
-        Nothing has been saved yet. Review the AI proposal, apply it to the editable Story Bible, then save when you are satisfied.
+        Nothing has been saved yet. Empty fields are pre-selected. Fields you have already written are
+        never replaced unless you tick them. Apply the selected fields to the editable Story Bible, then save
+        when you are satisfied.
+        {unchangedCount > 0 ? ` ${unchangedCount} proposed value${unchangedCount === 1 ? " matches" : "s match"} what you already have.` : ""}
       </p>
 
       {entries.length === 0 ? (
@@ -97,19 +105,38 @@ export default function StoryBibleScreenplaySyncPanel({
         </div>
       ) : (
         <div className="mt-5 grid gap-4 lg:grid-cols-2">
-          {entries.map(([key, value]) => (
-            <div
-              key={key}
-              className="rounded-2xl border border-zinc-800 bg-zinc-950 p-5"
-            >
-              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-500">
-                {labels[key] ?? key}
-              </p>
-              <p className="mt-3 whitespace-pre-wrap text-sm leading-6 text-zinc-200">
-                {String(value)}
-              </p>
-            </div>
-          ))}
+          {entries.map((review) => {
+            const checked = selectedFields.has(review.key);
+            return (
+              <label
+                key={review.key}
+                className={`block cursor-pointer rounded-2xl border bg-zinc-950 p-5 ${checked ? "border-yellow-500/60" : "border-zinc-800"}`}
+              >
+                <span className="flex items-center justify-between gap-3">
+                  <span className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-500">
+                    {labels[review.key] ?? review.key}
+                  </span>
+                  <span className="flex items-center gap-2 text-xs text-zinc-400">
+                    {review.status === "conflict" ? "Replaces your value" : "Fills empty field"}
+                    <input
+                      type="checkbox"
+                      checked={checked}
+                      onChange={(event) => onToggleField(review.key, event.target.checked)}
+                      aria-label={`Apply proposed ${labels[review.key] ?? review.key}`}
+                    />
+                  </span>
+                </span>
+                <span className="mt-3 block whitespace-pre-wrap text-sm leading-6 text-zinc-200">
+                  {String(review.proposed)}
+                </span>
+                {review.status === "conflict" && (
+                  <span className="mt-3 block whitespace-pre-wrap border-t border-zinc-800 pt-3 text-xs leading-5 text-zinc-500">
+                    Your current value: {String(review.current)}
+                  </span>
+                )}
+              </label>
+            );
+          })}
         </div>
       )}
     </section>

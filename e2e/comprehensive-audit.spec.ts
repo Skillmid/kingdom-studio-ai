@@ -125,8 +125,7 @@ test.describe("E2E QA Audit Suite", () => {
 
       // Verify that unauthenticated / non-existent production fails gracefully
       // Either showing "Unable to load production" or standard 404/not-found layout
-      const bodyText = await page.locator("body").innerText();
-      expect(bodyText.length).toBeGreaterThan(0);
+      await expect(page.locator("body")).toContainText(/Unable to load production|not found/i);
     }
   });
 
@@ -146,7 +145,12 @@ test.describe("E2E QA Audit Suite", () => {
     await expect(page.locator("button[type='submit']")).toBeVisible();
   });
 
-  test("6. API Route Security & Auth Checks", async ({ request }) => {
+  test("6. API Route Security & Auth Checks", async ({ playwright }) => {
+    const request = await playwright.request.newContext({
+      baseURL: "http://localhost:3000",
+      storageState: { cookies: [], origins: [] },
+    });
+    try {
     // 1. /api/ai/generate without auth header should return 401
     const aiGenRes = await request.post("/api/ai/generate", {
       data: { prompt: "Test story prompt" },
@@ -166,6 +170,8 @@ test.describe("E2E QA Audit Suite", () => {
       data: { jobId: "00000000-0000-0000-0000-000000000000" },
     });
     expect(genRunNoAuthRes.status()).toBe(401);
+    } finally {
+      await request.dispose();
+    }
   });
 });
-

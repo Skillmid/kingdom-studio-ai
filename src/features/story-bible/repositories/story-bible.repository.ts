@@ -21,7 +21,15 @@ function throwSupabaseError(error: {
   );
 }
 
+type SupabaseLike = Pick<typeof supabase, "from">;
+
 export class StoryBibleRepository {
+  private readonly supabase: SupabaseLike;
+
+  constructor(client: SupabaseLike = supabase) {
+    this.supabase = client;
+  }
+
   async create(
     productionId: string,
     dto: StoryBibleDTO
@@ -31,7 +39,7 @@ export class StoryBibleRepository {
       ...dto,
     };
 
-    const { data, error } = await supabase
+    const { data, error } = await this.supabase
       .from("story_bibles")
       .insert(payload)
       .select()
@@ -47,7 +55,7 @@ export class StoryBibleRepository {
   async getByProductionId(
     productionId: string
   ) {
-    const { data, error } = await supabase
+    const { data, error } = await this.supabase
       .from("story_bibles")
       .select("*")
       .eq("production_id", productionId)
@@ -64,7 +72,7 @@ export class StoryBibleRepository {
     id: string,
     updates: Partial<StoryBibleDTO>
   ) {
-    const { data, error } = await supabase
+    const { data, error } = await this.supabase
       .from("story_bibles")
       .update(updates)
       .eq("id", id)
@@ -101,7 +109,7 @@ export class StoryBibleRepository {
   }
 
   async delete(id: string) {
-    const { error } = await supabase
+    const { error } = await this.supabase
       .from("story_bibles")
       .delete()
       .eq("id", id);

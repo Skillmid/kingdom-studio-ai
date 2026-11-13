@@ -1,27 +1,16 @@
 "use client";
 
-import { use } from "react";
-
 import ProductionOverview from "@/features/productions/components/ProductionOverview";
-import { useProduction } from "@/features/productions/hooks/use-production";
+import { useProductionContext } from "@/features/productions/context/ProductionContext";
 
-interface ProductionPageProps {
-  params: Promise<{
-    id: string;
-  }>;
-}
-
-export default function ProductionPage({
-  params,
-}: ProductionPageProps) {
-  const { id } = use(params);
-
+export default function ProductionPage() {
+  // The production layout (ProductionWorkspace) has already loaded this production and only
+  // renders this page once it is available, so reuse it instead of querying it a second time.
   const {
     production,
     loading,
-    error,
     updateProduction,
-  } = useProduction(id);
+  } = useProductionContext();
 
   if (loading) {
     return (
@@ -31,7 +20,7 @@ export default function ProductionPage({
     );
   }
 
-  if (error || !production) {
+  if (!production) {
     return (
       <div className="m-10 rounded-3xl border border-red-900 bg-red-950/20 p-8">
         <h2 className="text-2xl font-bold text-red-400">
@@ -39,8 +28,7 @@ export default function ProductionPage({
         </h2>
 
         <p className="mt-4 text-zinc-400">
-          {error ??
-            "The requested production could not be found."}
+          The requested production could not be found.
         </p>
       </div>
     );

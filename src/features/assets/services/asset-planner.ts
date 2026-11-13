@@ -1,10 +1,11 @@
-import {
-  formatCreativePromptDirective,
-  normalizeAspectRatio,
-} from "@/features/productions/services/production-creative-dna";
-
 import type { Asset, AssetProposal } from "../types/asset";
 import { withCalculatedProgress } from "./asset-completion";
+import {
+  composeVisualPrompt,
+  relevantDirectorNotes,
+  type VisualCreativeInput,
+  type VisualStoryBibleInput,
+} from "./visual-context";
 
 export interface AssetCharacterInput {
   id: string;
@@ -67,8 +68,11 @@ export interface AssetDirectorNoteInput {
   noteNumber?: number;
   title?: string;
   composition?: string;
+  camera?: string;
+  lighting?: string;
   sceneIntent?: string;
   continuity?: string;
+  userApproved?: boolean;
   sourceEvidence?: string;
   characterIds?: string[];
   locationId?: string;
@@ -78,6 +82,8 @@ export interface AssetPlanContext {
   productionId: string;
   artStyle?: string | null;
   aspectRatio?: string | null;
+  /** Story Bible visual rules (visual_consistency, forbidden_elements). */
+  storyBible?: VisualStoryBibleInput | null;
   characters?: AssetCharacterInput[];
   locations?: AssetLocationInput[];
   shots?: AssetShotInput[];
@@ -114,17 +120,38 @@ function characterContinuity(character: AssetCharacterInput): string | undefined
   ]);
 }
 
+interface InheritedVisualContext {
+  creative: VisualCreativeInput | null;
+  storyBible: VisualStoryBibleInput | null;
+  characters: AssetCharacterInput[];
+  locations: AssetLocationInput[];
+  directorNotes: AssetDirectorNoteInput[];
+}
+
+function linkedCharacters(context: InheritedVisualContext, ids?: string[]): AssetCharacterInput[] {
+  if (!ids?.length) return [];
+  const wanted = new Set(ids);
+  return context.characters.filter((character) => wanted.has(character.id));
+}
+
+function linkedLocation(context: InheritedVisualContext, id?: string): AssetLocationInput | null {
+  if (!id) return null;
+  return context.locations.find((location) => location.id === id) ?? null;
+}
+
 function planCharacterAsset(
   productionId: string,
   character: AssetCharacterInput,
-  creativeDirective?: string,
+  context: InheritedVisualContext,
 ): AssetProposal {
   const continuity = characterContinuity(character);
   const appearanceKnown = Boolean(clean(character.appearance) || clean(character.distinguishingFeatures));
   const basePrompt = continuity
     ? `Character reference still of ${continuity}. Keep wardrobe and features consistent with production records.`
     : undefined;
-  const prompt = basePrompt && creativeDirective ? `${basePrompt} ${creativeDirective}` : basePrompt;
+  const prompt = basePrompt
+    ? composeVisualPrompt({ intent: basePrompt, creative: context.creative, storyBible: context.storyBible })
+    : undefined;
 
   return withCalculatedProgress({
     productionId,
@@ -149,13 +176,15 @@ function planCharacterAsset(
 function planLocationAsset(
   productionId: string,
   location: AssetLocationInput,
-  creativeDirective?: string,
+  context: InheritedVisualContext,
 ): AssetProposal {
   const description = joinUnique([location.name, location.setting, location.description, location.notes]);
   const basePrompt = description
     ? `Location reference still of ${description}. Do not invent architecture or weather not supported by production records.`
     : undefined;
-  const prompt = basePrompt && creativeDirective ? `${basePrompt} ${creativeDirective}` : basePrompt;
+  const prompt = basePrompt
+    ? composeVisualPrompt({ intent: basePrompt, creative: context.creative, storyBible: context.storyBible })
+    : undefined;
 
   return withCalculatedProgress({
     productionId,
@@ -180,7 +209,7 @@ function planLocationAsset(
 function planShotAsset(
   productionId: string,
   shot: AssetShotInput,
-  creativeDirective?: string,
+  context: InheritedVisualContext,
 ): AssetProposal | null {
   const evidence = joinUnique([
     shot.generationPrompt,
@@ -192,11 +221,16 @@ function planShotAsset(
   if (!evidence) return null;
 
   const title = shot.shotCode || shot.subject || `Shot ${shot.shotNumber} still`;
-  const prompt = shot.generationPrompt
-    ? shot.generationPrompt
-    : creativeDirective
-      ? `${evidence} ${creativeDirective}`
-      : evidence;
+  // Inherited visual context is always applied — including when the shot already has a
+  // generation prompt (previously that prompt bypassed Creative DNA entirely).
+  const prompt = composeVisualPrompt({
+    intent: clean(shot.generationPrompt) || evidence,
+    creative: context.creative,
+    storyBible: context.storyBible,
+    characters: linkedCharacters(context, shot.characterIds),
+    location: linkedLocation(context, shot.locationId),
+    directorNotes: relevantDirectorNotes(context.directorNotes, { sceneId: shot.sceneId, shotId: shot.id }),
+  });
 
   return withCalculatedProgress({
     productionId,
@@ -223,7 +257,7 @@ function planShotAsset(
 function planPanelAsset(
   productionId: string,
   panel: AssetPanelInput,
-  creativeDirective?: string,
+  context: InheritedVisualContext,
 ): AssetProposal | null {
   const evidence = joinUnique([
     panel.generationPrompt,
@@ -233,11 +267,18 @@ function planPanelAsset(
   ]);
   if (!evidence) return null;
 
-  const prompt = panel.generationPrompt
-    ? panel.generationPrompt
-    : creativeDirective
-      ? `${evidence} ${creativeDirective}`
-      : evidence;
+  const prompt = composeVisualPrompt({
+    intent: clean(panel.generationPrompt) || evidence,
+    creative: context.creative,
+    storyBible: context.storyBible,
+    characters: linkedCharacters(context, panel.characterIds),
+    location: linkedLocation(context, panel.locationId),
+    directorNotes: relevantDirectorNotes(context.directorNotes, {
+      sceneId: panel.sceneId,
+      shotId: panel.shotId,
+      panelId: panel.id,
+    }),
+  });
 
   return withCalculatedProgress({
     productionId,
@@ -263,12 +304,18 @@ function planPanelAsset(
 function planDirectorAsset(
   productionId: string,
   note: AssetDirectorNoteInput,
-  creativeDirective?: string,
+  context: InheritedVisualContext,
 ): AssetProposal | null {
   const evidence = joinUnique([note.composition, note.sceneIntent, note.continuity, note.sourceEvidence]);
   if (!evidence) return null;
 
-  const prompt = creativeDirective ? `${evidence} ${creativeDirective}` : evidence;
+  const prompt = composeVisualPrompt({
+    intent: evidence,
+    creative: context.creative,
+    storyBible: context.storyBible,
+    characters: linkedCharacters(context, note.characterIds),
+    location: linkedLocation(context, note.locationId),
+  });
 
   return withCalculatedProgress({
     productionId,
@@ -294,33 +341,33 @@ function planDirectorAsset(
 
 export function planAssetsFromProduction(context: AssetPlanContext): AssetProposal[] {
   const productionId = context.productionId;
-  const creativeDirective =
-    context.artStyle || context.aspectRatio
-      ? formatCreativePromptDirective({
-          artStyle: context.artStyle ?? null,
-          aspectRatio: normalizeAspectRatio(context.aspectRatio),
-        })
-      : undefined;
+  const inherited: InheritedVisualContext = {
+    creative: context.artStyle || context.aspectRatio ? { artStyle: context.artStyle, aspectRatio: context.aspectRatio } : null,
+    storyBible: context.storyBible ?? null,
+    characters: context.characters ?? [],
+    locations: context.locations ?? [],
+    directorNotes: context.directorNotes ?? [],
+  };
   const proposals: AssetProposal[] = [];
 
   for (const character of context.characters ?? []) {
     if (!clean(character.name)) continue;
-    proposals.push(planCharacterAsset(productionId, character, creativeDirective));
+    proposals.push(planCharacterAsset(productionId, character, inherited));
   }
   for (const location of context.locations ?? []) {
     if (!clean(location.name)) continue;
-    proposals.push(planLocationAsset(productionId, location, creativeDirective));
+    proposals.push(planLocationAsset(productionId, location, inherited));
   }
   for (const shot of context.shots ?? []) {
-    const proposal = planShotAsset(productionId, shot, creativeDirective);
+    const proposal = planShotAsset(productionId, shot, inherited);
     if (proposal) proposals.push(proposal);
   }
   for (const panel of context.panels ?? []) {
-    const proposal = planPanelAsset(productionId, panel, creativeDirective);
+    const proposal = planPanelAsset(productionId, panel, inherited);
     if (proposal) proposals.push(proposal);
   }
   for (const note of context.directorNotes ?? []) {
-    const proposal = planDirectorAsset(productionId, note, creativeDirective);
+    const proposal = planDirectorAsset(productionId, note, inherited);
     if (proposal) proposals.push(proposal);
   }
 

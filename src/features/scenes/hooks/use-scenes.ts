@@ -8,23 +8,8 @@ import { sceneExtractor } from "@/features/import-engine/extractors/scene.extrac
 import { screenplayRepository } from "@/features/script-intelligence/repositories/screenplay.repository";
 
 import { sceneRepository } from "../repositories/scene.repository";
+import { matchCharacterIds, normaliseLocationName } from "../services/scene-linking";
 import type { Scene, SceneCreateInput, SceneUpdateInput } from "../types/scene";
-
-function normaliseLocationName(value: string): string {
-  return value
-    .replace(/\s+-\s+(?:DAY|NIGHT|MORNING|AFTERNOON|EVENING|DAWN|DUSK|LATER|CONTINUOUS|SAME|SUNSET|SUNRISE)\s*$/i, "")
-    .replace(/\s+(?:DAY|NIGHT|MORNING|AFTERNOON|EVENING|DAWN|DUSK|LATER|CONTINUOUS|SAME|SUNSET|SUNRISE)\s*$/i, "")
-    .replace(/\s+/g, " ")
-    .trim()
-    .toLowerCase();
-}
-
-function matchCharacterIds(sourceText: string, characters: Array<{ id: string; name: string }>) {
-  const source = sourceText.toLowerCase();
-  return characters
-    .filter((character) => character.name.trim().length > 1 && source.includes(character.name.trim().toLowerCase()))
-    .map((character) => character.id);
-}
 
 export function useScenes(productionId: string) {
   const [scenes, setScenes] = useState<Scene[]>([]);

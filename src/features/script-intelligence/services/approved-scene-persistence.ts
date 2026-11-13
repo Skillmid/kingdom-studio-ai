@@ -1,6 +1,7 @@
 import { sceneSchema } from "@/features/scenes/validation/scene.schema";
 import type { Scene, SceneCreateInput } from "@/features/scenes/types/scene";
 import type { ProposedScene } from "../types/scene-proposal";
+import type { SceneLinkContext } from "@/features/scenes/services/scene-linking";
 import {
   buildApprovedSceneInput,
   type SceneExtractionSource,
@@ -15,13 +16,14 @@ export async function persistApprovedSceneProposals(
   productionId: string,
   source: SceneExtractionSource | null,
   repository: SceneBatchWriter,
+  linkContext?: SceneLinkContext,
 ): Promise<Scene[]> {
   if (!productionId) {
     throw new Error("Production ID is required.");
   }
 
   const validated = proposals.map((proposal) => {
-    const input = buildApprovedSceneInput(proposal, productionId, source);
+    const input = buildApprovedSceneInput(proposal, productionId, source, linkContext);
     const result = sceneSchema.safeParse(input);
     if (!result.success) {
       const firstIssue = result.error.issues[0];

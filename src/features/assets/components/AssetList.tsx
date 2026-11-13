@@ -1,5 +1,7 @@
 "use client";
 
+import { useEffect, useState } from "react";
+
 import type { Asset } from "../types/asset";
 import type { GenerationJob } from "../types/generation-job";
 import AssetCard from "./AssetCard";
@@ -14,6 +16,25 @@ interface AssetListProps {
   onApprove: (asset: Asset) => void;
   onQueue: (asset: Asset) => void;
   onCheckStatus: (job: GenerationJob) => void;
+  onRecoverStalled?: (job: GenerationJob) => void;
+}
+
+/**
+ * Current time, refreshed on an interval. Starts as null and is only set from timer callbacks, so
+ * rendering never reads the clock and the stalled-job button appears without a manual re-render.
+ */
+function useNow(intervalMs: number): number | null {
+  const [now, setNow] = useState<number | null>(null);
+  useEffect(() => {
+    const tick = () => setNow(Date.now());
+    const first = setTimeout(tick, 0);
+    const timer = setInterval(tick, intervalMs);
+    return () => {
+      clearTimeout(first);
+      clearInterval(timer);
+    };
+  }, [intervalMs]);
+  return now;
 }
 
 export default function AssetList({
@@ -26,7 +47,9 @@ export default function AssetList({
   onApprove,
   onQueue,
   onCheckStatus,
+  onRecoverStalled,
 }: AssetListProps) {
+  const now = useNow(30_000);
   const latestByAsset = new Map<string, GenerationJob>();
   for (const job of jobs) {
     if (!job.assetId || latestByAsset.has(job.assetId)) continue;
@@ -62,11 +85,13 @@ export default function AssetList({
           asset={asset}
           job={latestByAsset.get(asset.id)}
           queueing={queueing}
+          now={now}
           onEdit={onEdit}
           onDelete={onDelete}
           onApprove={onApprove}
           onQueue={onQueue}
           onCheckStatus={onCheckStatus}
+          onRecoverStalled={onRecoverStalled}
         />
       ))}
     </div>

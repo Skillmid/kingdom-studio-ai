@@ -4,6 +4,11 @@ import { useState } from "react";
 import { useSave } from "@/platform/save";
 import { useStoryBible } from "../hooks/use-story-bible";
 import type { StoryBibleScreenplayProposal } from "../services/story-bible-screenplay-sync.service";
+import {
+  applySelectedProposalFields,
+  effectiveProposalSelection,
+  reviewProposalFields,
+} from "../services/story-bible-proposal-merge";
 import StoryBibleProgress from "./StoryBibleProgress";
 import StoryBibleOverview from "./StoryBibleOverview";
 import StoryBibleCreatorFoundation from "./StoryBibleCreatorFoundation";
@@ -49,6 +54,8 @@ export default function StoryBibleEditor({ productionId }: StoryBibleEditorProps
   const [form, setForm] = useState<StoryBibleForm>(defaultForm);
   const [syncedStoryBible, setSyncedStoryBible] = useState(storyBible);
   const [syncProposal, setSyncProposal] = useState<StoryBibleScreenplayProposal | null>(null);
+  // Explicit per-field choices; empty fields are selected by default, creator values never are.
+  const [syncFieldChoices, setSyncFieldChoices] = useState<Record<string, boolean>>({});
   const [syncSource, setSyncSource] = useState<{
     title: string;
     version: number;
@@ -85,6 +92,7 @@ export default function StoryBibleEditor({ productionId }: StoryBibleEditorProps
     try {
       const result = await syncFromScreenplay();
       setSyncProposal(result.proposal);
+      setSyncFieldChoices({});
       setSyncSource({
         title: result.screenplayTitle,
         version: result.screenplayVersion,
@@ -99,21 +107,14 @@ export default function StoryBibleEditor({ productionId }: StoryBibleEditorProps
       return;
     }
 
-    setForm((current) => {
-      const next = { ...current };
-
-      for (const [key, value] of Object.entries(syncProposal)) {
-        if (value === undefined || value === null) {
-          continue;
-        }
-
-        if (key in next) {
-          (next as Record<string, string | number>)[key] = value as string | number;
-        }
-      }
-
-      return next;
-    });
+    const proposal = syncProposal;
+    setForm((current) =>
+      applySelectedProposalFields(
+        current,
+        proposal,
+        effectiveProposalSelection(reviewProposalFields(current, proposal), syncFieldChoices),
+      ),
+    );
 
     setSyncProposal(null);
     setSyncSource(null);
@@ -122,7 +123,15 @@ export default function StoryBibleEditor({ productionId }: StoryBibleEditorProps
   function discardSyncProposal() {
     setSyncProposal(null);
     setSyncSource(null);
+    setSyncFieldChoices({});
   }
+
+  function toggleSyncField(key: string, checked: boolean) {
+    setSyncFieldChoices((current) => ({ ...current, [key]: checked }));
+  }
+
+  const syncReviews = syncProposal ? reviewProposalFields(form, syncProposal) : [];
+  const selectedSyncFields = effectiveProposalSelection(syncReviews, syncFieldChoices);
 
   if (loading) return <div className="rounded-3xl border border-zinc-800 bg-zinc-900 p-20 text-center">Loading Story Bible...</div>;
 
@@ -147,7 +156,9 @@ export default function StoryBibleEditor({ productionId }: StoryBibleEditorProps
 
       {syncProposal && syncSource && (
         <StoryBibleScreenplaySyncPanel
-          proposal={syncProposal}
+          reviews={syncReviews}
+          selectedFields={selectedSyncFields}
+          onToggleField={toggleSyncField}
           screenplayTitle={syncSource.title}
           screenplayVersion={syncSource.version}
           onApply={applySyncProposal}

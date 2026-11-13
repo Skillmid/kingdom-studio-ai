@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { assetRepository } from "@/features/assets/repositories/asset.repository";
 import { shotRepository } from "@/features/shots/repositories/shot.repository";
 import { storyboardRepository } from "@/features/storyboard/repositories/storyboard.repository";
@@ -9,6 +9,13 @@ import { exportPackageRepository, renderClipRepository, renderRepository } from 
 import { planExportPackage } from "../services/export-planner";
 import { canPrepareExport } from "../services/export-readiness";
 import { planRenderClipsFromProduction, planRenderSequenceFromClips } from "../services/render-planner";
+import type { VideoRenderJob } from "../types/video-render-job";
+import {
+  renderJobApiRequest,
+  getRenderPlaybackUrl,
+  type RenderJobResponse,
+  type RenderJobsResponse,
+} from "../services/render-job-api";
 
 export function useRender(productionId: string) {
   const [sequences, setSequences] = useState<RenderSequence[]>([]);
@@ -16,6 +23,8 @@ export function useRender(productionId: string) {
   const [clipsLoadedForRenderId, setClipsLoadedForRenderId] = useState<string>();
   const [clipsLoadFailedForRenderId, setClipsLoadFailedForRenderId] = useState<string>();
   const [exports, setExports] = useState<ExportPackage[]>([]);
+  const [renderJobs, setRenderJobs] = useState<VideoRenderJob[]>([]);
+  const [jobError, setJobError] = useState<string | null>(null);
   const [selectedRenderId, setSelectedRenderId] = useState("");
   const [clipPreview, setClipPreview] = useState<RenderClipProposal[]>([]);
   const [loading, setLoading] = useState(true);
@@ -23,15 +32,27 @@ export function useRender(productionId: string) {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const refreshRenderJobs = useCallback(async () => {
+    const response = await renderJobApiRequest<RenderJobsResponse>(
+      `/api/render/jobs?productionId=${encodeURIComponent(productionId)}`,
+    );
+    setRenderJobs(response.jobs);
+    return response.jobs;
+  }, [productionId]);
+
   useEffect(() => {
     let cancelled = false;
     Promise.all([
       renderRepository.getByProductionId(productionId),
       exportPackageRepository.getByProductionId(productionId),
-    ]).then(([nextSequences, nextExports]) => {
+      renderJobApiRequest<RenderJobsResponse>(
+        `/api/render/jobs?productionId=${encodeURIComponent(productionId)}`,
+      ),
+    ]).then(([nextSequences, nextExports, nextJobs]) => {
       if (cancelled) return;
       setSequences(nextSequences);
       setExports(nextExports);
+      setRenderJobs(nextJobs.jobs);
       setSelectedRenderId((current) => nextSequences.some((item) => item.id === current) ? current : nextSequences[0]?.id ?? "");
     }).catch((loadError) => {
       if (!cancelled) setError(loadError instanceof Error ? loadError.message : "Unable to load render and export records.");
@@ -40,6 +61,16 @@ export function useRender(productionId: string) {
     });
     return () => { cancelled = true; };
   }, [productionId]);
+
+  useEffect(() => {
+    if (!renderJobs.some((job) => job.status === "queued" || job.status === "running")) return;
+    const interval = setInterval(() => {
+      void refreshRenderJobs().catch((loadError) => {
+        setJobError(loadError instanceof Error ? loadError.message : "Unable to refresh render status.");
+      });
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [productionId, refreshRenderJobs, renderJobs]);
   useEffect(() => {
     let cancelled = false;
     if (!selectedRenderId) return () => { cancelled = true; };
@@ -59,6 +90,12 @@ export function useRender(productionId: string) {
   }, [selectedRenderId]);
   const clipsLoading = Boolean(selectedRenderId && clipsLoadedForRenderId !== selectedRenderId && clipsLoadFailedForRenderId !== selectedRenderId);
   const selectedClips = clipsLoadedForRenderId === selectedRenderId ? clips : [];
+  const canExportSelected = canPrepareExport(
+    sequences.find((item) => item.id === selectedRenderId),
+    clipsLoadedForRenderId,
+    selectedRenderId,
+    clipsLoading,
+  );
 
   async function planSequence(): Promise<RenderSequenceProposal> {
     setPlanning(true);
@@ -149,10 +186,56 @@ export function useRender(productionId: string) {
     }
   }
 
+  async function submitVideoRender(): Promise<VideoRenderJob> {
+    const sequence = sequences.find((item) => item.id === selectedRenderId);
+    if (!sequence || !sequence.userApproved) {
+      throw new Error("Approve a saved render sequence before starting an MP4 render.");
+    }
+    if (!canExportSelected || selectedClips.length === 0) {
+      throw new Error("Wait for the approved sequence and its clips to finish loading.");
+    }
+
+    setJobError(null);
+    const response = await renderJobApiRequest<RenderJobResponse>("/api/render/jobs", {
+      method: "POST",
+      body: JSON.stringify({ productionId, renderId: sequence.id }),
+    });
+    setRenderJobs((current) => [response.job, ...current.filter((job) => job.id !== response.job.id)]);
+    return response.job;
+  }
+
+  async function retryVideoRender(jobId: string): Promise<void> {
+    setJobError(null);
+    const { job } = await renderJobApiRequest<RenderJobResponse>(`/api/render/jobs/${jobId}/retry`, {
+      method: "POST",
+      body: JSON.stringify({}),
+    });
+    setRenderJobs((current) => current.map((item) => item.id === job.id ? job : item));
+  }
+
+  async function cancelVideoRender(jobId: string): Promise<void> {
+    setJobError(null);
+    const { job } = await renderJobApiRequest<RenderJobResponse>(`/api/render/jobs/${jobId}/cancel`, {
+      method: "POST",
+      body: JSON.stringify({ reason: "Cancelled by creator." }),
+    });
+    setRenderJobs((current) => current.map((item) => item.id === job.id ? job : item));
+  }
+
+  async function getVideoPlayback(jobId: string): Promise<string> {
+    const { signedPlaybackUrl } = await renderJobApiRequest<RenderJobResponse>(
+      `/api/render/jobs/${jobId}?signedUrl=true`,
+    );
+    if (!signedPlaybackUrl) throw new Error("The completed render did not provide an authorized playback URL.");
+    return getRenderPlaybackUrl(signedPlaybackUrl);
+  }
+
   return {
     sequences, clips: selectedClips, exports, selectedRenderId, setSelectedRenderId, clipPreview,
-    loading, clipsLoading, canExportSelected: canPrepareExport(sequences.find((item) => item.id === selectedRenderId), clipsLoadedForRenderId, selectedRenderId, clipsLoading),
-    planning, saving, error, planSequence, saveSequence,
+    loading, clipsLoading, canExportSelected,
+    planning, saving, error, jobError, renderJobs, refreshRenderJobs,
+    submitVideoRender, retryVideoRender, cancelVideoRender, getVideoPlayback,
+    planSequence, saveSequence,
     approveSequence, removePreviewClip, planExport, saveExport,
   };
 }

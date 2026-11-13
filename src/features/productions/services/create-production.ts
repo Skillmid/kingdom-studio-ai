@@ -4,14 +4,7 @@ import { productionRepository } from "../repositories/production.repository";
 
 import { createProductionSchema } from "../validation/production.schema";
 
-function slugify(title: string) {
-  return title
-    .trim()
-    .toLowerCase()
-    .replace(/[^\w\s-]/g, "")
-    .replace(/\s+/g, "-")
-    .replace(/-+/g, "-");
-}
+import { createProductionSlug, createWithUniqueSlug } from "./production-slug";
 
 export async function createProduction(title: string) {
   const {
@@ -22,12 +15,13 @@ export async function createProduction(title: string) {
     throw new Error("You must be signed in.");
   }
 
+  // Validate once up front; each attempt only swaps the random slug suffix.
   const dto = createProductionSchema.parse({
     owner_id: user.id,
     created_by: user.id,
     title,
-    slug: slugify(title),
+    slug: createProductionSlug(title),
   });
 
-  return productionRepository.create(dto);
+  return createWithUniqueSlug(title, (slug) => productionRepository.create({ ...dto, slug }));
 }

@@ -24,8 +24,10 @@ async function stubProductionData(page: import("@playwright/test").Page) {
 
 test("location creation captions label their fields", async ({ page }) => {
   await stubProductionData(page);
-  await page.goto(`/studio/productions/${productionId}/locations`, { waitUntil: "domcontentloaded" });
-  await page.getByRole("button", { name: "Add Location" }).click();
+  await page.goto(`/studio/productions/${productionId}/locations`);
+  const addLocationBtn = page.getByRole("button", { name: "Add Location" });
+  await expect(addLocationBtn).toBeVisible();
+  await addLocationBtn.click();
 
   await expect(page.getByRole("dialog", { name: "Add Location" })).toBeVisible();
   await expect(page.getByLabel("Name", { exact: true })).toBeVisible();
@@ -54,8 +56,10 @@ test("location save errors stay visible and announced in the open form", async (
     const body = pathname.endsWith("/productions") ? JSON.stringify(production) : "[]";
     await route.fulfill({ status: 200, contentType: "application/json", body });
   });
-  await page.goto(`/studio/productions/${productionId}/locations`, { waitUntil: "domcontentloaded" });
-  await page.getByRole("button", { name: "Add Location" }).click();
+  await page.goto(`/studio/productions/${productionId}/locations`);
+  const addLocationBtn = page.getByRole("button", { name: "Add Location" });
+  await expect(addLocationBtn).toBeVisible();
+  await addLocationBtn.click();
   await page.getByLabel("Name", { exact: true }).fill("Main House");
   await page.getByRole("button", { name: "Create Location" }).click();
 
@@ -66,8 +70,10 @@ test("location save errors stay visible and announced in the open form", async (
 
 test("scene creation captions label the scene fields", async ({ page }) => {
   await stubProductionData(page);
-  await page.goto(`/studio/productions/${productionId}/scenes`, { waitUntil: "domcontentloaded" });
-  await page.getByRole("button", { name: "Add Scene" }).click();
+  await page.goto(`/studio/productions/${productionId}/scenes`);
+  const addSceneBtn = page.getByRole("button", { name: "Add Scene" });
+  await expect(addSceneBtn).toBeVisible();
+  await addSceneBtn.click();
 
   await expect(page.getByRole("dialog", { name: "Scene 1" })).toBeVisible();
   await expect(page.getByLabel("Scene Heading", { exact: true })).toBeVisible();
@@ -76,8 +82,10 @@ test("scene creation captions label the scene fields", async ({ page }) => {
 
 test("shot creation captions label their fields", async ({ page }) => {
   await stubProductionData(page);
-  await page.goto(`/studio/productions/${productionId}/shot-list`, { waitUntil: "domcontentloaded" });
-  await page.getByRole("button", { name: "Add Shot" }).click();
+  await page.goto(`/studio/productions/${productionId}/shot-list`);
+  const addShotBtn = page.getByRole("button", { name: "Add Shot" });
+  await expect(addShotBtn).toBeVisible();
+  await addShotBtn.click();
 
   await expect(page.getByRole("dialog", { name: "New Shot" })).toBeVisible();
   await expect(page.getByLabel("Shot number", { exact: true })).toBeVisible();
@@ -86,8 +94,10 @@ test("shot creation captions label their fields", async ({ page }) => {
 
 test("storyboard panel captions label their fields", async ({ page }) => {
   await stubProductionData(page);
-  await page.goto(`/studio/productions/${productionId}/storyboard`, { waitUntil: "domcontentloaded" });
-  await page.getByRole("button", { name: "Add Panel" }).click();
+  await page.goto(`/studio/productions/${productionId}/storyboard`);
+  const addPanelBtn = page.getByRole("button", { name: "Add Panel" });
+  await expect(addPanelBtn).toBeVisible();
+  await addPanelBtn.click();
 
   await expect(page.getByRole("dialog", { name: "New Panel" })).toBeVisible();
   await expect(page.getByLabel("Panel number", { exact: true })).toBeVisible();
@@ -96,8 +106,10 @@ test("storyboard panel captions label their fields", async ({ page }) => {
 
 test("character creation captions label their fields", async ({ page }) => {
   await stubProductionData(page);
-  await page.goto(`/studio/productions/${productionId}/characters`, { waitUntil: "domcontentloaded" });
-  await page.getByRole("button", { name: "Add Character" }).click();
+  await page.goto(`/studio/productions/${productionId}/characters`);
+  const addCharacterBtn = page.getByRole("button", { name: "Add Character" });
+  await expect(addCharacterBtn).toBeVisible();
+  await addCharacterBtn.click();
 
   await expect(page.getByRole("dialog", { name: "Add Character" })).toBeVisible();
   await expect(page.getByLabel("Name", { exact: true })).toBeVisible();
@@ -107,7 +119,7 @@ test("character creation captions label their fields", async ({ page }) => {
 
 test("location search has a clear accessible name", async ({ page }) => {
   await stubProductionData(page);
-  await page.goto(`/studio/productions/${productionId}/locations`, { waitUntil: "domcontentloaded" });
+  await page.goto(`/studio/productions/${productionId}/locations`);
 
   await expect(page.getByRole("searchbox", { name: "Search production locations", exact: true })).toBeVisible();
 });
@@ -116,7 +128,7 @@ test("production search and sort controls have accessible names", async ({ page 
   await page.route("**/rest/v1/**", async (route) => {
     await route.fulfill({ status: 200, contentType: "application/json", body: "[]" });
   });
-  await page.goto("/studio/productions", { waitUntil: "domcontentloaded" });
+  await page.goto("/studio/productions");
 
   await expect(page.getByRole("searchbox", { name: "Search productions", exact: true })).toBeVisible();
   await expect(page.getByRole("combobox", { name: "Sort productions", exact: true })).toBeVisible();

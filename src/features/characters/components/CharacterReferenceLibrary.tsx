@@ -5,6 +5,13 @@ import Image from "next/image";
 import Link from "next/link";
 
 import type { Asset } from "@/features/assets/types/asset";
+import {
+  buildCharacterReferencePrompt,
+  type VisualCreativeInput,
+  type VisualStoryBibleInput,
+} from "@/features/assets/services/visual-context";
+import { productionRepository } from "@/features/productions/repositories/production.repository";
+import { storyBibleRepository } from "@/features/story-bible/repositories/story-bible.repository";
 import type { Character } from "../types/character";
 import { characterRepository } from "../repositories/character.repository";
 import {
@@ -38,6 +45,31 @@ export default function CharacterReferenceLibrary({
 
   const [selectedFullSizeAsset, setSelectedFullSizeAsset] = useState<Asset | null>(null);
   const [deletingAssetId, setDeletingAssetId] = useState<string | null>(null);
+  const [visualContext, setVisualContext] = useState<{
+    creative: VisualCreativeInput | null;
+    storyBible: VisualStoryBibleInput | null;
+  }>({ creative: null, storyBible: null });
+
+  // Inherit the production's Creative DNA and Story Bible visual rules instead of a hard-coded look.
+  useEffect(() => {
+    let cancelled = false;
+    if (!productionId) return;
+    Promise.all([
+      productionRepository.getById(productionId).catch(() => null),
+      storyBibleRepository.getByProductionId(productionId).catch(() => null),
+    ]).then(([production, storyBible]) => {
+      if (cancelled) return;
+      setVisualContext({
+        creative: production ? { artStyle: production.art_style, aspectRatio: production.aspect_ratio } : null,
+        storyBible: storyBible
+          ? { visualConsistency: storyBible.visual_consistency, forbiddenElements: storyBible.forbidden_elements }
+          : null,
+      });
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [productionId]);
 
   useEffect(() => {
     if (!productionId || !character.id) {
@@ -185,9 +217,7 @@ export default function CharacterReferenceLibrary({
         character.occupation ? `occupation: ${character.occupation}` : undefined,
       ].filter(Boolean).join("; ");
 
-      const prompt = continuityTraits
-        ? `Cinematic character reference still of ${character.name}. Physical traits: ${continuityTraits}. Photorealistic lighting, clear facial structure and costume silhouette.`
-        : `Cinematic character reference still of ${character.name}. Authentic character portrait and wardrobe continuity.`;
+      const prompt = buildCharacterReferencePrompt(character, visualContext.creative, visualContext.storyBible);
 
       const proposal = buildCharacterReferenceProposal({
         productionId,
@@ -227,11 +257,10 @@ export default function CharacterReferenceLibrary({
         character.occupation ? `occupation: ${character.occupation}` : undefined,
       ].filter(Boolean).join("; ");
 
+      // A creator-edited prompt on the base asset is kept verbatim.
       const prompt =
         baseAsset?.prompt ||
-        (continuityTraits
-          ? `Cinematic character reference still of ${character.name}. Physical traits: ${continuityTraits}. Photorealistic lighting, clear facial structure and costume silhouette.`
-          : `Cinematic character reference still of ${character.name}. Authentic character portrait and wardrobe continuity.`);
+        buildCharacterReferencePrompt(character, visualContext.creative, visualContext.storyBible);
 
       const proposal = buildCharacterReferenceProposal({
         productionId,

@@ -2,7 +2,6 @@ import {
   UNCONFIGURED_MEDIA_ERROR,
   UNCONFIGURED_MEDIA_PROVIDER,
   type MediaGenerationProvider,
-  type MediaGenerationRequest,
   type MediaGenerationResult,
   type MediaJobType,
 } from "../types";
@@ -15,10 +14,11 @@ export class UnconfiguredMediaProvider implements MediaGenerationProvider {
     return false;
   }
 
-  async generate(_request: MediaGenerationRequest): Promise<MediaGenerationResult> {
+  async generate(): Promise<MediaGenerationResult> {
     return {
       status: "failed",
       provider: this.id,
+      failureKind: "configuration",
       errorMessage: UNCONFIGURED_MEDIA_ERROR,
     };
   }

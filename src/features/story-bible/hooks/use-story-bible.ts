@@ -144,7 +144,8 @@ export function useStoryBible(
       }
 
       const proposal = await storyBibleScreenplaySync.propose(
-        screenplay.content
+        screenplay.content,
+        productionId
       );
 
       return {

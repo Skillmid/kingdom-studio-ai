@@ -7,12 +7,14 @@ import { supabase } from "@/lib/supabase/client";
 import { productionRepository } from "../repositories/production.repository";
 import type { Production } from "../types/production";
 
-export function useProduction(id: string) {
-  const [production, setProduction] = useState<Production | null>(null);
-  const [loading, setLoading] = useState(true);
+export function useProduction(id: string, initialProduction?: Production) {
+  const [production, setProduction] = useState<Production | null>(initialProduction ?? null);
+  const [loading, setLoading] = useState(!initialProduction);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    if (initialProduction?.id === id) return;
+
     let cancelled = false;
 
     async function load() {
@@ -47,7 +49,7 @@ export function useProduction(id: string) {
     return () => {
       cancelled = true;
     };
-  }, [id]);
+  }, [id, initialProduction]);
 
   const updateProduction = useCallback(
     async (updates: Partial<Production>): Promise<Production> => {

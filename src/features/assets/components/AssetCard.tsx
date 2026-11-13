@@ -5,7 +5,11 @@ import type { GenerationJob } from "../types/generation-job";
 import {
   canCheckGenerationJobStatus,
   canGenerateAsset,
+  canRetryJob,
+  hasUnknownProviderState,
   isAssetGenerationSupported,
+  isStalledJob,
+  MAX_GENERATION_ATTEMPTS,
 } from "../services/generation-job";
 
 interface AssetCardProps {
@@ -16,7 +20,10 @@ interface AssetCardProps {
   onApprove: (asset: Asset) => void;
   onQueue: (asset: Asset) => void;
   onCheckStatus: (job: GenerationJob) => void;
+  onRecoverStalled?: (job: GenerationJob) => void;
   queueing?: boolean;
+  /** Current time from the parent (ms). Null until mounted, so render never reads the clock. */
+  now?: number | null;
 }
 
 function statusClass(status: AssetStatus) {
@@ -40,12 +47,24 @@ export default function AssetCard({
   onApprove,
   onQueue,
   onCheckStatus,
+  onRecoverStalled,
   queueing = false,
+  now = null,
 }: AssetCardProps) {
   const progress = Math.max(0, Math.min(100, asset.progress));
   const canRetryQueuedJob = job?.status === "queued";
   const canCheckStatus = job ? canCheckGenerationJobStatus(job) : false;
-  const canQueue = canGenerateAsset(asset) && (asset.status !== "generating" || canRetryQueuedJob);
+  const isStalled = job && now !== null ? isStalledJob(job, now) : false;
+  const isFailedJob = job?.status === "failed" || job?.status === "cancelled";
+  // An unknown provider state is not retryable automatically; the button asks the creator to confirm first.
+  const providerStateUnknown = job ? hasUnknownProviderState(job) : false;
+  const retryAllowed = job ? !isFailedJob || canRetryJob(job) || providerStateUnknown : true;
+  const hasCompletedJob = job?.status === "completed";
+  const canQueue =
+    canGenerateAsset(asset) &&
+    !hasCompletedJob &&
+    retryAllowed &&
+    (asset.status !== "generating" || canRetryQueuedJob);
 
   return (
     <article className="group relative overflow-hidden rounded-2xl border border-zinc-800 bg-zinc-900/75 transition duration-200 hover:-translate-y-0.5 hover:border-yellow-500/35">
@@ -90,6 +109,7 @@ export default function AssetCard({
           <p className="text-[11px] uppercase tracking-wide text-zinc-500">
             Last job {job.status}
             {job.provider ? ` · ${job.provider}` : ""}
+            {job.attemptCount > 0 ? ` · attempt ${job.attemptCount}/${MAX_GENERATION_ATTEMPTS}` : ""}
             {job.errorMessage ? ` · ${job.errorMessage}` : ""}
           </p>
         ) : null}
@@ -127,9 +147,17 @@ export default function AssetCard({
           >
             {!isAssetGenerationSupported(asset)
               ? "Image/video generation only"
-              : asset.status === "generating"
-                ? canRetryQueuedJob ? "Retry queued generation" : "Generating..."
-                : asset.userApproved ? "Queue generation" : "Approve asset first"}
+              : hasCompletedJob
+                ? "Generated (takes not supported yet)"
+                : asset.status === "generating"
+                  ? canRetryQueuedJob ? "Dispatch queued generation" : "Generating..."
+                  : !asset.userApproved
+                    ? "Approve asset first"
+                    : isFailedJob
+                      ? providerStateUnknown
+                        ? "Provider status unknown: confirm before retrying"
+                        : retryAllowed ? "Retry generation" : "Attempt limit reached"
+                      : "Queue generation"}
           </button>
           {job && canCheckStatus ? (
             <button
@@ -139,6 +167,17 @@ export default function AssetCard({
               className="rounded-lg border border-yellow-500/40 px-3 py-2 text-xs font-bold text-yellow-300 disabled:opacity-50"
             >
               {queueing ? "Checking..." : "Check provider status"}
+            </button>
+          ) : null}
+          {job && isStalled && onRecoverStalled ? (
+            <button
+              type="button"
+              disabled={queueing}
+              onClick={() => onRecoverStalled(job)}
+              title="The server stopped before saving this result. The provider may still have accepted and billed the request, so it will be recorded as unknown and not retried automatically."
+              className="rounded-lg border border-red-500/30 px-3 py-2 text-xs font-bold text-red-300 disabled:opacity-50"
+            >
+              Mark stalled job failed
             </button>
           ) : null}
           <button

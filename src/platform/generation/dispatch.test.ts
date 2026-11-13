@@ -127,6 +127,8 @@ describe("dispatchGenerationJob", () => {
     assert.equal(result.status, "failed");
     assert.equal(result.parameters.providerJobId, undefined);
     assert.match(result.errorMessage ?? "", /without a task ID/);
+    // v2: "accepted" without a task ID may still be a billed task, so the state is unknown, not retryable.
+    assert.equal(result.parameters.providerStateUnknownReason, "no-task-id");
   });
 });
 

@@ -140,12 +140,6 @@ export function useProductions() {
     await refresh();
   }
 
-  async function archiveAll() {
-    await productionRepository.archiveAll();
-
-    await refresh();
-  }
-
   const filteredProductions =
     useMemo(() => {
       let list = [...productions];
@@ -241,6 +235,5 @@ export function useProductions() {
 
     deleteForever,
 
-    archiveAll,
   };
 }

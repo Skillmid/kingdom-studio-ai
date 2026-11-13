@@ -813,7 +813,8 @@ export class ScriptIntelligenceService {
   }
 
   async extractScenes(
-    screenplay: string
+    screenplay: string,
+    productionId: string
   ): Promise<ExtractedSceneDraft[]> {
     if (!screenplay.trim()) {
       throw new Error(
@@ -827,6 +828,7 @@ export class ScriptIntelligenceService {
       userPrompt: scriptSceneExtractionPrompt.buildUserPrompt(screenplay),
       temperature: 0.2,
       maxTokens: 5000,
+      productionId,
     });
 
     return parseExtractedScenes(response.text);

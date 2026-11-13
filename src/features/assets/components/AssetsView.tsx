@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import type { Asset } from "../types/asset";
 import { canGenerateAsset } from "../services/generation-job";
-import { useAssets } from "../hooks/use-assets";
+import { ProviderStateUnknownError, useAssets } from "../hooks/use-assets";
 import AssetFormDialog from "./AssetFormDialog";
 import AssetList from "./AssetList";
 import DeleteAssetDialog from "./DeleteAssetDialog";
@@ -12,7 +12,7 @@ export function AssetsView({ productionId }: { productionId: string }) {
   const {
     assets, jobs, loading, saving, planning, queueing, error,
     createAsset, updateAsset, deleteAsset, approveAsset, planFromProduction,
-    queueAsset, queueMissing, checkJobStatus,
+    queueAsset, queueMissing, checkJobStatus, recoverStalledJob,
   } = useAssets(productionId);
   const [formOpen, setFormOpen] = useState(false);
   const [editingAsset, setEditingAsset] = useState<Asset | null>(null);
@@ -64,8 +64,26 @@ export function AssetsView({ productionId }: { productionId: string }) {
   async function handleQueue(asset: Asset) {
     setActionError(null);
     try {
-      await queueAsset(asset);
-      setNotice(`Generation job updated for ${asset.title || asset.kind}.`);
+      let result: Awaited<ReturnType<typeof queueAsset>>;
+      try {
+        result = await queueAsset(asset);
+      } catch (queueError) {
+        if (!(queueError instanceof ProviderStateUnknownError)) throw queueError;
+        // The creator decides: a new paid attempt only after they confirm the provider has no task for it.
+        const confirmed = window.confirm(
+          `${queueError.message}\n\nOnly continue if you have checked the provider dashboard and no task was created for this request. Start a new paid attempt?`,
+        );
+        if (!confirmed) {
+          setActionError(queueError.message);
+          return;
+        }
+        result = await queueAsset(asset, { confirmedProviderCheck: true });
+      }
+      setNotice(
+        result.job.status === "failed"
+          ? `Generation for ${asset.title || asset.kind} failed: ${result.job.errorMessage ?? "unknown error"}`
+          : `Generation job ${result.job.status} for ${asset.title || asset.kind}.${result.warning ? ` ${result.warning}` : ""}`,
+      );
     } catch (queueError) {
       setActionError(queueError instanceof Error ? queueError.message : "Unable to queue generation.");
     }
@@ -75,7 +93,10 @@ export function AssetsView({ productionId }: { productionId: string }) {
     setActionError(null);
     try {
       const result = await queueMissing();
-      setNotice(`Dispatched ${result.queuedCount} approved asset job(s); ${result.skippedCount} asset(s) were skipped.`);
+      setNotice(
+        `Dispatched ${result.queuedCount} approved asset job(s); ${result.skippedCount} asset(s) were skipped` +
+          (result.failedCount > 0 ? `; ${result.failedCount} could not be dispatched.` : "."),
+      );
     } catch (queueError) {
       setActionError(queueError instanceof Error ? queueError.message : "Unable to queue approved assets.");
     }
@@ -95,6 +116,15 @@ export function AssetsView({ productionId }: { productionId: string }) {
     }
   }
 
+  async function handleRecoverStalled(job: Parameters<typeof recoverStalledJob>[0]) {
+    setActionError(null);
+    try {
+      await recoverStalledJob(job);
+      setNotice("Stalled job marked failed with an unknown provider status. It will not be retried automatically; check the provider dashboard before starting a new attempt.");
+    } catch (recoverError) {
+      setActionError(recoverError instanceof Error ? recoverError.message : "Unable to mark the job as stalled.");
+    }
+  }
   async function handleApprove(asset: Asset) {
     setActionError(null);
     try {
@@ -135,7 +165,7 @@ export function AssetsView({ productionId }: { productionId: string }) {
 
       {error || actionError ? <p role="alert" className="rounded-xl border border-red-500/20 bg-red-950/30 p-4 text-sm text-red-200">{actionError || error}</p> : null}
       {notice ? <p role="status" className="rounded-xl border border-emerald-500/20 bg-emerald-950/20 p-4 text-sm text-emerald-200">{notice}</p> : null}
-      <AssetList assets={assets} jobs={jobs} loading={loading} queueing={queueing} onEdit={openEditAsset} onDelete={setDeletingAsset} onApprove={handleApprove} onQueue={handleQueue} onCheckStatus={handleCheckStatus} />
+      <AssetList assets={assets} jobs={jobs} loading={loading} queueing={queueing} onEdit={openEditAsset} onDelete={setDeletingAsset} onApprove={handleApprove} onQueue={handleQueue} onCheckStatus={handleCheckStatus} onRecoverStalled={handleRecoverStalled} />
 
       {formOpen ? <AssetFormDialog asset={editingAsset} productionId={productionId} saving={saving} onClose={() => setFormOpen(false)} onSave={saveAsset} /> : null}
       <DeleteAssetDialog asset={deletingAsset} open={Boolean(deletingAsset)} loading={saving} onClose={() => setDeletingAsset(null)} onDelete={handleDelete} />

@@ -16,6 +16,19 @@ This roadmap defines the planned evolution of Kingdom Studio AI from its initial
 
 It serves as the primary development guide for engineering, design, and product planning.
 
+## Verified status update — 2026-10-09
+
+The milestone list below is the original planning sequence and does not describe the current repository state. Use this current-state summary alongside `BUILD_STATUS.md`:
+
+- **Production workflow:** Productions, screenplay and revision workflows, story entities, scene/shot/storyboard planning, AI Director notes, and asset/generation-job modules exist in code. Connected browser workflows are not all verified end to end.
+- **Authentication:** Studio routes now verify Supabase JWT claims server-side. Production workspaces load through the session-scoped client, verify ownership, and rely on RLS. Signed-out navigation was observed returning to `/login`; isolated owner and foreign-owner browser checks remain outstanding.
+- **Database migrations:** Story Bible creation/reconciliation and production root schema reconciliation migrations have been prepared with current DTO/production fields, relationships, uniqueness, timestamps, and owner policies. They have not been applied or executed against Postgres; hosted schema compatibility is unverified.
+- **Global Assets:** The global route now links active productions to their production-scoped asset workspace. Upload/storage persistence and all media categories are not established by this navigation change.
+- **Generation and export:** Persisted generation-job safety is implemented and unit tested; provider calls were not made. Render/export currently produces readiness and manifest planning, not a verified encoded video or downloadable hosted output.
+- **Release state:** **PARTIAL / NOT READY.** Migration-engine validation, isolated cross-user verification, full production-workspace persistence browser flows, and end-to-end suite completion remain required.
+
+The verified command results for a milestone belong in `BUILD_STATUS.md`; do not infer them from the milestones below.
+
 ---
 
 # Development Philosophy

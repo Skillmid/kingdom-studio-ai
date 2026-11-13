@@ -7,23 +7,36 @@ function throwSupabaseError(error: {
   code?: string;
   message: string;
   details?: string | null;
-  hint?: string |null;
+  hint?: string | null;
 }): never {
-  throw new Error(
-    [
-      error.code,
-      error.message,
-      error.details,
-      error.hint,
-    ]
-      .filter(Boolean)
-      .join(" | ")
+  // The message format is unchanged; code and details are also kept on the Error so callers can
+  // recognise specific database errors (for example a slug unique violation) without parsing text.
+  throw Object.assign(
+    new Error(
+      [
+        error.code,
+        error.message,
+        error.details,
+        error.hint,
+      ]
+        .filter(Boolean)
+        .join(" | ")
+    ),
+    { code: error.code, details: error.details ?? undefined },
   );
 }
 
+type SupabaseLike = Pick<typeof supabase, "from">;
+
 export class ProductionRepository {
+  private readonly supabase: SupabaseLike;
+
+  constructor(client: SupabaseLike = supabase) {
+    this.supabase = client;
+  }
+
   async create(dto: CreateProductionDTO) {
-    const { data, error } = await supabase
+    const { data, error } = await this.supabase
       .from("productions")
       .insert(dto)
       .select()
@@ -37,7 +50,7 @@ export class ProductionRepository {
   }
 
   async getAll() {
-    const { data, error } = await supabase
+    const { data, error } = await this.supabase
       .from("productions")
       .select("*")
       .is("deleted_at", null)
@@ -53,7 +66,7 @@ export class ProductionRepository {
   }
 
   async getArchived() {
-    const { data, error } = await supabase
+    const { data, error } = await this.supabase
       .from("productions")
       .select("*")
       .not("deleted_at", "is", null)
@@ -69,7 +82,7 @@ export class ProductionRepository {
   }
 
   async getAllIncludingArchived() {
-    const { data, error } = await supabase
+    const { data, error } = await this.supabase
       .from("productions")
       .select("*")
       .order("updated_at", {
@@ -84,7 +97,7 @@ export class ProductionRepository {
   }
 
   async getById(id: string) {
-    const { data, error } = await supabase
+    const { data, error } = await this.supabase
       .from("productions")
       .select("*")
       .eq("id", id)
@@ -101,9 +114,15 @@ export class ProductionRepository {
     id: string,
     updates: Partial<Production>
   ) {
-    const { data, error } = await supabase
+    // Strip immutable primary identity and ownership fields to prevent accidental or malicious reassignment
+    const safeUpdates: Partial<Production> = { ...updates };
+    delete safeUpdates.id;
+    delete safeUpdates.owner_id;
+    delete safeUpdates.created_by;
+
+    const { data, error } = await this.supabase
       .from("productions")
-      .update(updates)
+      .update(safeUpdates)
       .eq("id", id)
       .select()
       .single();
@@ -172,7 +191,7 @@ export class ProductionRepository {
     };
 
     const { data, error } =
-      await supabase
+      await this.supabase
         .from("productions")
         .insert(duplicate)
         .select()
@@ -187,7 +206,7 @@ export class ProductionRepository {
 
   async archive(id: string) {
     const { error } =
-      await supabase
+      await this.supabase
         .from("productions")
         .update({
           deleted_at:
@@ -202,7 +221,7 @@ export class ProductionRepository {
 
   async restore(id: string) {
     const { error } =
-      await supabase
+      await this.supabase
         .from("productions")
         .update({
           deleted_at: null,
@@ -214,24 +233,9 @@ export class ProductionRepository {
     }
   }
 
-  async archiveAll() {
-    const { error } =
-      await supabase
-        .from("productions")
-        .update({
-          deleted_at:
-            new Date().toISOString(),
-        })
-        .is("deleted_at", null);
-
-    if (error) {
-      throwSupabaseError(error);
-    }
-  }
-
   async deleteForever(id: string) {
     const { error } =
-      await supabase
+      await this.supabase
         .from("productions")
         .delete()
         .eq("id", id);

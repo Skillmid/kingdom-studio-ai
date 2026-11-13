@@ -19,7 +19,8 @@ export interface AIRequest {
   maxTokens?: number;
 
   model?: string;
-  productionId?: string;
+  /** Required: the server verifies the caller owns this production before any provider call. */
+  productionId: string;
 }
 
 export interface AIResponse {

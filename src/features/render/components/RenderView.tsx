@@ -16,13 +16,16 @@ export function RenderView({ productionId, mode = "render" }: { productionId: st
   const {
     sequences, clips, exports, selectedRenderId, setSelectedRenderId, clipPreview,
     loading, clipsLoading, canExportSelected, planning, saving, error, planSequence, saveSequence, approveSequence, removePreviewClip,
-    planExport, saveExport,
+    planExport, saveExport, renderJobs, jobError, submitVideoRender, retryVideoRender,
+    cancelVideoRender, getVideoPlayback,
   } = useRender(productionId);
   const [sequenceTitle, setSequenceTitle] = useState("Assembly sequence");
   const [format, setFormat] = useState<ExportFormat>("delivery-manifest");
   const [exportPreview, setExportPreview] = useState<ExportPackageProposal | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
+  const [jobActionId, setJobActionId] = useState<string | null>(null);
+  const [playbackUrl, setPlaybackUrl] = useState<string | null>(null);
   const activeSequence = sequences.find((sequence) => sequence.id === selectedRenderId);
   const previewSummary = planRenderSequenceFromClips(productionId, clipPreview, sequenceTitle);
 
@@ -82,6 +85,59 @@ export function RenderView({ productionId, mode = "render" }: { productionId: st
     }
   }
 
+  async function handleSubmitRender() {
+    setActionError(null);
+    setNotice(null);
+    try {
+      const job = await submitVideoRender();
+      setNotice(`Render job queued for ${job.clips.length} clip(s).`);
+    } catch (renderError) {
+      setActionError(renderError instanceof Error ? renderError.message : "Unable to submit the MP4 render.");
+    }
+  }
+
+  async function handleRetryRender(jobId: string) {
+    setActionError(null);
+    setJobActionId(jobId);
+    try {
+      await retryVideoRender(jobId);
+      setNotice("Render retry queued.");
+    } catch (renderError) {
+      setActionError(renderError instanceof Error ? renderError.message : "Unable to retry the render.");
+    } finally {
+      setJobActionId(null);
+    }
+  }
+
+  async function handleCancelRender(jobId: string) {
+    setActionError(null);
+    setJobActionId(jobId);
+    try {
+      await cancelVideoRender(jobId);
+      setNotice("Render cancellation requested.");
+    } catch (renderError) {
+      setActionError(renderError instanceof Error ? renderError.message : "Unable to cancel the render.");
+    } finally {
+      setJobActionId(null);
+    }
+  }
+
+  async function handlePlayRender(jobId: string) {
+    setActionError(null);
+    setJobActionId(jobId);
+    try {
+      const nextUrl = await getVideoPlayback(jobId);
+      setPlaybackUrl((current) => {
+        if (current) URL.revokeObjectURL(current);
+        return nextUrl;
+      });
+    } catch (playbackError) {
+      setActionError(playbackError instanceof Error ? playbackError.message : "Unable to play the completed render.");
+    } finally {
+      setJobActionId(null);
+    }
+  }
+
   return (
     <main className="space-y-7 p-6 lg:p-8">
       <header className="border-b border-zinc-800 pb-6">
@@ -94,7 +150,7 @@ export function RenderView({ productionId, mode = "render" }: { productionId: st
         </p>
       </header>
 
-      {error || actionError ? <p role="alert" className="rounded-xl border border-red-500/20 bg-red-950/30 p-4 text-sm text-red-200">{actionError || error}</p> : null}
+      {error || actionError || jobError ? <p role="alert" className="rounded-xl border border-red-500/20 bg-red-950/30 p-4 text-sm text-red-200">{actionError || jobError || error}</p> : null}
       {notice ? <p role="status" className="rounded-xl border border-emerald-500/20 bg-emerald-950/20 p-4 text-sm text-emerald-200">{notice}</p> : null}
 
       {mode === "render" ? (
@@ -144,6 +200,55 @@ export function RenderView({ productionId, mode = "render" }: { productionId: st
             {activeSequence ? <div className="mt-4 grid gap-3 sm:grid-cols-4"><Summary label="Status" value={activeSequence.status} /><Summary label="Clips" value={activeSequence.itemCount} /><Summary label="Media ready" value={activeSequence.readyItemCount} /><Summary label="Missing media" value={activeSequence.missingMediaCount} /></div> : null}
             <div className="mt-4 space-y-2">{clips.map((clip) => <article key={clip.id} className="rounded-xl border border-zinc-800 bg-zinc-950 p-4"><p className="text-xs font-bold uppercase tracking-widest text-zinc-500">{String(clip.sequenceNumber).padStart(3, "0")} | {clip.sourceKind}</p><p className="mt-1 font-semibold text-white">{clip.title || "Untitled clip"}</p><p className="mt-1 text-sm text-zinc-400">{clip.description || clip.uncertaintyNotes || "No description."}</p></article>)}</div>
             {loading ? <p className="mt-4 text-sm text-zinc-500">Loading saved render sequences...</p> : null}
+          </section>
+          <section aria-labelledby="video-render-jobs-heading" className="space-y-4 rounded-2xl border border-zinc-800 bg-zinc-900/60 p-5">
+            <div className="flex flex-wrap items-center justify-between gap-4">
+              <div>
+                <h2 id="video-render-jobs-heading" className="text-lg font-bold text-white">MP4 render jobs</h2>
+                <p className="mt-1 text-sm text-zinc-400">Encode the selected approved sequence into a validated MP4.</p>
+              </div>
+              <button
+                type="button"
+                disabled={loading || clipsLoading || !canExportSelected || !activeSequence?.userApproved || saving}
+                onClick={handleSubmitRender}
+                className="rounded-xl bg-yellow-500 px-5 py-3 text-sm font-black text-black disabled:opacity-50"
+              >
+                Submit MP4 render
+              </button>
+            </div>
+            {!activeSequence?.userApproved ? <p className="text-sm text-amber-200">Approve the selected sequence before rendering.</p> : null}
+            {renderJobs.map((job) => (
+              <article key={job.id} aria-label={`Render job ${job.id}`} className="space-y-3 rounded-xl border border-zinc-800 bg-zinc-950 p-4">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div>
+                    <p className="font-semibold capitalize text-white">{job.status}</p>
+                    <p className="mt-1 text-xs text-zinc-500">{job.clips.length} clip(s) · attempt {job.attempts} of {job.maxAttempts}</p>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {(job.status === "queued" || job.status === "running") ? (
+                      <button type="button" disabled={jobActionId === job.id} onClick={() => handleCancelRender(job.id)} className="rounded-lg border border-zinc-700 px-3 py-2 text-xs font-bold text-zinc-200 disabled:opacity-50">Cancel</button>
+                    ) : null}
+                    {job.status === "failed" && job.retryable && job.attempts < job.maxAttempts ? (
+                      <button type="button" disabled={jobActionId === job.id} onClick={() => handleRetryRender(job.id)} className="rounded-lg border border-amber-500/40 px-3 py-2 text-xs font-bold text-amber-200 disabled:opacity-50">Retry</button>
+                    ) : null}
+                    {job.status === "completed" ? (
+                      <button type="button" disabled={jobActionId === job.id} onClick={() => handlePlayRender(job.id)} className="rounded-lg border border-emerald-500/40 px-3 py-2 text-xs font-bold text-emerald-200 disabled:opacity-50">{jobActionId === job.id ? "Loading video..." : "Play render"}</button>
+                    ) : null}
+                  </div>
+                </div>
+                <div>
+                  <div className="mb-1 flex justify-between text-xs text-zinc-400"><span>{job.status === "running" ? "Encoding" : job.status}</span><span>{job.progress}%</span></div>
+                  <div role="progressbar" aria-label="Render progress" aria-valuemin={0} aria-valuemax={100} aria-valuenow={job.progress} className="h-2 overflow-hidden rounded-full bg-zinc-800">
+                    <div className="h-full rounded-full bg-yellow-500 transition-[width] duration-300" style={{ width: `${job.progress}%` }} />
+                  </div>
+                </div>
+                {job.error ? <p role={job.status === "failed" ? "alert" : "status"} className="text-sm text-red-300">{job.failureCode ? `${job.failureCode}: ` : ""}{job.error}</p> : null}
+                {job.warnings.length > 0 ? <ul className="list-inside list-disc text-xs text-amber-200">{job.warnings.map((warning, index) => <li key={`${job.id}-warning-${index}`}>{warning}</li>)}</ul> : null}
+                {job.status === "completed" ? <p className="text-xs text-zinc-400">{job.fileSizeBytes ? `${(job.fileSizeBytes / 1024 / 1024).toFixed(2)} MB` : "MP4 ready"}{job.durationSeconds ? ` · ${job.durationSeconds}s` : ""}</p> : null}
+              </article>
+            ))}
+            {renderJobs.length === 0 && !loading ? <p className="rounded-xl border border-dashed border-zinc-700 p-5 text-sm text-zinc-500">No MP4 render jobs yet.</p> : null}
+            {playbackUrl ? <video key={playbackUrl} controls playsInline className="w-full rounded-xl border border-zinc-800 bg-black" src={playbackUrl}>Your browser does not support MP4 playback.</video> : null}
           </section>
         </>
       ) : (

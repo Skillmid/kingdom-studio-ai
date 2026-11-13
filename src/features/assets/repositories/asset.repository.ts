@@ -1,37 +1,11 @@
 import { supabase } from "@/lib/supabase/client";
-import type { Asset, AssetKind, AssetProvenance, AssetSourceKind, AssetStatus } from "../types/asset";
-import { toAssetDatabase } from "./asset.mapper";
+import type { Asset } from "../types/asset";
+import { fromAssetRow, toAssetDatabase, type AssetRow } from "./asset.mapper";
 import { filterLocationReferenceAssets } from "./location-reference-assets";
 import { filterCharacterReferenceAssets } from "@/features/characters/repositories/character-reference-assets";
 
 const TABLE_NAME = "assets";
 
-type AssetRow = {
-  id: string;
-  production_id: string;
-  scene_id: string | null;
-  shot_id: string | null;
-  panel_id: string | null;
-  character_id: string | null;
-  location_id: string | null;
-  director_note_id: string | null;
-  kind: AssetKind;
-  title: string | null;
-  description: string | null;
-  prompt: string | null;
-  file_url: string | null;
-  mime_type: string | null;
-  source_kind: AssetSourceKind;
-  source_id: string | null;
-  uncertainty_notes: string | null;
-  source_evidence: string | null;
-  provenance: AssetProvenance;
-  user_approved: boolean | null;
-  status: AssetStatus;
-  progress: number | null;
-  created_at: string;
-  updated_at: string;
-};
 
 export class AssetRepository {
   private readonly supabase = supabase;
@@ -91,32 +65,7 @@ export class AssetRepository {
     if (error) throw new Error(error.message);
   }
   private mapAsset(data: AssetRow): Asset {
-    return {
-      id: data.id,
-      productionId: data.production_id,
-      sceneId: data.scene_id ?? undefined,
-      shotId: data.shot_id ?? undefined,
-      panelId: data.panel_id ?? undefined,
-      characterId: data.character_id ?? undefined,
-      locationId: data.location_id ?? undefined,
-      directorNoteId: data.director_note_id ?? undefined,
-      kind: data.kind,
-      title: data.title ?? undefined,
-      description: data.description ?? undefined,
-      prompt: data.prompt ?? undefined,
-      fileUrl: data.file_url ?? undefined,
-      mimeType: data.mime_type ?? undefined,
-      sourceKind: data.source_kind,
-      sourceId: data.source_id ?? undefined,
-      uncertaintyNotes: data.uncertainty_notes ?? undefined,
-      sourceEvidence: data.source_evidence ?? undefined,
-      provenance: data.provenance,
-      userApproved: Boolean(data.user_approved),
-      status: data.status,
-      progress: data.progress ?? 0,
-      createdAt: data.created_at,
-      updatedAt: data.updated_at,
-    };
+    return fromAssetRow(data);
   }
 }
 

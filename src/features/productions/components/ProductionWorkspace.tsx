@@ -2,25 +2,30 @@
 
 import type { ReactNode } from "react";
 
+import { ProductionProvider } from "../context/ProductionContext";
 import { useProduction } from "../hooks/use-production";
+import type { Production } from "../types/production";
 
 import ProductionLayout from "./ProductionLayout";
 import ProductionHeader from "./ProductionHeader";
 
 interface ProductionWorkspaceProps {
   id: string;
+  initialProduction: Production;
   children: ReactNode;
 }
 
 export default function ProductionWorkspace({
   id,
+  initialProduction,
   children,
 }: ProductionWorkspaceProps) {
   const {
     production,
     loading,
     error,
-  } = useProduction(id);
+    updateProduction,
+  } = useProduction(id, initialProduction);
 
   if (loading) {
     return (
@@ -70,7 +75,15 @@ export default function ProductionWorkspace({
       />
 
       <div className="flex-1">
-        {children}
+        {/* Share the production already loaded here so pages under this layout do not
+            fetch the same row again in a second, sequential request. */}
+        <ProductionProvider
+          production={production}
+          loading={loading}
+          updateProduction={updateProduction}
+        >
+          {children}
+        </ProductionProvider>
       </div>
     </ProductionLayout>
   );

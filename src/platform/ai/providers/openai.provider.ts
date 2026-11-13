@@ -7,74 +7,21 @@ import type {
   AIResponse,
 } from "../types/ai-provider";
 
-interface AIAPIResponse {
-  text?: string;
-
-  provider?: string;
-
-  tokens?: number;
-
-  error?: string;
-}
-
+/**
+ * Not implemented. /api/ai/generate only proxies OpenRouter; this adapter previously posted an
+ * unauthenticated request with provider "openai" that the route always rejected. It now fails
+ * fast with a clear message instead. No caller in the app selects provider "openai".
+ */
 export class OpenAIProvider
   implements AIProviderAdapter
 {
   async generate(
     request: AIRequest
   ): Promise<AIResponse> {
-    const response = await fetch(
-      "/api/ai/generate",
-      {
-        method: "POST",
-
-        headers: {
-          "Content-Type":
-            "application/json",
-        },
-
-        body: JSON.stringify({
-          provider:
-            request.provider,
-
-          systemPrompt:
-            request.systemPrompt,
-
-          userPrompt:
-            request.userPrompt,
-
-          temperature:
-            request.temperature,
-
-          maxTokens:
-            request.maxTokens,
-        }),
-      }
+    void request;
+    throw new Error(
+      'AI provider "openai" is not implemented for text generation. Use provider "openrouter".'
     );
-
-    const data =
-      (await response.json()) as AIAPIResponse;
-
-    if (!response.ok) {
-      throw new Error(
-        data.error ||
-          "AI request failed."
-      );
-    }
-
-    if (!data.text) {
-      throw new Error(
-        "AI provider returned an empty response."
-      );
-    }
-
-    return {
-      provider: "openai",
-
-      text: data.text,
-
-      tokens: data.tokens,
-    };
   }
 }
 

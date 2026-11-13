@@ -1,10 +1,6 @@
 import {
-  findDocumentTitle,
-  hasDialogueEvidence,
-  isNameShapedCharacterCue,
-  nextDialogueLine,
-  sanitizeCharacterCue,
-  titlesMatch,
+  detectCharacterCues,
+  formatCharacterName,
 } from "../screenplay-elements";
 
 export interface ExtractedCharacter {
@@ -14,18 +10,6 @@ export interface ExtractedCharacter {
   dialogueCount: number;
 }
 
-function isValidCharacterCue(
-  line: string,
-  followingLine: string | undefined,
-  documentTitle: string | null,
-): boolean {
-  const trimmed = line.trim();
-  if (!isNameShapedCharacterCue(trimmed)) return false;
-  const cue = sanitizeCharacterCue(trimmed);
-  if (documentTitle && titlesMatch(cue, documentTitle)) return false;
-  return hasDialogueEvidence(followingLine);
-}
-
 export class CharacterExtractor {
   async extract(screenplay: string): Promise<ExtractedCharacter[]> {
     if (!screenplay || !screenplay.trim()) {
@@ -33,28 +17,21 @@ export class CharacterExtractor {
     }
 
     const lines = screenplay.split(/\r?\n/);
-    const documentTitle = findDocumentTitle(lines);
+    // Shared structural cue detection (title, slug lines, dialogue evidence, corroboration).
+    const cues = detectCharacterCues(lines);
+    const cueIndexes = new Set(cues.map((cue) => cue.index));
     const characterCounts = new Map<string, number>();
     const characterDescriptions = new Map<string, string>();
 
-    for (let i = 0; i < lines.length; i++) {
-      const line = lines[i];
-      const followingLine = nextDialogueLine(lines, i);
-
-      if (!isValidCharacterCue(line, followingLine, documentTitle)) {
-        continue;
-      }
-
-      const charName = sanitizeCharacterCue(line).toUpperCase();
-      if (!charName) continue;
-
+    for (const cue of cues) {
+      const charName = cue.name;
       characterCounts.set(charName, (characterCounts.get(charName) ?? 0) + 1);
 
-      if (i > 0 && !characterDescriptions.has(charName)) {
-        const prevLine = lines[i - 1].trim();
+      if (cue.index > 0 && !characterDescriptions.has(charName)) {
+        const prevLine = lines[cue.index - 1].trim();
         if (
           prevLine &&
-          !isValidCharacterCue(lines[i - 1], line, documentTitle) &&
+          !cueIndexes.has(cue.index - 1) &&
           !prevLine.startsWith("(") &&
           prevLine.length > 20
         ) {
@@ -83,10 +60,8 @@ export class CharacterExtractor {
         role = "extra";
       }
 
-      const formattedName = name.toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase());
-
       return {
-        name: formattedName,
+        name: formatCharacterName(name),
         role,
         dialogueCount: count,
         description:

@@ -114,6 +114,7 @@ export default function StoryBibleProductionDetails({
             (inherits production visual format)
           </span>
           <input
+            aria-label="Visual Style"
             value={visualStyle}
             onChange={(e) => onVisualStyleChange(e.target.value)}
             placeholder="e.g. Earthy natural lighting, warm desert palette"
@@ -126,6 +127,7 @@ export default function StoryBibleProductionDetails({
             (defaults to production standard)
           </span>
           <input
+            aria-label="Aspect Ratio"
             value={aspectRatio}
             onChange={(e) => onAspectRatioChange(e.target.value)}
             placeholder="16:9"

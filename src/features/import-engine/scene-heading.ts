@@ -5,14 +5,14 @@ export type SceneHeadingParts = {
   heading: string;
 };
 
-const TIME_OF_DAY_PATTERN =
+export const TIME_OF_DAY_PATTERN =
   /(?:^|\s)(DAY|NIGHT|MORNING|AFTERNOON|EVENING|DAWN|DUSK|SUNSET|SUNRISE|CONTINUOUS|SAME(?:\s+TIME)?|(?:\d+\s+)?WEEKS?\s+LATER|(?:\d+\s+)?DAYS?\s+LATER|LATER)(?:\s*)$/i;
 
 const SCENE_PREFIX_PATTERN =
-  /^(INT\s*\/\s*EXT|EXT\s*\/\s*INT|I\s*\/\s*E|INT\.?|EXT\.?|INTERIOR|EXTERIOR)\s*(?:[-–—:]\s*)?(.+)$/i;
+  /^(INT\.?\s*\/\s*EXT\.?|EXT\.?\s*\/\s*INT\.?|I\s*\/\s*E|INT\.?|EXT\.?|INTERIOR|EXTERIOR)\s*(?:[-–—:]\s*)?(.+)$/i;
 
 const SCENE_START_PATTERN =
-  /(?:^|\s)(?=(?:SCENE\s*#?\s*\d+\s*[:.)-]\s*|\d+\s*[.)-]\s*)?(?:INT\s*\/\s*EXT|EXT\s*\/\s*INT|I\s*\/\s*E|INT\.?|EXT\.?|INTERIOR|EXTERIOR)\b)/gi;
+  /(?:^|\s)(?=(?:[*_#`\s]*)?(?:SCENE\s*#?\s*\d+\s*[:.)-]\s*|\d+\s*[.)-]\s*)?(?:INT\.?\s*\/\s*EXT\.?|EXT\.?\s*\/\s*INT\.?|I\s*\/\s*E|INT\.?|EXT\.?|INTERIOR|EXTERIOR)\b)/gi;
 
 function decodeBasicHtmlEntities(value: string): string {
   return value
@@ -49,15 +49,16 @@ function cleanHeadingLine(value: string): string {
   for (let i = 0; i < 3; i += 1) {
     line = line
       .replace(/^\s*(?:#{1,6}|>|[-*•])\s*/g, "")
-      .replace(/^\s*\*\*([\s\S]+)\*\*\s*$/, "$1")
-      .replace(/^\s*__([\s\S]+)__\s*$/, "$1")
-      .replace(/^\s*`([\s\S]+)`\s*$/, "$1")
+      .replace(/^\s*\*\*([\s\S]+?)\*\*\s*$/, "$1")
+      .replace(/^\s*__([\s\S]+?)__\s*$/, "$1")
+      .replace(/^\s*`([\s\S]+?)`\s*$/, "$1")
+      .replace(/^[*_`]+|[*_`]+$/g, "")
       .trim();
   }
 
   return line
     .replace(/^SCENE\s*#?\s*\d+\s*[:.)-]\s*/i, "")
-    .replace(/^\d+\s*[.)-]\s*(?=(?:INT\.?|EXT\.?|INTERIOR|EXTERIOR|INT\s*\/\s*EXT|EXT\s*\/\s*INT|I\s*\/\s*E))/i, "")
+    .replace(/^\d+\s*[.)-]\s*(?=(?:INT\.?|EXT\.?|INTERIOR|EXTERIOR|INT\.?\s*\/\s*EXT\.?|EXT\.?\s*\/\s*INT\.?|I\s*\/\s*E))/i, "")
     .trim();
 }
 
@@ -70,7 +71,7 @@ export function parseSceneHeading(value: string): SceneHeadingParts | null {
   const match = cleaned.match(SCENE_PREFIX_PATTERN);
   if (!match?.[1] || !match[2]) return null;
 
-  const prefixRaw = match[1].toUpperCase().replace(/\s/g, "");
+  const prefixRaw = match[1].toUpperCase().replace(/[\s.]/g, "");
   const prefix: SceneHeadingParts["prefix"] =
     prefixRaw.startsWith("INT/EXT") || prefixRaw.startsWith("EXT/INT") || prefixRaw === "I/E"
       ? "BOTH"
