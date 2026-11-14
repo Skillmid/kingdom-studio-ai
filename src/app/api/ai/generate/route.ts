@@ -21,7 +21,7 @@ export const maxDuration = 120;
 
 interface OpenAIResponse {
   model?: string;
-  choices?: Array<{ message?: { content?: string | null } }>;
+  choices?: Array<{ message?: { content?: string | null; refusal?: string | null }; finish_reason?: string | null }>;
   usage?: { total_tokens?: number };
   error?: { message?: string };
 }
@@ -33,6 +33,7 @@ async function generateOpenAI(input: {
   maxTokens?: number;
   model?: string;
   responseFormat?: "json";
+  outputSchema?: "character_profile";
 }) {
   const modelResult = resolveAllowedOpenAIModel(input.model, {
     OPENAI_MODEL: process.env.OPENAI_MODEL,
@@ -56,7 +57,9 @@ async function generateOpenAI(input: {
         ],
         temperature: input.temperature ?? 0.3,
         max_completion_tokens: input.maxTokens ?? DEFAULT_COMPLETION_TOKENS,
-        ...(input.responseFormat === "json" ? { response_format: { type: "json_object" } } : {}),
+        ...(input.outputSchema === "character_profile"
+          ? { response_format: { type: "json_schema", json_schema: characterProfileJsonSchema() } }
+          : input.responseFormat === "json" ? { response_format: { type: "json_object" } } : {}),
       }),
       signal: AbortSignal.timeout(AI_PROVIDER_TIMEOUT_MS),
     });
@@ -73,7 +76,12 @@ async function generateOpenAI(input: {
     return NextResponse.json({ error: message }, { status: upstreamErrorStatus(response.status) });
   }
   const text = data.choices?.[0]?.message?.content?.trim();
-  if (!text) return NextResponse.json({ error: "OpenAI returned an empty response." }, { status: 502 });
+  if (!text) {
+    const refusal = data.choices?.[0]?.message?.refusal;
+    const reason = data.choices?.[0]?.finish_reason;
+    const message = refusal ? "OpenAI declined this request: " + refusal : "OpenAI returned no text" + (reason ? " (finish reason: " + reason + ")." : ".");
+    return NextResponse.json({ error: message }, { status: 502 });
+  }
   return NextResponse.json({ text, provider: "openai", model: data.model || modelResult.model, tokens: data.usage?.total_tokens });
 }
 
@@ -107,6 +115,27 @@ function characterProfileJsonSchema() {
     },
   };
 }
+
+function characterProfileGeminiSchema() {
+  const properties: Record<string, unknown> = Object.fromEntries(
+    CHARACTER_PROFILE_SCHEMA_FIELDS.map((key) => [key, { type: "STRING", nullable: true }]),
+  );
+  const evidence: Record<string, unknown> = Object.fromEntries(
+    CHARACTER_PROFILE_SCHEMA_FIELDS.map((key) => [key, { type: "STRING", nullable: true }]),
+  );
+  properties.role = { type: "STRING", nullable: true, enum: ["lead", "supporting", "minor", "extra"] };
+  evidence.role = { type: "STRING", nullable: true };
+  const required = [...CHARACTER_PROFILE_SCHEMA_FIELDS, "role"];
+  return {
+    type: "OBJECT",
+    properties: {
+      fields: { type: "OBJECT", properties, required },
+      fieldEvidence: { type: "OBJECT", properties: evidence, required },
+    },
+    required: ["fields", "fieldEvidence"],
+  };
+}
+
 
 interface GeminiResponse {
   modelVersion?: string;
@@ -227,6 +256,7 @@ async function generateGemini(input: {
   maxTokens?: number;
   model?: string;
   responseFormat?: "json";
+  outputSchema?: "character_profile";
 }) {
   const modelResult = resolveAllowedGeminiModel(input.model, {
     GEMINI_MODEL: process.env.GEMINI_MODEL,
@@ -256,7 +286,9 @@ async function generateGemini(input: {
           generationConfig: {
             temperature: input.temperature ?? 0.3,
             maxOutputTokens: input.maxTokens ?? DEFAULT_COMPLETION_TOKENS,
-            ...(input.responseFormat === "json" ? { responseMimeType: "application/json" } : {}),
+            ...(input.outputSchema === "character_profile"
+              ? { responseMimeType: "application/json", responseSchema: characterProfileGeminiSchema() }
+              : input.responseFormat === "json" ? { responseMimeType: "application/json" } : {}),
           },
         }),
         signal: AbortSignal.timeout(AI_PROVIDER_TIMEOUT_MS),
