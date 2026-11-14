@@ -25,6 +25,7 @@ export const aiGenerateRequestSchema = z.object({
   temperature: z.number().min(0).max(2).optional(),
   maxTokens: z.number().int().min(1).max(MAX_COMPLETION_TOKENS).optional(),
   model: z.string().trim().min(1).max(200).optional(),
+  responseFormat: z.enum(["json"]).optional(),
 });
 
 export type AIGenerateRequest = z.infer<typeof aiGenerateRequestSchema>;
