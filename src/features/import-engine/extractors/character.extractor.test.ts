@@ -87,6 +87,14 @@ They will not wait.
     );
   });
 
+
+  it("tolerates blank lines between character cues and dialogue", async () => {
+    const extracted = await characterExtractor.extract(
+      "INT. ROOM - DAY\\n\\nMRS. OKAFOR\\n\\nPlease come in.\\n\\nTUNDE\\n\\nThank you.",
+    );
+    assert.deepEqual(extracted.map((character) => character.name).sort(), ["Mrs. Okafor", "Tunde"]);
+  });
+
   it("does not invent a character when evidence is only an action line", async () => {
     const extracted = await characterExtractor.extract(`He types.
 Inside is a hard drive labelled "ARCHIVE".
