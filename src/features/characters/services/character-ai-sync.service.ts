@@ -3,7 +3,6 @@ import { CHARACTER_AI_PROVIDER } from "@/platform/ai/config/default-provider";
 import { sceneExtractor } from "@/features/import-engine/extractors/scene.extractor";
 
 const MAX_CHARACTER_CONTEXT_CHARS = 24_000;
-const MAX_RELEVANT_SCENES = 10;
 
 
 
@@ -12,13 +11,27 @@ export async function extractRelevantCharacterScenes(screenplay: string, charact
   const document = await sceneExtractor.parse(screenplay);
   const normalizedName = characterName.trim().toLocaleLowerCase();
   const mention = characterName.trim().toLocaleLowerCase();
-  const relevant = document.scenes.filter((scene) => {
-    const hasDialogue = scene.dialogues.some((entry) => entry.character.trim().toLocaleLowerCase() === normalizedName);
-    return hasDialogue || scene.action.toLocaleLowerCase().includes(mention);
-  }).slice(0, MAX_RELEVANT_SCENES);
-  const blocks = relevant.map((scene) => {
-    const dialogue = scene.dialogues
-      .filter((entry) => entry.character.trim().toLocaleLowerCase() === normalizedName)
+  const relevant = document.scenes.map((scene) => {
+    const dialogueEntries = scene.dialogues.filter(
+      (entry) => entry.character.trim().toLocaleLowerCase() === normalizedName,
+    );
+    const actionMentionsCharacter = scene.action.toLocaleLowerCase().includes(mention);
+    return { scene, dialogueEntries, score: dialogueEntries.reduce((sum, entry) => sum + entry.text.length, 0) + (actionMentionsCharacter ? 500 : 0) };
+  }).filter((item) => item.dialogueEntries.length > 0 || item.score > 0);
+
+  // Prioritise scenes with the character's own dialogue, then restore screenplay order.
+  // This avoids silently dropping later character appearances in long productions.
+  const selected = [...relevant]
+    .sort((a, b) => b.score - a.score || a.scene.number - b.scene.number)
+    .reduce<typeof relevant>((items, item) => {
+      const used = items.reduce((total, entry) => total + entry.scene.sourceText.length, 0);
+      if (used < MAX_CHARACTER_CONTEXT_CHARS) items.push(item);
+      return items;
+    }, [])
+    .sort((a, b) => a.scene.number - b.scene.number);
+
+  const blocks = selected.map(({ scene, dialogueEntries }) => {
+    const dialogue = dialogueEntries
       .map((entry) => entry.character + ": " + entry.text)
       .join("\n");
     return [
@@ -30,7 +43,9 @@ export async function extractRelevantCharacterScenes(screenplay: string, charact
   let context = blocks.join("\n\n---\n\n");
   if (!context) context = extractCharacterEvidence(screenplay, characterName).join("\n\n");
   if (!context.trim()) throw new Error("No screenplay scenes or dialogue could be confidently matched to " + characterName + ". Check the character cue in the screenplay.");
-  return context.slice(0, MAX_CHARACTER_CONTEXT_CHARS);
+  return context.length > MAX_CHARACTER_CONTEXT_CHARS
+    ? context.slice(0, MAX_CHARACTER_CONTEXT_CHARS)
+    : context;
 }
 
 import type { Character, CharacterProfileSource } from "../types/character";
