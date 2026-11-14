@@ -4,10 +4,12 @@ import { describe, it } from "node:test";
 import {
   DEFAULT_GEMINI_MODEL,
   DEFAULT_OPENROUTER_MODEL,
+  DEFAULT_OPENAI_MODEL,
   MAX_COMPLETION_TOKENS,
   MAX_USER_PROMPT_CHARS,
   parseAIGenerateRequest,
   resolveAllowedGeminiModel,
+  resolveAllowedOpenAIModel,
   resolveAllowedModel,
   upstreamErrorStatus,
 } from "./generate-request";
@@ -33,9 +35,7 @@ describe("AI generate request validation", () => {
     assert.equal(parseAIGenerateRequest({ userPrompt: "Hi", productionId, provider: "gemini" }).ok, true);
     assert.equal(parseAIGenerateRequest({ userPrompt: "Hi", productionId, responseFormat: "json" }).ok, true);
     assert.equal(parseAIGenerateRequest({ userPrompt: "Hi", productionId, responseFormat: "xml" }).ok, false);
-    const unsupported = parseAIGenerateRequest({ userPrompt: "Hi", productionId, provider: "openai" });
-    assert.equal(unsupported.ok, false);
-    if (!unsupported.ok) assert.match(unsupported.error, /^provider:/);
+    assert.equal(parseAIGenerateRequest({ userPrompt: "Hi", productionId, provider: "openai" }).ok, true);
   });
 
   it("only allows default or server-configured OpenRouter models", () => {
@@ -52,7 +52,13 @@ describe("AI generate request validation", () => {
     assert.deepEqual(resolveAllowedGeminiModel("gemini-allowed", { GEMINI_ALLOWED_MODELS: "gemini-other, gemini-allowed" }), { ok: true, model: "gemini-allowed" });
   });
 
-  it("never forwards an upstream 401/403 as the caller's auth failure", () => {
+  it("only allows the default or server-configured OpenAI models", () => {
+    assert.deepEqual(resolveAllowedOpenAIModel(undefined, {}), { ok: true, model: DEFAULT_OPENAI_MODEL });
+    assert.equal(resolveAllowedOpenAIModel("unapproved-model", {}).ok, false);
+    assert.deepEqual(resolveAllowedOpenAIModel(undefined, { OPENAI_MODEL: "gpt-custom" }), { ok: true, model: "gpt-custom" });
+  });
+
+  it("never forwards upstream auth errors as the caller auth failure", () => {
     assert.equal(upstreamErrorStatus(401), 502);
     assert.equal(upstreamErrorStatus(403), 502);
     assert.equal(upstreamErrorStatus(429), 429);
