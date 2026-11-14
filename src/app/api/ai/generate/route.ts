@@ -6,13 +6,13 @@ import { createClient } from "@/lib/supabase/server";
 import {
   DEFAULT_COMPLETION_TOKENS,
   MAX_AI_REQUEST_BODY_BYTES,
-  OPENROUTER_TIMEOUT_MS,
+  AI_PROVIDER_TIMEOUT_MS,
   parseAIGenerateRequest,
+  resolveAllowedGeminiModel,
   resolveAllowedModel,
   upstreamErrorStatus,
 } from "@/platform/ai/server/generate-request";
 
-// The OpenRouter call is capped at OPENROUTER_TIMEOUT_MS (110s).
 export const maxDuration = 120;
 
 interface OpenRouterResponse {
@@ -22,8 +22,157 @@ interface OpenRouterResponse {
   error?: { message?: string };
 }
 
+interface GeminiResponse {
+  modelVersion?: string;
+  candidates?: Array<{
+    content?: { parts?: Array<{ text?: string }> };
+    finishReason?: string;
+  }>;
+  usageMetadata?: { totalTokenCount?: number };
+  error?: { message?: string; status?: string };
+}
+
 function isAbortError(error: unknown): boolean {
   return error instanceof Error && (error.name === "TimeoutError" || error.name === "AbortError");
+}
+
+async function generateOpenRouter(input: {
+  systemPrompt?: string;
+  userPrompt: string;
+  temperature?: number;
+  maxTokens?: number;
+  model?: string;
+}) {
+  const modelResult = resolveAllowedModel(input.model, {
+    OPENROUTER_MODEL: process.env.OPENROUTER_MODEL,
+    OPENROUTER_ALLOWED_MODELS: process.env.OPENROUTER_ALLOWED_MODELS,
+  });
+  if (!modelResult.ok) {
+    return NextResponse.json({ error: modelResult.error }, { status: 400 });
+  }
+
+  const apiKey = process.env.OPENROUTER_API_KEY;
+  if (!apiKey) {
+    return NextResponse.json({ error: "OpenRouter API key is not configured." }, { status: 503 });
+  }
+
+  let response: Response;
+  try {
+    response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model: modelResult.model,
+        messages: [
+          ...(input.systemPrompt ? [{ role: "system", content: input.systemPrompt }] : []),
+          { role: "user", content: input.userPrompt },
+        ],
+        temperature: input.temperature ?? 0.3,
+        max_tokens: input.maxTokens ?? DEFAULT_COMPLETION_TOKENS,
+      }),
+      signal: AbortSignal.timeout(AI_PROVIDER_TIMEOUT_MS),
+    });
+  } catch (error) {
+    if (isAbortError(error)) {
+      return NextResponse.json({ error: "The AI provider timed out. Try again." }, { status: 504 });
+    }
+    console.error("OpenRouter network error:", error instanceof Error ? error.message : "unknown");
+    return NextResponse.json({ error: "Unable to reach the AI provider." }, { status: 502 });
+  }
+
+  const data = (await response.json().catch(() => ({}))) as OpenRouterResponse;
+  if (!response.ok) {
+    const message = data.error?.message || "OpenRouter request failed.";
+    console.error("OpenRouter error:", response.status, message);
+    return NextResponse.json({ error: message }, { status: upstreamErrorStatus(response.status) });
+  }
+
+  const text = data.choices?.[0]?.message?.content?.trim();
+  if (!text) {
+    return NextResponse.json({ error: "The AI model returned an empty response." }, { status: 502 });
+  }
+
+  return NextResponse.json({
+    text,
+    provider: "openrouter",
+    model: data.model || modelResult.model,
+    tokens: data.usage?.total_tokens,
+  });
+}
+
+async function generateGemini(input: {
+  systemPrompt?: string;
+  userPrompt: string;
+  temperature?: number;
+  maxTokens?: number;
+  model?: string;
+}) {
+  const modelResult = resolveAllowedGeminiModel(input.model, {
+    GEMINI_MODEL: process.env.GEMINI_MODEL,
+    GEMINI_ALLOWED_MODELS: process.env.GEMINI_ALLOWED_MODELS,
+  });
+  if (!modelResult.ok) {
+    return NextResponse.json({ error: modelResult.error }, { status: 400 });
+  }
+
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) {
+    return NextResponse.json({ error: "Gemini API key is not configured." }, { status: 503 });
+  }
+
+  let response: Response;
+  try {
+    response = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(modelResult.model)}:generateContent`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "x-goog-api-key": apiKey },
+        body: JSON.stringify({
+          ...(input.systemPrompt
+            ? { systemInstruction: { parts: [{ text: input.systemPrompt }] } }
+            : {}),
+          contents: [{ role: "user", parts: [{ text: input.userPrompt }] }],
+          generationConfig: {
+            temperature: input.temperature ?? 0.3,
+            maxOutputTokens: input.maxTokens ?? DEFAULT_COMPLETION_TOKENS,
+          },
+        }),
+        signal: AbortSignal.timeout(AI_PROVIDER_TIMEOUT_MS),
+      },
+    );
+  } catch (error) {
+    if (isAbortError(error)) {
+      return NextResponse.json({ error: "Gemini timed out. Try again." }, { status: 504 });
+    }
+    console.error("Gemini network error:", error instanceof Error ? error.message : "unknown");
+    return NextResponse.json({ error: "Unable to reach Gemini." }, { status: 502 });
+  }
+
+  const data = (await response.json().catch(() => ({}))) as GeminiResponse;
+  if (!response.ok) {
+    const message = data.error?.message || "Gemini request failed.";
+    console.error("Gemini error:", response.status, message);
+    return NextResponse.json({ error: message }, { status: upstreamErrorStatus(response.status) });
+  }
+
+  const text = data.candidates?.[0]?.content?.parts
+    ?.map((part) => part.text ?? "")
+    .join("")
+    .trim();
+  if (!text) {
+    const reason = data.candidates?.[0]?.finishReason;
+    return NextResponse.json(
+      { error: reason ? `Gemini returned no text (finish reason: ${reason}).` : "Gemini returned an empty response." },
+      { status: 502 },
+    );
+  }
+
+  return NextResponse.json({
+    text,
+    provider: "gemini",
+    model: data.modelVersion || modelResult.model,
+    tokens: data.usageMetadata?.totalTokenCount,
+  });
 }
 
 export async function POST(request: Request) {
@@ -48,14 +197,6 @@ export async function POST(request: Request) {
     }
     const input = parsed.value;
 
-    const modelResult = resolveAllowedModel(input.model, {
-      OPENROUTER_MODEL: process.env.OPENROUTER_MODEL,
-      OPENROUTER_ALLOWED_MODELS: process.env.OPENROUTER_ALLOWED_MODELS,
-    });
-    if (!modelResult.ok) {
-      return NextResponse.json({ error: modelResult.error }, { status: 400 });
-    }
-
     // Every AI call is production-scoped: verify ownership before any provider call.
     const { data: production, error: productionError } = await supabase
       .from("productions")
@@ -70,57 +211,10 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Production not found or access denied." }, { status: 404 });
     }
 
-    const apiKey = process.env.OPENROUTER_API_KEY;
-    if (!apiKey) {
-      return NextResponse.json({ error: "OpenRouter API key is not configured." }, { status: 503 });
+    if (input.provider === "gemini") {
+      return generateGemini(input);
     }
-
-    let response: Response;
-    try {
-      response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${apiKey}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          model: modelResult.model,
-          messages: [
-            ...(input.systemPrompt ? [{ role: "system", content: input.systemPrompt }] : []),
-            { role: "user", content: input.userPrompt },
-          ],
-          temperature: input.temperature ?? 0.3,
-          max_tokens: input.maxTokens ?? DEFAULT_COMPLETION_TOKENS,
-        }),
-        signal: AbortSignal.timeout(OPENROUTER_TIMEOUT_MS),
-      });
-    } catch (error) {
-      if (isAbortError(error)) {
-        return NextResponse.json({ error: "The AI provider timed out. Try again." }, { status: 504 });
-      }
-      console.error("OpenRouter network error:", error instanceof Error ? error.message : "unknown");
-      return NextResponse.json({ error: "Unable to reach the AI provider." }, { status: 502 });
-    }
-
-    const data = (await response.json().catch(() => ({}))) as OpenRouterResponse;
-
-    if (!response.ok) {
-      const message = data.error?.message || "OpenRouter request failed.";
-      console.error("OpenRouter error:", response.status, message);
-      return NextResponse.json({ error: message }, { status: upstreamErrorStatus(response.status) });
-    }
-
-    const text = data.choices?.[0]?.message?.content;
-    if (!text) {
-      return NextResponse.json({ error: "The AI model returned an empty response." }, { status: 502 });
-    }
-
-    return NextResponse.json({
-      text,
-      provider: "openrouter",
-      model: data.model || modelResult.model,
-      tokens: data.usage?.total_tokens,
-    });
+    return generateOpenRouter(input);
   } catch (error) {
     if (error instanceof SupabaseConfigurationError) {
       return NextResponse.json({ error: error.message }, { status: 503 });
