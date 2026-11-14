@@ -1,4 +1,5 @@
 import type { AIRequest, AIResponse } from "@/platform/ai/types/ai-provider";
+import { DEFAULT_AI_PROVIDER } from "@/platform/ai/config/default-provider";
 import type { Character, CharacterProfileSource } from "../types/character";
 import { extractJson, parseCharacterAIProfile } from "../utils/parse-character-ai-profile";
 import type { CharacterAIProposal } from "../utils/review-character-proposal";
@@ -61,7 +62,7 @@ export function createCharacterAISyncService(dependencies: CharacterAISyncDepend
       };
       const evidence = extractCharacterEvidence(screenplay.content, character.name);
       const response = await dependencies.aiGateway.generate({
-        provider: "openrouter", systemPrompt: systemPrompt(character),
+        provider: DEFAULT_AI_PROVIDER, systemPrompt: systemPrompt(character),
         userPrompt: userPrompt(character, screenplay, evidence),
         temperature: 0.1, maxTokens: 4000, productionId,
       });
