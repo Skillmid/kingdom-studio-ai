@@ -16,6 +16,8 @@ export interface AIRequest {
   model?: string;
   /** Ask providers that support constrained output to return valid JSON. */
   responseFormat?: "json";
+  /** Select a server-owned strict output schema; callers cannot submit arbitrary schemas. */
+  outputSchema?: "character_profile";
   /** Required: the server verifies the caller owns this production before any provider call. */
   productionId: string;
 }
