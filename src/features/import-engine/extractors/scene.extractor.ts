@@ -103,7 +103,7 @@ export class SceneExtractor {
         };
         nextNumber += 1;
       }
-      current.sourceText = `${current.sourceText}\\n${line}`;
+      current.sourceText = `${current.sourceText}\n${line}`;
       if (isTransition(line)) {
         inDialogue = false;
         currentSpeaker = null;
