@@ -98,7 +98,7 @@ export function createCharacterAISyncService(dependencies: CharacterAISyncDepend
       const response = await dependencies.aiGateway.generate({
         provider: CHARACTER_AI_PROVIDER, systemPrompt: systemPrompt(character),
         userPrompt: userPrompt(character, screenplay, evidence, relevantScenes),
-        temperature: 0.1, maxTokens: 4000, responseFormat: "json", productionId,
+        temperature: 0.1, maxTokens: 4000, responseFormat: "json", outputSchema: "character_profile", productionId,
       });
       const parsed = parseCharacterAIProfile(extractJson(response.text));
       const fields = { ...parsed.fields };
