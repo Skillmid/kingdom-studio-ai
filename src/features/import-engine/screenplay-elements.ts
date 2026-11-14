@@ -179,9 +179,15 @@ export function hasDialogueEvidence(line: string | undefined): boolean {
 }
 
 export function nextDialogueLine(lines: string[], index: number): string | undefined {
+  let blankLines = 0;
   for (let i = index + 1; i < lines.length; i++) {
     const candidate = lines[i].trim();
-    if (!candidate) return undefined;
+    if (!candidate) {
+      blankLines += 1;
+      if (blankLines > 2) return undefined;
+      continue;
+    }
+    if (isSceneHeading(candidate) || isTransition(candidate)) return undefined;
     if (isParenthetical(candidate)) continue;
     return candidate;
   }

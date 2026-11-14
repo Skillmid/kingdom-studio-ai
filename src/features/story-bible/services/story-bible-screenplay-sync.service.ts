@@ -1,4 +1,5 @@
 import { aiGateway } from "@/platform/ai";
+import { DEFAULT_AI_PROVIDER } from "@/platform/ai/config/default-provider";
 
 import type { StoryBibleDTO } from "../validation/story-bible.schema";
 
@@ -139,7 +140,7 @@ export class StoryBibleScreenplaySyncService {
     }
 
     const response = await aiGateway.generate({
-      provider: "openrouter",
+      provider: DEFAULT_AI_PROVIDER,
       systemPrompt: buildSystemPrompt(),
       userPrompt: buildUserPrompt(screenplay),
       temperature: 0.2,
