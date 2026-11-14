@@ -1,4 +1,5 @@
 import { aiGateway } from "@/platform/ai";
+import { DEFAULT_AI_PROVIDER } from "@/platform/ai/config/default-provider";
 import type { SceneStatus } from "@/features/scenes/types/scene";
 import { scriptSceneExtractionPrompt } from "./script-scene-extraction-prompt.service";
 
@@ -88,7 +89,7 @@ export async function extractScenesFromScreenplay(
   }
 
   const response = await aiGateway.generate({
-    provider: "openrouter",
+    provider: DEFAULT_AI_PROVIDER,
     systemPrompt: scriptSceneExtractionPrompt.buildSystemPrompt(),
     userPrompt: scriptSceneExtractionPrompt.buildUserPrompt(screenplay),
     temperature: 0.2,
