@@ -61,9 +61,7 @@ async function generateOpenAI(input: {
         ],
         temperature: input.temperature ?? 0.3,
         max_completion_tokens: input.maxTokens ?? DEFAULT_COMPLETION_TOKENS,
-        ...(input.outputSchema === "character_profile"
-          ? { response_format: { type: "json_schema", json_schema: characterProfileJsonSchema() }, provider: { require_parameters: true }, plugins: [{ id: "response-healing" }] }
-          : input.responseFormat === "json" ? { response_format: { type: "json_object" } } : {}),
+        ...(input.responseFormat === "json" ? { response_format: { type: "json_object" } } : {}),
       }),
       signal: AbortSignal.timeout(AI_PROVIDER_TIMEOUT_MS),
     });
@@ -95,11 +93,11 @@ const CHARACTER_PROFILE_SCHEMA_FIELDS = [
 
 function characterProfileJsonSchema() {
   const nullableText = { type: ["string", "null"] };
-  const fields = Object.fromEntries(CHARACTER_PROFILE_SCHEMA_FIELDS.map((key) => [key, nullableText]));
-  const evidence = Object.fromEntries(CHARACTER_PROFILE_SCHEMA_FIELDS.map((key) => [key, nullableText]));
+  const fields: Record<string, unknown> = Object.fromEntries(CHARACTER_PROFILE_SCHEMA_FIELDS.map((key) => [key, nullableText]));
+  const evidence: Record<string, unknown> = Object.fromEntries(CHARACTER_PROFILE_SCHEMA_FIELDS.map((key) => [key, nullableText]));
   fields.role = { type: ["string", "null"], enum: ["lead", "supporting", "minor", "extra", null] };
   evidence.role = nullableText;
-  const required = [...CHARACTER_PROFILE_SCHEMA_FIELDS, "role"];
+  const required: string[] = [...CHARACTER_PROFILE_SCHEMA_FIELDS, "role"];
   return {
     name: "character_profile_proposal",
     strict: true,
@@ -164,7 +162,9 @@ async function generateOpenRouter(input: {
         ],
         temperature: input.temperature ?? 0.3,
         max_tokens: input.maxTokens ?? DEFAULT_COMPLETION_TOKENS,
-        ...(input.responseFormat === "json" ? { response_format: { type: "json_object" } } : {}),
+        ...(input.outputSchema === "character_profile"
+          ? { response_format: { type: "json_schema", json_schema: characterProfileJsonSchema() }, provider: { require_parameters: true }, plugins: [{ id: "response-healing" }] }
+          : input.responseFormat === "json" ? { response_format: { type: "json_object" } } : {}),
       }),
       signal: AbortSignal.timeout(AI_PROVIDER_TIMEOUT_MS),
     });
