@@ -108,6 +108,7 @@ async function generateGemini(input: {
   temperature?: number;
   maxTokens?: number;
   model?: string;
+  responseFormat?: "json";
 }) {
   const modelResult = resolveAllowedGeminiModel(input.model, {
     GEMINI_MODEL: process.env.GEMINI_MODEL,
