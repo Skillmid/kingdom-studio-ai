@@ -88,8 +88,22 @@ export class SceneExtractor {
         nextNumber = Math.max(nextNumber, number + 1);
         continue;
       }
-      if (!current) continue;
-      current.sourceText = `${current.sourceText}\n${line}`;
+      if (!current) {
+        // Some imported scripts have no INT./EXT. slug lines. Treat their content as one
+        // implicit scene instead of silently discarding every character cue and dialogue line.
+        current = {
+          number: nextNumber,
+          heading: "UNSPECIFIED SCENE",
+          sceneType: "BOTH",
+          summary: "",
+          action: "",
+          dialogue: "",
+          dialogues: [],
+          sourceText: "",
+        };
+        nextNumber += 1;
+      }
+      current.sourceText = `${current.sourceText}\\n${line}`;
       if (isTransition(line)) {
         inDialogue = false;
         currentSpeaker = null;
