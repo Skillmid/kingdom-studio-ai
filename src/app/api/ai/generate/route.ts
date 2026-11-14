@@ -12,17 +12,12 @@ import {
   resolveAllowedOpenAIModel,
   resolveAllowedModel,
   upstreamErrorStatus,
+  extractOpenRouterText,
+  describeEmptyOpenRouterCompletion,
+  type OpenRouterCompletion,
 } from "@/platform/ai/server/generate-request";
 
 export const maxDuration = 120;
-
-interface OpenRouterResponse {
-  model?: string;
-  choices?: Array<{ message?: { content?: string } }>;
-  usage?: { total_tokens?: number };
-  error?: { message?: string };
-}
-
 
 interface OpenAIResponse {
   model?: string;
@@ -149,25 +144,29 @@ async function generateOpenRouter(input: {
     return NextResponse.json({ error: "OpenRouter API key is not configured." }, { status: 503 });
   }
 
+  const requestBody = (structured: boolean) => ({
+    model: modelResult.model,
+    messages: [
+      ...(input.systemPrompt ? [{ role: "system", content: input.systemPrompt }] : []),
+      { role: "user", content: input.userPrompt },
+    ],
+    temperature: input.temperature ?? 0.3,
+    max_tokens: input.maxTokens ?? DEFAULT_COMPLETION_TOKENS,
+    ...(structured
+      ? { response_format: { type: "json_schema", json_schema: characterProfileJsonSchema() }, provider: { require_parameters: true } }
+      : input.responseFormat === "json" ? { response_format: { type: "json_object" } } : {}),
+  });
+
+  const callProvider = async (structured: boolean): Promise<Response> => fetch("https://openrouter.ai/api/v1/chat/completions", {
+    method: "POST",
+    headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
+    body: JSON.stringify(requestBody(structured)),
+    signal: AbortSignal.timeout(AI_PROVIDER_TIMEOUT_MS),
+  });
+
   let response: Response;
   try {
-    response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-      method: "POST",
-      headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
-      body: JSON.stringify({
-        model: modelResult.model,
-        messages: [
-          ...(input.systemPrompt ? [{ role: "system", content: input.systemPrompt }] : []),
-          { role: "user", content: input.userPrompt },
-        ],
-        temperature: input.temperature ?? 0.3,
-        max_tokens: input.maxTokens ?? DEFAULT_COMPLETION_TOKENS,
-        ...(input.outputSchema === "character_profile"
-          ? { response_format: { type: "json_schema", json_schema: characterProfileJsonSchema() }, provider: { require_parameters: true }, plugins: [{ id: "response-healing" }] }
-          : input.responseFormat === "json" ? { response_format: { type: "json_object" } } : {}),
-      }),
-      signal: AbortSignal.timeout(AI_PROVIDER_TIMEOUT_MS),
-    });
+    response = await callProvider(input.outputSchema === "character_profile");
   } catch (error) {
     if (isAbortError(error)) {
       return NextResponse.json({ error: "The AI provider timed out. Try again." }, { status: 504 });
@@ -176,16 +175,40 @@ async function generateOpenRouter(input: {
     return NextResponse.json({ error: "Unable to reach the AI provider." }, { status: 502 });
   }
 
-  const data = (await response.json().catch(() => ({}))) as OpenRouterResponse;
+  let data = (await response.json().catch(() => ({}))) as OpenRouterCompletion;
   if (!response.ok) {
     const message = data.error?.message || "OpenRouter request failed.";
     console.error("OpenRouter error:", response.status, message);
     return NextResponse.json({ error: message }, { status: upstreamErrorStatus(response.status) });
   }
 
-  const text = data.choices?.[0]?.message?.content?.trim();
+  let text = extractOpenRouterText(data);
+
+  // Some free model endpoints advertise JSON mode but return an empty structured response.
+  // Retry once with standard JSON-object mode; parsing and evidence validation still run locally.
+  if (!text && input.outputSchema === "character_profile") {
+    try {
+      response = await callProvider(false);
+    } catch (error) {
+      if (isAbortError(error)) {
+        return NextResponse.json({ error: "The AI provider timed out while retrying structured output." }, { status: 504 });
+      }
+      console.error("OpenRouter structured-output retry network error:", error instanceof Error ? error.message : "unknown");
+      return NextResponse.json({ error: "Unable to reach the AI provider for structured-output retry." }, { status: 502 });
+    }
+    data = (await response.json().catch(() => ({}))) as OpenRouterCompletion;
+    if (!response.ok) {
+      const message = data.error?.message || "OpenRouter structured-output retry failed.";
+      console.error("OpenRouter retry error:", response.status, message);
+      return NextResponse.json({ error: message }, { status: upstreamErrorStatus(response.status) });
+    }
+    text = extractOpenRouterText(data);
+  }
+
   if (!text) {
-    return NextResponse.json({ error: "The AI model returned an empty response." }, { status: 502 });
+    const message = describeEmptyOpenRouterCompletion(data, modelResult.model);
+    console.error("OpenRouter empty completion:", message);
+    return NextResponse.json({ error: message }, { status: 502 });
   }
 
   return NextResponse.json({
@@ -193,6 +216,7 @@ async function generateOpenRouter(input: {
     provider: "openrouter",
     model: data.model || modelResult.model,
     tokens: data.usage?.total_tokens,
+    requestId: data.id,
   });
 }
 
