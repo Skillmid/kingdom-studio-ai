@@ -8,6 +8,7 @@ import { z } from "zod";
 
 export const DEFAULT_OPENROUTER_MODEL = "openrouter/free";
 export const DEFAULT_GEMINI_MODEL = "gemini-3.8-flash";
+export const DEFAULT_OPENAI_MODEL = "gpt-4.1-mini";
 export const MAX_SYSTEM_PROMPT_CHARS = 50_000;
 export const MAX_USER_PROMPT_CHARS = 600_000;
 export const MAX_COMPLETION_TOKENS = 8_000;
@@ -16,7 +17,7 @@ export const MAX_AI_REQUEST_BODY_BYTES = 2_500_000;
 export const AI_PROVIDER_TIMEOUT_MS = 110_000;
 
 export const aiGenerateRequestSchema = z.object({
-  provider: z.enum(["openrouter", "gemini"]).optional(),
+  provider: z.enum(["openrouter", "gemini", "openai"]).optional(),
   productionId: z.string().uuid({ message: "A valid productionId is required." }),
   systemPrompt: z.string().max(MAX_SYSTEM_PROMPT_CHARS, { message: "System prompt is too long." }).optional(),
   userPrompt: z.string()
@@ -82,4 +83,20 @@ export function upstreamErrorStatus(status: number): number {
   if (status === 429) return 429;
   if (status === 408 || status === 504) return 504;
   return 502;
+}
+
+
+export function resolveAllowedOpenAIModel(
+  requested: string | undefined,
+  env: { OPENAI_MODEL?: string; OPENAI_ALLOWED_MODELS?: string },
+): { ok: true; model: string } | { ok: false; error: string } {
+  const defaultModel = env.OPENAI_MODEL?.trim() || DEFAULT_OPENAI_MODEL;
+  const allowed = new Set([
+    DEFAULT_OPENAI_MODEL,
+    defaultModel,
+    ...(env.OPENAI_ALLOWED_MODELS ?? "").split(",").map((model) => model.trim()).filter(Boolean),
+  ]);
+  if (!requested) return { ok: true, model: defaultModel };
+  if (!allowed.has(requested)) return { ok: false, error: "Requested OpenAI model is not allowed." };
+  return { ok: true, model: requested };
 }
