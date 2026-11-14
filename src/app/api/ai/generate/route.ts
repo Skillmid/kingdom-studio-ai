@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { bearerToken, readJsonBody } from "@/lib/http/json-body";
 import { SupabaseConfigurationError } from "@/lib/supabase/config";
 import { createClient } from "@/lib/supabase/server";
+import { CHARACTER_PROFILE_FIELDS } from "@/features/characters/utils/character-progress";
 import {
   DEFAULT_COMPLETION_TOKENS,
   MAX_AI_REQUEST_BODY_BYTES,
@@ -85,22 +86,7 @@ async function generateOpenAI(input: {
   return NextResponse.json({ text, provider: "openai", model: data.model || modelResult.model, tokens: data.usage?.total_tokens });
 }
 
-const CHARACTER_PROFILE_SCHEMA_FIELDS = [
-  "age", "gender", "occupation", "nationality", "ethnicity", "biography",
-  "appearance", "height", "weight", "eyeColor", "hairColor",
-  "distinguishingFeatures", "personality", "strengths", "weaknesses",
-  "fears", "habits", "values", "motivation", "goal", "conflict",
-  "characterArc", "spiritualJourney", "speechStyle", "catchPhrases",
-  "aiInstructions",
-] as const;
-
-function characterProfileJsonSchema() {
-  const nullableText = { type: ["string", "null"] };
-  const fields: Record<string, unknown> = Object.fromEntries(CHARACTER_PROFILE_SCHEMA_FIELDS.map((key) => [key, nullableText]));
-  const evidence: Record<string, unknown> = Object.fromEntries(CHARACTER_PROFILE_SCHEMA_FIELDS.map((key) => [key, nullableText]));
-  fields.role = { type: ["string", "null"], enum: ["lead", "supporting", "minor", "extra", null] };
-  evidence.role = nullableText;
-  const required: string[] = [...CHARACTER_PROFILE_SCHEMA_FIELDS, "role"];
+const CHARACTER_PROFILE_SCHEMA_FIELDS = CHARACTER_PROFILE_FIELDS;
   return {
     name: "character_profile_proposal",
     strict: true,
