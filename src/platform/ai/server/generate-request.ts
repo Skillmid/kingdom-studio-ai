@@ -7,7 +7,7 @@ import { z } from "zod";
  */
 
 export const DEFAULT_OPENROUTER_MODEL = "openrouter/free";
-export const DEFAULT_GEMINI_MODEL = "gemini-2.5-flash";
+export const DEFAULT_GEMINI_MODEL = "gemini-3.8-flash";
 export const MAX_SYSTEM_PROMPT_CHARS = 50_000;
 export const MAX_USER_PROMPT_CHARS = 600_000;
 export const MAX_COMPLETION_TOKENS = 8_000;
