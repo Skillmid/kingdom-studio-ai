@@ -18,12 +18,12 @@ export async function extractRelevantCharacterScenes(screenplay: string, charact
       (entry) => normalizeName(entry.character) === normalizedName,
     );
     const actionMentionsCharacter = (" " + normalizeName(scene.action) + " ").includes(" " + mention + " ");
-    const dialogueText = dialogueEntries.map((entry) => entry.character + ": " + entry.text).join("\\n");
+    const dialogueText = dialogueEntries.map((entry) => entry.character + ": " + entry.text).join("\n");
     const block = [
       "SCENE " + scene.number + ": " + scene.heading,
-      dialogueText ? "CHARACTER DIALOGUE:\\n" + dialogueText : "",
-      scene.action ? "ACTION:\\n" + scene.action : "",
-    ].filter(Boolean).join("\\n\\n");
+      dialogueText ? "CHARACTER DIALOGUE:\n" + dialogueText : "",
+      scene.action ? "ACTION:\n" + scene.action : "",
+    ].filter(Boolean).join("\n\n");
     return {
       sceneNumber: scene.number,
       block,
@@ -44,9 +44,9 @@ export async function extractRelevantCharacterScenes(screenplay: string, charact
     })
     .sort((a, b) => a.sceneNumber - b.sceneNumber);
 
-  const context = selected.map((item) => item.block).join("\\n\\n---\\n\\n");
+  const context = selected.map((item) => item.block).join("\n\n---\n\n");
   if (!context.trim()) {
-    const fallback = extractCharacterEvidence(screenplay, characterName).join("\\n\\n");
+    const fallback = extractCharacterEvidence(screenplay, characterName).join("\n\n");
     if (!fallback.trim()) {
       throw new Error("No screenplay scenes or dialogue could be confidently matched to " + characterName + ". Check the character cue in the screenplay.");
     }
