@@ -27,6 +27,7 @@ export const aiGenerateRequestSchema = z.object({
   maxTokens: z.number().int().min(1).max(MAX_COMPLETION_TOKENS).optional(),
   model: z.string().trim().min(1).max(200).optional(),
   responseFormat: z.enum(["json"]).optional(),
+  outputSchema: z.enum(["character_profile"]).optional(),
 });
 
 export type AIGenerateRequest = z.infer<typeof aiGenerateRequestSchema>;
