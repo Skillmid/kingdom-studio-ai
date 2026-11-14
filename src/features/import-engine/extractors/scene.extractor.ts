@@ -88,6 +88,7 @@ export class SceneExtractor {
         nextNumber = Math.max(nextNumber, number + 1);
         continue;
       }
+      if (!current && (!line.trim() || isTransition(line))) continue;
       if (!current) {
         // Some imported scripts have no INT./EXT. slug lines. Treat their content as one
         // implicit scene instead of silently discarding every character cue and dialogue line.
