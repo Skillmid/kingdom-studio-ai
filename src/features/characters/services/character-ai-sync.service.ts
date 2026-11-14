@@ -1,5 +1,5 @@
 import type { AIRequest, AIResponse } from "@/platform/ai/types/ai-provider";
-import { DEFAULT_AI_PROVIDER } from "@/platform/ai/config/default-provider";
+import { CHARACTER_AI_PROVIDER } from "@/platform/ai/config/default-provider";
 import { sceneExtractor } from "@/features/import-engine/extractors/scene.extractor";
 
 const MAX_CHARACTER_CONTEXT_CHARS = 24_000;
@@ -96,7 +96,7 @@ export function createCharacterAISyncService(dependencies: CharacterAISyncDepend
       const evidence = extractCharacterEvidence(screenplay.content, character.name);
       const relevantScenes = await extractRelevantCharacterScenes(screenplay.content, character.name);
       const response = await dependencies.aiGateway.generate({
-        provider: DEFAULT_AI_PROVIDER, systemPrompt: systemPrompt(character),
+        provider: CHARACTER_AI_PROVIDER, systemPrompt: systemPrompt(character),
         userPrompt: userPrompt(character, screenplay, evidence, relevantScenes),
         temperature: 0.1, maxTokens: 4000, responseFormat: "json", productionId,
       });
