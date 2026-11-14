@@ -9,13 +9,14 @@ const MAX_CHARACTER_CONTEXT_CHARS = 24_000;
 /** Select a compact, character-specific source packet; evidence is still checked against the full screenplay. */
 export async function extractRelevantCharacterScenes(screenplay: string, characterName: string): Promise<string> {
   const document = await sceneExtractor.parse(screenplay);
-  const normalizedName = characterName.trim().toLocaleLowerCase();
-  const mention = characterName.trim().toLocaleLowerCase();
+  const normalizeName = (value: string) => value.normalize("NFKC").toLocaleLowerCase().replace(/[^\\p{L}\\p{N}]/gu, "");
+  const normalizedName = normalizeName(characterName);
+  const mention = normalizedName;
   const relevant = document.scenes.map((scene) => {
     const dialogueEntries = scene.dialogues.filter(
-      (entry) => entry.character.trim().toLocaleLowerCase() === normalizedName,
+      (entry) => normalizeName(entry.character) === normalizedName,
     );
-    const actionMentionsCharacter = scene.action.toLocaleLowerCase().includes(mention);
+    const actionMentionsCharacter = normalizeName(scene.action).includes(mention);
     return { scene, dialogueEntries, score: dialogueEntries.reduce((sum, entry) => sum + entry.text.length, 0) + (actionMentionsCharacter ? 500 : 0) };
   }).filter((item) => item.dialogueEntries.length > 0 || item.score > 0);
 
