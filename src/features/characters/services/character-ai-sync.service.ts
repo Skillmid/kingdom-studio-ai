@@ -33,7 +33,7 @@ function systemPrompt(character: Character): string {
   return [
     "Create a grounded profile proposal for the single supplied character. The complete screenplay is the source of truth. Treat the existing profile as context only.",
     "Do not invent facts or assign another character's facts to this character. Leave factual fields such as age, gender, occupation, nationality, ethnicity, height, weight, eye color, and hair color empty unless explicitly supported. Sparse scripts should produce fewer fields, not guesses. Preserve ambiguity.",
-    "Return JSON with fields and fieldEvidence. Use camelCase profile field names and role values lead, supporting, minor, or extra. Each proposed field needs fieldEvidence containing an exact verbatim screenplay excerpt. Omit fields without evidence. Catchphrases must quote dialogue. The creator reviews every proposal before anything is saved.",
+    "Return one valid JSON object only, with no Markdown fences, comments, or prose before or after it. The object must contain fields and fieldEvidence. Escape all quotation marks, backslashes, and line breaks inside JSON strings. Use camelCase profile field names and role values lead, supporting, minor, or extra. Each proposed field needs fieldEvidence containing an exact verbatim screenplay excerpt. Omit fields without evidence. Catchphrases must quote dialogue. The creator reviews every proposal before anything is saved.",
     "Character: " + character.name,
   ].join("\n\n");
 }
@@ -64,7 +64,7 @@ export function createCharacterAISyncService(dependencies: CharacterAISyncDepend
       const response = await dependencies.aiGateway.generate({
         provider: DEFAULT_AI_PROVIDER, systemPrompt: systemPrompt(character),
         userPrompt: userPrompt(character, screenplay, evidence),
-        temperature: 0.1, maxTokens: 4000, productionId,
+        temperature: 0.1, maxTokens: 4000, responseFormat: "json", productionId,
       });
       const parsed = parseCharacterAIProfile(extractJson(response.text));
       const fields = { ...parsed.fields };
