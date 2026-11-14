@@ -87,6 +87,19 @@ async function generateOpenAI(input: {
 }
 
 const CHARACTER_PROFILE_SCHEMA_FIELDS = CHARACTER_PROFILE_FIELDS;
+
+function characterProfileJsonSchema() {
+  const nullableText = { type: ["string", "null"] };
+  const fields: Record<string, unknown> = Object.fromEntries(
+    CHARACTER_PROFILE_SCHEMA_FIELDS.map((key) => [key, nullableText]),
+  );
+  const evidence: Record<string, unknown> = Object.fromEntries(
+    CHARACTER_PROFILE_SCHEMA_FIELDS.map((key) => [key, nullableText]),
+  );
+  fields.role = { type: ["string", "null"], enum: ["lead", "supporting", "minor", "extra", null] };
+  evidence.role = nullableText;
+  const required = [...CHARACTER_PROFILE_SCHEMA_FIELDS, "role"];
+
   return {
     name: "character_profile_proposal",
     strict: true,
