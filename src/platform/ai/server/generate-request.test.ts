@@ -12,6 +12,8 @@ import {
   resolveAllowedOpenAIModel,
   resolveAllowedModel,
   upstreamErrorStatus,
+  extractOpenRouterText,
+  describeEmptyOpenRouterCompletion,
 } from "./generate-request";
 
 const productionId = "55555555-5555-4555-8555-555555555555";
@@ -65,5 +67,25 @@ describe("AI generate request validation", () => {
     assert.equal(upstreamErrorStatus(403), 502);
     assert.equal(upstreamErrorStatus(429), 429);
     assert.equal(upstreamErrorStatus(504), 504);
+  });
+});
+
+
+describe("OpenRouter completion normalization", () => {
+  it("extracts ordinary string content", () => {
+    assert.equal(extractOpenRouterText({ choices: [{ message: { content: "{\\"fields\\":{}}" } }] }), "{\\"fields\\":{}}");
+  });
+
+  it("extracts text from multipart content blocks", () => {
+    assert.equal(extractOpenRouterText({ choices: [{ message: { content: [{ type: "text", text: "hello " }, { type: "text", text: "world" }] } }] }), "hello world");
+  });
+
+  it("does not treat reasoning-only or missing content as a valid answer", () => {
+    assert.equal(extractOpenRouterText({ choices: [{ message: { content: null } }] }), "");
+    assert.match(describeEmptyOpenRouterCompletion({ model: "example/model", provider: "provider-x", choices: [{ finish_reason: "length", message: { content: null } }] }, "requested/model"), /finish reason: length/);
+  });
+
+  it("surfaces model refusals instead of reporting a generic empty response", () => {
+    assert.match(describeEmptyOpenRouterCompletion({ choices: [{ message: { refusal: "Cannot comply." } }] }, "requested/model"), /declined this request/);
   });
 });
