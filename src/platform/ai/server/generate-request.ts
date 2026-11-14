@@ -101,3 +101,49 @@ export function resolveAllowedOpenAIModel(
   if (!allowed.has(requested)) return { ok: false, error: "Requested OpenAI model is not allowed." };
   return { ok: true, model: requested };
 }
+
+export interface OpenRouterChoiceMessage {
+  content?: string | Array<{ type?: string; text?: string }> | null;
+  refusal?: string | null;
+}
+
+export interface OpenRouterChoice {
+  message?: OpenRouterChoiceMessage;
+  finish_reason?: string | null;
+}
+
+export interface OpenRouterCompletion {
+  id?: string;
+  model?: string;
+  provider?: string;
+  choices?: OpenRouterChoice[];
+  usage?: { total_tokens?: number; prompt_tokens?: number; completion_tokens?: number };
+  error?: { message?: string; code?: number | string };
+}
+
+/** Normalize OpenRouter's string and multipart message content without treating reasoning as user-facing output. */
+export function extractOpenRouterText(data: OpenRouterCompletion): string {
+  const content = data.choices?.[0]?.message?.content;
+  if (typeof content === "string") return content.trim();
+  if (Array.isArray(content)) {
+    return content
+      .filter((part) => part?.type === "text" || typeof part?.text === "string")
+      .map((part) => part.text ?? "")
+      .join("")
+      .trim();
+  }
+  return "";
+}
+
+export function describeEmptyOpenRouterCompletion(data: OpenRouterCompletion, requestedModel: string): string {
+  const choice = data.choices?.[0];
+  const refusal = choice?.message?.refusal?.trim();
+  if (refusal) return "The AI model declined this request: " + refusal.slice(0, 400);
+  const details = [
+    choice?.finish_reason ? "finish reason: " + choice.finish_reason : undefined,
+    data.model ? "model: " + data.model : "requested model: " + requestedModel,
+    data.provider ? "provider: " + data.provider : undefined,
+    data.id ? "request: " + data.id : undefined,
+  ].filter(Boolean);
+  return "OpenRouter returned no text" + (details.length ? " (" + details.join("; ") + ")." : ".");
+}
