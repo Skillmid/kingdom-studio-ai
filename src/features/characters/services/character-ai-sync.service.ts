@@ -16,7 +16,7 @@ export async function extractRelevantCharacterScenes(screenplay: string, charact
     const dialogueEntries = scene.dialogues.filter(
       (entry) => normalizeName(entry.character) === normalizedName,
     );
-    const actionMentionsCharacter = normalizeName(scene.action).includes(mention);
+    const actionMentionsCharacter = (" " + normalizeName(scene.action) + " ").includes(" " + mention + " ");
     return { scene, dialogueEntries, score: dialogueEntries.reduce((sum, entry) => sum + entry.text.length, 0) + (actionMentionsCharacter ? 500 : 0) };
   }).filter((item) => item.dialogueEntries.length > 0 || item.score > 0);
 
