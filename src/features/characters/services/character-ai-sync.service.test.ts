@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { it } from "node:test";
-import { createCharacterAISyncService } from "./character-ai-sync.service";
+import { createCharacterAISyncService, extractRelevantCharacterScenes } from "./character-ai-sync.service";
+import { sceneExtractor } from "@/features/import-engine/extractors/scene.extractor";
 
 const altarOfGrace = [
   "THE ALTAR OF GRACE",
@@ -86,4 +87,36 @@ it("builds a character-specific prompt for Chief Williams from the same test scr
   assert.match(request.userPrompt, /Are you calling my private physicians liars/);
   assert.doesNotMatch(request.userPrompt, /DOCTOR LANRE: Chief, the test results changed overnight/);
   assert.match(request.systemPrompt, /Character: Chief Williams/);
+});
+
+
+it("includes relevant appearances beyond the first ten scenes in long screenplays", async () => {
+  const screenplay = Array.from({ length: 14 }, (_, index) =>
+    [
+      "INT. LOCATION " + (index + 1) + " - DAY",
+      index === 13 ? "MIRA" : "OTHER CHARACTER",
+      index === 13 ? "I have reached the final chapter." : "This is another person's scene.",
+      "MIRA",
+      "I am present in scene " + (index + 1) + ".",
+    ].join("\n"),
+  ).join("\n\n");
+  const context = await extractRelevantCharacterScenes(screenplay, "Mira");
+  assert.match(context, /SCENE 14:/);
+  assert.match(context, /I am present in scene 14/);
+});
+
+it("parses dialogue in imported screenplays that have no explicit scene headings", async () => {
+  const screenplay = [
+    "MIRA",
+    "I have waited long enough.",
+    "TUNDE",
+    "We should leave now.",
+    "MIRA",
+    "I am not leaving without the truth.",
+  ].join("\n");
+  const document = await sceneExtractor.parse(screenplay);
+  assert.equal(document.scenes.length, 1);
+  assert.match(document.scenes[0].dialogue, /I have waited long enough/);
+  const context = await extractRelevantCharacterScenes(screenplay, "Mira");
+  assert.match(context, /I am not leaving without the truth/);
 });
