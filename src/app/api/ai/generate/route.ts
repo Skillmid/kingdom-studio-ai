@@ -191,17 +191,12 @@ async function generateOpenRouter(input: {
   }
 
   let data = (await response.json().catch(() => ({}))) as OpenRouterCompletion;
-  if (!response.ok) {
-    const message = data.error?.message || "OpenRouter request failed.";
-    console.error("OpenRouter error:", response.status, message);
-    return NextResponse.json({ error: message }, { status: upstreamErrorStatus(response.status) });
-  }
+  let text = response.ok ? extractOpenRouterText(data) : "";
 
-  let text = extractOpenRouterText(data);
-
-  // Some free model endpoints advertise JSON mode but return an empty structured response.
-  // Retry once with standard JSON-object mode; parsing and evidence validation still run locally.
-  if (!text && input.outputSchema === "character_profile") {
+  // If the selected route cannot serve JSON Schema, retry once with JSON-object mode.
+  // Authentication, rate-limit and server failures are not retried.
+  const schemaUnsupported = !response.ok && [400, 404, 422].includes(response.status);
+  if (input.outputSchema === "character_profile" && (schemaUnsupported || !text)) {
     try {
       response = await callProvider(false);
     } catch (error) {
@@ -218,6 +213,10 @@ async function generateOpenRouter(input: {
       return NextResponse.json({ error: message }, { status: upstreamErrorStatus(response.status) });
     }
     text = extractOpenRouterText(data);
+  } else if (!response.ok) {
+    const message = data.error?.message || "OpenRouter request failed.";
+    console.error("OpenRouter error:", response.status, message);
+    return NextResponse.json({ error: message }, { status: upstreamErrorStatus(response.status) });
   }
 
   if (!text) {
