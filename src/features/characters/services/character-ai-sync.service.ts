@@ -133,6 +133,9 @@ export function createCharacterAISyncService(dependencies: CharacterAISyncDepend
           delete (fieldEvidence as Record<string, unknown>)[field];
         }
       }
+      if (Object.keys(fields).length === 0) {
+        throw new Error("The AI response contained no profile details supported by verifiable screenplay evidence. Check that the character appears in the saved screenplay and try again.");
+      }
       return { fields, fieldEvidence, source };
     },
   };
