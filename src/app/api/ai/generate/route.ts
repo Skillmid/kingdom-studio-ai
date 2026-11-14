@@ -42,6 +42,7 @@ async function generateOpenRouter(input: {
   temperature?: number;
   maxTokens?: number;
   model?: string;
+  responseFormat?: "json";
 }) {
   const modelResult = resolveAllowedModel(input.model, {
     OPENROUTER_MODEL: process.env.OPENROUTER_MODEL,
@@ -69,6 +70,7 @@ async function generateOpenRouter(input: {
         ],
         temperature: input.temperature ?? 0.3,
         max_tokens: input.maxTokens ?? DEFAULT_COMPLETION_TOKENS,
+        ...(input.responseFormat === "json" ? { response_format: { type: "json_object" } } : {}),
       }),
       signal: AbortSignal.timeout(AI_PROVIDER_TIMEOUT_MS),
     });
@@ -135,6 +137,7 @@ async function generateGemini(input: {
           generationConfig: {
             temperature: input.temperature ?? 0.3,
             maxOutputTokens: input.maxTokens ?? DEFAULT_COMPLETION_TOKENS,
+            ...(input.responseFormat === "json" ? { responseMimeType: "application/json" } : {}),
           },
         }),
         signal: AbortSignal.timeout(AI_PROVIDER_TIMEOUT_MS),
