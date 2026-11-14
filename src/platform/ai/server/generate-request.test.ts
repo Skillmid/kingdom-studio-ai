@@ -2,10 +2,12 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
 import {
+  DEFAULT_GEMINI_MODEL,
   DEFAULT_OPENROUTER_MODEL,
   MAX_COMPLETION_TOKENS,
   MAX_USER_PROMPT_CHARS,
   parseAIGenerateRequest,
+  resolveAllowedGeminiModel,
   resolveAllowedModel,
   upstreamErrorStatus,
 } from "./generate-request";
@@ -26,18 +28,27 @@ describe("AI generate request validation", () => {
     assert.equal(parseAIGenerateRequest({ userPrompt: "Hi", productionId, temperature: 3 }).ok, false);
   });
 
-  it("rejects non-object bodies and unsupported providers", () => {
-    assert.equal(parseAIGenerateRequest(null).ok, false);
-    assert.equal(parseAIGenerateRequest([]).ok, false);
-    const unsupported = parseAIGenerateRequest({ userPrompt: "Hi", productionId, provider: "openai" });
-    assert.deepEqual(unsupported, { ok: false, error: "Unsupported AI provider." });
+  it("accepts only the implemented text providers", () => {
+    assert.equal(parseAIGenerateRequest({ userPrompt: "Hi", productionId, provider: "openrouter" }).ok, true);
+    assert.equal(parseAIGenerateRequest({ userPrompt: "Hi", productionId, provider: "gemini" }).ok, true);
+    assert.deepEqual(
+      parseAIGenerateRequest({ userPrompt: "Hi", productionId, provider: "openai" }),
+      { ok: false, error: "provider: Invalid option: expected one of \"openrouter\"|\"gemini\"" },
+    );
   });
 
-  it("only allows the default or server-configured models", () => {
+  it("only allows default or server-configured OpenRouter models", () => {
     assert.deepEqual(resolveAllowedModel(undefined, {}), { ok: true, model: DEFAULT_OPENROUTER_MODEL });
     assert.equal(resolveAllowedModel("vendor/expensive-model", {}).ok, false);
     assert.deepEqual(resolveAllowedModel(undefined, { OPENROUTER_MODEL: "a/b" }), { ok: true, model: "a/b" });
     assert.deepEqual(resolveAllowedModel("c/d", { OPENROUTER_ALLOWED_MODELS: "x/y, c/d" }), { ok: true, model: "c/d" });
+  });
+
+  it("only allows default or server-configured Gemini models", () => {
+    assert.deepEqual(resolveAllowedGeminiModel(undefined, {}), { ok: true, model: DEFAULT_GEMINI_MODEL });
+    assert.equal(resolveAllowedGeminiModel("gemini-unapproved", {}).ok, false);
+    assert.deepEqual(resolveAllowedGeminiModel(undefined, { GEMINI_MODEL: "gemini-custom" }), { ok: true, model: "gemini-custom" });
+    assert.deepEqual(resolveAllowedGeminiModel("gemini-allowed", { GEMINI_ALLOWED_MODELS: "gemini-other, gemini-allowed" }), { ok: true, model: "gemini-allowed" });
   });
 
   it("never forwards an upstream 401/403 as the caller's auth failure", () => {
