@@ -31,7 +31,7 @@ describe("scene extractor parsed document", () => {
       "INT. KITCHEN - NIGHT",
       "MAYA",
       "We should leave now.",
-    ].join("\\n"));
+    ].join("\n"));
     assert.equal(document.scenes.length, 1);
     assert.equal(document.scenes[0]?.heading, "INT. KITCHEN - NIGHT");
   });
