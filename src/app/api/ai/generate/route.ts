@@ -61,7 +61,9 @@ async function generateOpenAI(input: {
         ],
         temperature: input.temperature ?? 0.3,
         max_completion_tokens: input.maxTokens ?? DEFAULT_COMPLETION_TOKENS,
-        ...(input.responseFormat === "json" ? { response_format: { type: "json_object" } } : {}),
+        ...(input.outputSchema === "character_profile"
+          ? { response_format: { type: "json_schema", json_schema: characterProfileJsonSchema() }, provider: { require_parameters: true }, plugins: [{ id: "response-healing" }] }
+          : input.responseFormat === "json" ? { response_format: { type: "json_object" } } : {}),
       }),
       signal: AbortSignal.timeout(AI_PROVIDER_TIMEOUT_MS),
     });
@@ -80,6 +82,37 @@ async function generateOpenAI(input: {
   const text = data.choices?.[0]?.message?.content?.trim();
   if (!text) return NextResponse.json({ error: "OpenAI returned an empty response." }, { status: 502 });
   return NextResponse.json({ text, provider: "openai", model: data.model || modelResult.model, tokens: data.usage?.total_tokens });
+}
+
+const CHARACTER_PROFILE_SCHEMA_FIELDS = [
+  "age", "gender", "occupation", "nationality", "ethnicity", "biography",
+  "appearance", "height", "weight", "eyeColor", "hairColor",
+  "distinguishingFeatures", "personality", "strengths", "weaknesses",
+  "fears", "habits", "values", "motivation", "goal", "conflict",
+  "characterArc", "spiritualJourney", "speechStyle", "catchPhrases",
+  "aiInstructions",
+] as const;
+
+function characterProfileJsonSchema() {
+  const nullableText = { type: ["string", "null"] };
+  const fields = Object.fromEntries(CHARACTER_PROFILE_SCHEMA_FIELDS.map((key) => [key, nullableText]));
+  const evidence = Object.fromEntries(CHARACTER_PROFILE_SCHEMA_FIELDS.map((key) => [key, nullableText]));
+  fields.role = { type: ["string", "null"], enum: ["lead", "supporting", "minor", "extra", null] };
+  evidence.role = nullableText;
+  const required = [...CHARACTER_PROFILE_SCHEMA_FIELDS, "role"];
+  return {
+    name: "character_profile_proposal",
+    strict: true,
+    schema: {
+      type: "object",
+      additionalProperties: false,
+      properties: {
+        fields: { type: "object", additionalProperties: false, properties: fields, required },
+        fieldEvidence: { type: "object", additionalProperties: false, properties: evidence, required },
+      },
+      required: ["fields", "fieldEvidence"],
+    },
+  };
 }
 
 interface GeminiResponse {
@@ -103,6 +136,7 @@ async function generateOpenRouter(input: {
   maxTokens?: number;
   model?: string;
   responseFormat?: "json";
+  outputSchema?: "character_profile";
 }) {
   const modelResult = resolveAllowedModel(input.model, {
     OPENROUTER_MODEL: process.env.OPENROUTER_MODEL,
