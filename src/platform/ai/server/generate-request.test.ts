@@ -36,6 +36,8 @@ describe("AI generate request validation", () => {
     assert.equal(parseAIGenerateRequest({ userPrompt: "Hi", productionId, responseFormat: "json" }).ok, true);
     assert.equal(parseAIGenerateRequest({ userPrompt: "Hi", productionId, responseFormat: "xml" }).ok, false);
     assert.equal(parseAIGenerateRequest({ userPrompt: "Hi", productionId, provider: "openai" }).ok, true);
+    assert.equal(parseAIGenerateRequest({ userPrompt: "Hi", productionId, outputSchema: "character_profile" }).ok, true);
+    assert.equal(parseAIGenerateRequest({ userPrompt: "Hi", productionId, outputSchema: "arbitrary_schema" }).ok, false);
   });
 
   it("only allows default or server-configured OpenRouter models", () => {
