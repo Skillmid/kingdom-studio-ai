@@ -5,18 +5,16 @@ import { sceneExtractor } from "@/features/import-engine/extractors/scene.extrac
 const MAX_CHARACTER_CONTEXT_CHARS = 24_000;
 const MAX_RELEVANT_SCENES = 10;
 
-function escapeRegExp(value: string): string {
-  return value.replace(/[.*+?^${}()|[\\]\\\\]/g, "\\\\$&");
-}
+
 
 /** Select a compact, character-specific source packet; evidence is still checked against the full screenplay. */
 export async function extractRelevantCharacterScenes(screenplay: string, characterName: string): Promise<string> {
   const document = await sceneExtractor.parse(screenplay);
   const normalizedName = characterName.trim().toLocaleLowerCase();
-  const mention = new RegExp("(^|[^\\p{L}])" + escapeRegExp(characterName.trim()) + "([^\\p{L}]|$)", "iu");
+  const mention = characterName.trim().toLocaleLowerCase();
   const relevant = document.scenes.filter((scene) => {
     const hasDialogue = scene.dialogues.some((entry) => entry.character.trim().toLocaleLowerCase() === normalizedName);
-    return hasDialogue || mention.test(scene.action);
+    return hasDialogue || scene.action.toLocaleLowerCase().includes(mention);
   }).slice(0, MAX_RELEVANT_SCENES);
   const blocks = relevant.map((scene) => {
     const dialogue = scene.dialogues
