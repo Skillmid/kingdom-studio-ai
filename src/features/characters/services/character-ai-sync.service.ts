@@ -6,7 +6,7 @@ const MAX_CHARACTER_CONTEXT_CHARS = 24_000;
 const MAX_RELEVANT_SCENES = 10;
 
 function escapeRegExp(value: string): string {
-  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\import { DEFAULT_AI_PROVIDER } from "@/platform/ai/config/default-provider";");
+  return value.replace(/[.*+?^${}()|[\\]\\\\]/g, "\\\\$&");
 }
 
 /** Select a compact, character-specific source packet; evidence is still checked against the full screenplay. */
