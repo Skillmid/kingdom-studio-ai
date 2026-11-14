@@ -31,6 +31,8 @@ describe("AI generate request validation", () => {
   it("accepts only the implemented text providers", () => {
     assert.equal(parseAIGenerateRequest({ userPrompt: "Hi", productionId, provider: "openrouter" }).ok, true);
     assert.equal(parseAIGenerateRequest({ userPrompt: "Hi", productionId, provider: "gemini" }).ok, true);
+    assert.equal(parseAIGenerateRequest({ userPrompt: "Hi", productionId, responseFormat: "json" }).ok, true);
+    assert.equal(parseAIGenerateRequest({ userPrompt: "Hi", productionId, responseFormat: "xml" }).ok, false);
     const unsupported = parseAIGenerateRequest({ userPrompt: "Hi", productionId, provider: "openai" });
     assert.equal(unsupported.ok, false);
     if (!unsupported.ok) assert.match(unsupported.error, /^provider:/);
