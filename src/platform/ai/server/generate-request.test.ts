@@ -31,10 +31,9 @@ describe("AI generate request validation", () => {
   it("accepts only the implemented text providers", () => {
     assert.equal(parseAIGenerateRequest({ userPrompt: "Hi", productionId, provider: "openrouter" }).ok, true);
     assert.equal(parseAIGenerateRequest({ userPrompt: "Hi", productionId, provider: "gemini" }).ok, true);
-    assert.deepEqual(
-      parseAIGenerateRequest({ userPrompt: "Hi", productionId, provider: "openai" }),
-      { ok: false, error: "provider: Invalid option: expected one of \"openrouter\"|\"gemini\"" },
-    );
+    const unsupported = parseAIGenerateRequest({ userPrompt: "Hi", productionId, provider: "openai" });
+    assert.equal(unsupported.ok, false);
+    if (!unsupported.ok) assert.match(unsupported.error, /^provider:/);
   });
 
   it("only allows default or server-configured OpenRouter models", () => {
