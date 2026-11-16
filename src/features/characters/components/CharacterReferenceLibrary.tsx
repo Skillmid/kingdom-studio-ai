@@ -15,7 +15,7 @@ import { storyBibleRepository } from "@/features/story-bible/repositories/story-
 import type { Character } from "../types/character";
 import { characterRepository } from "../repositories/character.repository";
 import { ProviderStateUnknownError, useAssets } from "@/features/assets/hooks/use-assets";
-import { canCheckGenerationJobStatus } from "@/features/assets/services/generation-job";
+import { canCheckGenerationJobStatus, hasUnknownProviderState, providerStateUnknownMessage } from "@/features/assets/services/generation-job";
 import {
   buildCharacterReferenceProposal,
   findPendingCharacterReferenceDraft,
@@ -319,6 +319,11 @@ export default function CharacterReferenceLibrary({
       setActionLoading(true);
       setError(null);
       const result = await queueAsset(asset, { confirmedProviderCheck });
+      if (hasUnknownProviderState(result.job)) {
+        setPendingProviderCheckAsset(asset);
+        setNotice(providerStateUnknownMessage(result.job));
+        return;
+      }
       setPendingProviderCheckAsset(null);
       const message = result.job.status === "completed"
         ? `Image generated for ${character.name}. Review it before using it as the definitive character identity.`
