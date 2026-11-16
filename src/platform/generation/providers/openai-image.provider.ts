@@ -1,5 +1,4 @@
 import {
-  INLINE_DATA_REQUIRES_STORAGE_ERROR,
   UNCONFIGURED_MEDIA_ERROR,
   type GenerationEnvironment,
   type MediaGenerationProvider,
@@ -19,13 +18,9 @@ interface OpenAIImageResponse {
 }
 
 /**
- * Only the DALL·E models can return a hosted URL (`response_format: "url"`), which is what the
- * URL-based asset architecture stores in `assets.file_url`. Set OPENAI_IMAGE_MODEL=dall-e-3 (or
- * dall-e-2) to use OpenAI image generation today.
- * gpt-image-* models (including the default gpt-image-1) always return inline base64. Kingdom Studio
- * has no durable media storage yet, so those models are refused BEFORE the paid request. Base64 is
- * never written to file_url and no URL is invented. Supporting them requires a storage decision
- * (for example Supabase Storage), which is deliberately deferred.
+ * GPT Image models return inline base64; DALL·E models can return hosted URLs. Inline data is
+ * handed to the server-side generation pipeline for durable Supabase Storage upload. It is never
+ * written directly into assets.file_url.
  */
 export function openAIModelReturnsUrl(model: string): boolean {
   return /^dall-e-[23]\b/i.test(model.trim());
@@ -54,7 +49,8 @@ export class OpenAIImageProvider implements MediaGenerationProvider {
   }
 
   canDeliverUrl(jobType: MediaJobType): boolean {
-    return jobType === "image" && openAIModelReturnsUrl(this.model);
+    // The application storage adapter turns hosted URLs and inline bytes into durable assets.
+    return jobType === "image";
   }
 
   async generate(request: MediaGenerationRequest): Promise<MediaGenerationResult> {
@@ -70,16 +66,6 @@ export class OpenAIImageProvider implements MediaGenerationProvider {
       return { status: "failed", provider: this.id, failureKind: "configuration", errorMessage: UNCONFIGURED_MEDIA_ERROR };
     }
     const model = this.model;
-    // Refuse before spending money: this model can only return inline data.
-    if (!openAIModelReturnsUrl(model)) {
-      return {
-        status: "failed",
-        provider: this.id,
-        model,
-        failureKind: "inline-data-requires-storage",
-        errorMessage: INLINE_DATA_REQUIRES_STORAGE_ERROR,
-      };
-    }
     const size =
       typeof request.parameters?.size === "string"
         ? request.parameters.size
@@ -96,7 +82,7 @@ export class OpenAIImageProvider implements MediaGenerationProvider {
           prompt: request.prompt,
           n: 1,
           size,
-          response_format: "url",
+          ...(/^(gpt-image-)/i.test(model) ? {} : { response_format: "url" }),
         }),
       });
       const payload = (await response.json().catch(() => ({}))) as OpenAIImageResponse;
@@ -110,19 +96,18 @@ export class OpenAIImageProvider implements MediaGenerationProvider {
         };
       }
       const outputUrl = firstProviderUrl(payload.data);
-      if (!outputUrl) {
-        const inlineOnly = Array.isArray(payload.data) && payload.data.some((item) => typeof item?.b64_json === "string");
-        return {
-          status: "failed",
-          provider: this.id,
-          model,
-          failureKind: inlineOnly ? "inline-data-requires-storage" : "provider",
-          errorMessage: inlineOnly
-            ? INLINE_DATA_REQUIRES_STORAGE_ERROR
-            : "OpenAI returned no image URL. No file URL was invented.",
-        };
+      if (outputUrl) return { status: "completed", provider: this.id, model, outputUrl };
+      const inline = payload.data?.find((item) => typeof item?.b64_json === "string" && item.b64_json.length > 0);
+      if (inline?.b64_json) {
+        return { status: "completed", provider: this.id, model, outputBase64: inline.b64_json, outputMimeType: "image/png" };
       }
-      return { status: "completed", provider: this.id, model, outputUrl };
+      return {
+        status: "failed",
+        provider: this.id,
+        model,
+        failureKind: "provider",
+        errorMessage: "OpenAI returned neither a hosted image URL nor inline image data.",
+      };
     } catch (error) {
       return {
         status: "failed",
