@@ -90,7 +90,7 @@ They will not wait.
 
   it("tolerates blank lines between character cues and dialogue", async () => {
     const extracted = await characterExtractor.extract(
-      "INT. ROOM - DAY\\n\\nMRS. OKAFOR\\n\\nPlease come in.\\n\\nTUNDE\\n\\nThank you.",
+      ["INT. ROOM - DAY", "", "MRS. OKAFOR", "", "Please come in.", "", "TUNDE", "", "Thank you."].join("\\n"),
     );
     assert.deepEqual(extracted.map((character) => character.name).sort(), ["Mrs. Okafor", "Tunde"]);
   });
