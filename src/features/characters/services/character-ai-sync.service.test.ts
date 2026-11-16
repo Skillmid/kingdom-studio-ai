@@ -74,7 +74,7 @@ async function captureCharacterPrompt(name: string) {
 it("builds a character-specific prompt for Doctor Lanre from the actual Altar of Grace test script", async () => {
   const request = await captureCharacterPrompt("Doctor Lanre");
   assert.match(request.userPrompt, /INT\. DOCTOR'S OFFICE - DAY/);
-  assert.match(request.userPrompt, /DOCTOR LANRE: \\(Looking up\\) Chief, the test results changed overnight\\./);
+  assert.match(request.userPrompt, /DOCTOR LANRE: \(Looking up\) Chief, the test results changed overnight\./);
   assert.match(request.userPrompt, /I am looking at the facts, Chief\. God has/);
   assert.doesNotMatch(request.userPrompt, /CHIEF WILLIAMS: You are delaying the procedure/);
   assert.match(request.systemPrompt, /Character: Doctor Lanre/);
