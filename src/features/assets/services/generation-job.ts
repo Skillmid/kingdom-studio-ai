@@ -342,9 +342,17 @@ export function provenanceAfterGeneration(asset: Pick<Asset, "provenance">): Ass
 export function applyJobResultToAsset(
   asset: Asset,
   job: Pick<GenerationJob, "status" | "outputUrl" | "errorMessage">,
-): Pick<Asset, "fileUrl" | "status" | "uncertaintyNotes"> & Partial<Pick<Asset, "provenance">> {
+): Pick<Asset, "fileUrl" | "status" | "uncertaintyNotes"> & Partial<Pick<Asset, "provenance" | "userApproved">> {
   if (job.status === "completed" && job.outputUrl) {
-    return { fileUrl: job.outputUrl, status: "ready", uncertaintyNotes: undefined, provenance: provenanceAfterGeneration(asset) };
+    // Approval to spend credits on generation is not approval of the generated result.
+    // Every new output returns to creator review before it becomes an approved reference.
+    return {
+      fileUrl: job.outputUrl,
+      status: "ready",
+      uncertaintyNotes: undefined,
+      provenance: provenanceAfterGeneration(asset),
+      userApproved: false,
+    };
   }
   if (job.status === "running" || job.status === "queued") {
     return { fileUrl: asset.fileUrl, status: "generating", uncertaintyNotes: asset.uncertaintyNotes };

@@ -14,8 +14,11 @@ import { productionRepository } from "@/features/productions/repositories/produc
 import { storyBibleRepository } from "@/features/story-bible/repositories/story-bible.repository";
 import type { Character } from "../types/character";
 import { characterRepository } from "../repositories/character.repository";
+import { ProviderStateUnknownError, useAssets } from "@/features/assets/hooks/use-assets";
+import { canCheckGenerationJobStatus, hasUnknownProviderState, providerStateUnknownMessage } from "@/features/assets/services/generation-job";
 import {
   buildCharacterReferenceProposal,
+  findPendingCharacterReferenceDraft,
   getCharacterReferenceLibraryState,
 } from "../repositories/character-reference-assets";
 
@@ -30,6 +33,7 @@ export default function CharacterReferenceLibrary({
   character,
   onReferencesChange,
 }: CharacterReferenceLibraryProps) {
+  const { queueAsset, checkJobStatus, jobs, queueing, loading: assetsLoading } = useAssets(productionId);
   const [references, setReferences] = useState<Asset[]>([]);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
@@ -45,6 +49,7 @@ export default function CharacterReferenceLibrary({
 
   const [selectedFullSizeAsset, setSelectedFullSizeAsset] = useState<Asset | null>(null);
   const [deletingAssetId, setDeletingAssetId] = useState<string | null>(null);
+  const [pendingProviderCheckAsset, setPendingProviderCheckAsset] = useState<Asset | null>(null);
   const [visualContext, setVisualContext] = useState<{
     creative: VisualCreativeInput | null;
     storyBible: VisualStoryBibleInput | null;
@@ -230,8 +235,18 @@ export default function CharacterReferenceLibrary({
         userApproved: false,
       });
 
-      await characterRepository.createCharacterReference(proposal);
-      setNotice(`Created reference proposal for ${character.name}. Review prompt details or queue generation in Assets.`);
+      const existingDraft = findPendingCharacterReferenceDraft(
+        references,
+        productionId,
+        character.id,
+      );
+      if (existingDraft) {
+        await characterRepository.updateCharacterReference(existingDraft.id, proposal);
+        setNotice(`Updated the existing image prompt for ${character.name}. Approve it when you are ready to generate.`);
+      } else {
+        await characterRepository.createCharacterReference(proposal);
+        setNotice(`Prepared an image prompt for ${character.name}. Review and approve it before generation.`);
+      }
 
       setRefreshKey((k) => k + 1);
       onReferencesChange?.();
@@ -295,6 +310,60 @@ export default function CharacterReferenceLibrary({
     }
   }
 
+  async function handleGenerateImage(asset: Asset, confirmedProviderCheck = false) {
+    if (!asset.userApproved) {
+      setError("Approve this visual reference before starting image generation.");
+      return;
+    }
+    try {
+      setActionLoading(true);
+      setError(null);
+      const result = await queueAsset(asset, { confirmedProviderCheck });
+      if (hasUnknownProviderState(result.job)) {
+        setPendingProviderCheckAsset(asset);
+        setNotice(providerStateUnknownMessage(result.job));
+        return;
+      }
+      setPendingProviderCheckAsset(null);
+      const message = result.job.status === "completed"
+        ? `Image generated for ${character.name}. Review it before using it as the definitive character identity.`
+        : result.job.status === "running"
+          ? `Generation has started for ${character.name}. Check its status shortly.`
+          : result.job.errorMessage || `Generation status: ${result.job.status}.`;
+      setNotice(result.warning ? `${message} ${result.warning}` : message);
+      setRefreshKey((key) => key + 1);
+      onReferencesChange?.();
+    } catch (err) {
+      if (err instanceof ProviderStateUnknownError) {
+        setPendingProviderCheckAsset(asset);
+        setNotice(err.message);
+      } else {
+        setError(err instanceof Error ? err.message : "Unable to start character image generation.");
+      }
+    } finally {
+      setActionLoading(false);
+    }
+  }
+
+  async function handleCheckGeneration(asset: Asset) {
+    const job = jobs.find((item) => item.assetId === asset.id && canCheckGenerationJobStatus(item));
+    if (!job) return;
+    try {
+      setActionLoading(true);
+      setError(null);
+      const result = await checkJobStatus(job);
+      setNotice(result.job.status === "completed"
+        ? `Image generation completed for ${character.name}. Review the result before approving it.`
+        : result.job.errorMessage || `Generation remains ${result.job.status}.`);
+      setRefreshKey((key) => key + 1);
+      onReferencesChange?.();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Unable to check image generation status.");
+    } finally {
+      setActionLoading(false);
+    }
+  }
+
   const libraryState = getCharacterReferenceLibraryState(references);
 
   return (
@@ -308,9 +377,9 @@ export default function CharacterReferenceLibrary({
             Visual References & Identity
           </h3>
           <p className="mt-2 text-sm leading-6 text-zinc-400">
-            Establish and review visual continuity for {character.name}. Approved
-            references maintain consistent wardrobe, facial traits, and lighting
-            across scenes, shots, and downstream media generation.
+            Establish and review the visual identity for {character.name}. Approved
+            references are retained as production assets. Automatic reference-image
+            conditioning depends on the selected generation provider and is not assumed.
           </p>
         </div>
 
@@ -330,14 +399,14 @@ export default function CharacterReferenceLibrary({
             disabled={actionLoading}
             className="rounded-xl border border-yellow-500/40 bg-yellow-500/10 px-4 py-2.5 text-xs font-bold text-yellow-400 transition hover:bg-yellow-500/20 disabled:opacity-50"
           >
-            Create Reference Proposal
+            Prepare Image Prompt
           </button>
 
           <Link
             href={`/studio/productions/${productionId}/assets`}
             className="rounded-xl bg-yellow-500 px-4 py-2.5 text-xs font-bold text-black transition hover:bg-yellow-400"
           >
-            Queue in Assets &rarr;
+            View Asset Library &rarr;
           </Link>
         </div>
       </header>
@@ -372,6 +441,33 @@ export default function CharacterReferenceLibrary({
           >
             Dismiss
           </button>
+        </div>
+      )}
+
+      {pendingProviderCheckAsset && (
+        <div className="mt-4 rounded-xl border border-amber-500/40 bg-amber-500/10 p-4">
+          <p className="text-sm font-semibold text-amber-200">Provider check required before retry</p>
+          <p className="mt-1 text-xs leading-5 text-zinc-300">
+            The previous request may already have been accepted or billed. Check the provider dashboard for this generation before continuing. Only confirm if you have verified that no usable generation is running or available.
+          </p>
+          <div className="mt-3 flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() => handleGenerateImage(pendingProviderCheckAsset, true)}
+              disabled={actionLoading || queueing}
+              className="rounded-lg bg-amber-400 px-3 py-2 text-xs font-bold text-black disabled:opacity-50"
+            >
+              I checked. Retry generation
+            </button>
+            <button
+              type="button"
+              onClick={() => setPendingProviderCheckAsset(null)}
+              disabled={actionLoading || queueing}
+              className="rounded-lg border border-zinc-700 px-3 py-2 text-xs font-semibold text-zinc-300"
+            >
+              Cancel
+            </button>
+          </div>
         </div>
       )}
 
@@ -481,7 +577,7 @@ export default function CharacterReferenceLibrary({
             </h4>
             <p className="mx-auto mt-2 max-w-md text-xs leading-5 text-zinc-400">
               Establish this character&apos;s appearance for consistent filmmaking.
-              Add an existing image URL or create a grounded prompt proposal derived
+              Add an existing image URL or prepare a grounded image prompt derived
               from this character&apos;s physical profile.
             </p>
             <div className="mt-5 flex justify-center gap-3">
@@ -497,7 +593,7 @@ export default function CharacterReferenceLibrary({
                 onClick={handleCreateProposal}
                 className="rounded-xl bg-yellow-500 px-4 py-2 text-xs font-bold text-black transition hover:bg-yellow-400"
               >
-                Create Proposal
+                Prepare Image Prompt
               </button>
             </div>
           </div>
@@ -577,7 +673,7 @@ export default function CharacterReferenceLibrary({
                         <div className="absolute left-3 top-3 flex flex-wrap gap-1.5">
                           {isApproved ? (
                             <span className="rounded-lg border border-yellow-500/40 bg-black/80 px-2.5 py-1 text-[10px] font-black uppercase tracking-wider text-yellow-400 backdrop-blur">
-                              Approved Character Reference
+                              {hasImage ? "Approved Character Reference" : "Approved for Generation"}
                             </span>
                           ) : (
                             <span className="rounded-lg border border-zinc-700 bg-black/80 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-zinc-400 backdrop-blur">
@@ -605,9 +701,19 @@ export default function CharacterReferenceLibrary({
                           </p>
                         )}
 
-                        {isApproved && (
+                        {isApproved && !hasImage && (
                           <div className="rounded-xl border border-yellow-500/25 bg-yellow-500/5 p-2.5 text-[11px] leading-4 text-yellow-300">
-                            Use this reference to maintain visual continuity across generated scenes and shots.
+                            Prompt approved for image generation. The generated image will return for a separate creator review.
+                          </div>
+                        )}
+                        {isApproved && hasImage && (
+                          <div className="rounded-xl border border-yellow-500/25 bg-yellow-500/5 p-2.5 text-[11px] leading-4 text-yellow-300">
+                            This image has been reviewed and approved as a character reference.
+                          </div>
+                        )}
+                        {!isApproved && hasImage && (
+                          <div className="rounded-xl border border-sky-500/25 bg-sky-500/5 p-2.5 text-[11px] leading-4 text-sky-200">
+                            Generated image awaiting your review. Approve it before treating it as an established character reference.
                           </div>
                         )}
 
@@ -655,6 +761,28 @@ export default function CharacterReferenceLibrary({
                         </div>
                       ) : (
                         <div className="flex items-center justify-between gap-2">
+                          <div className="flex flex-wrap items-center gap-2">
+                            {isApproved && !hasImage && asset.prompt && (
+                              <button
+                                type="button"
+                                onClick={() => handleGenerateImage(asset)}
+                                disabled={actionLoading || queueing || assetsLoading || asset.status === "generating"}
+                                className="rounded-lg bg-yellow-500 px-3 py-1.5 text-xs font-bold text-black transition hover:bg-yellow-400 disabled:cursor-not-allowed disabled:opacity-50"
+                              >
+                                {assetsLoading ? "Loading generation history..." : queueing || asset.status === "generating" ? "Generating..." : "Generate Image"}
+                              </button>
+                            )}
+                            {isApproved && !hasImage && jobs.some((job) => job.assetId === asset.id && canCheckGenerationJobStatus(job)) && (
+                              <button
+                                type="button"
+                                onClick={() => handleCheckGeneration(asset)}
+                                disabled={actionLoading || queueing}
+                                className="text-xs font-semibold text-sky-300 hover:text-sky-200 disabled:opacity-50"
+                              >
+                                Check Status
+                              </button>
+                            )}
+                          </div>
                           {isApproved ? (
                             <button
                               type="button"
