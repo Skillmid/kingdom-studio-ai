@@ -372,9 +372,9 @@ export default function CharacterReferenceLibrary({
             Visual References & Identity
           </h3>
           <p className="mt-2 text-sm leading-6 text-zinc-400">
-            Establish and review visual continuity for {character.name}. Approved
-            references maintain consistent wardrobe, facial traits, and lighting
-            across scenes, shots, and downstream media generation.
+            Establish and review the visual identity for {character.name}. Approved
+            references are retained as production assets. Automatic reference-image
+            conditioning depends on the selected generation provider and is not assumed.
           </p>
         </div>
 
@@ -668,7 +668,7 @@ export default function CharacterReferenceLibrary({
                         <div className="absolute left-3 top-3 flex flex-wrap gap-1.5">
                           {isApproved ? (
                             <span className="rounded-lg border border-yellow-500/40 bg-black/80 px-2.5 py-1 text-[10px] font-black uppercase tracking-wider text-yellow-400 backdrop-blur">
-                              Approved Character Reference
+                              {hasImage ? "Approved Character Reference" : "Approved for Generation"}
                             </span>
                           ) : (
                             <span className="rounded-lg border border-zinc-700 bg-black/80 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-zinc-400 backdrop-blur">
@@ -696,9 +696,19 @@ export default function CharacterReferenceLibrary({
                           </p>
                         )}
 
-                        {isApproved && (
+                        {isApproved && !hasImage && (
                           <div className="rounded-xl border border-yellow-500/25 bg-yellow-500/5 p-2.5 text-[11px] leading-4 text-yellow-300">
-                            Use this reference to maintain visual continuity across generated scenes and shots.
+                            Prompt approved for image generation. The generated image will return for a separate creator review.
+                          </div>
+                        )}
+                        {isApproved && hasImage && (
+                          <div className="rounded-xl border border-yellow-500/25 bg-yellow-500/5 p-2.5 text-[11px] leading-4 text-yellow-300">
+                            This image has been reviewed and approved as a character reference.
+                          </div>
+                        )}
+                        {!isApproved && hasImage && (
+                          <div className="rounded-xl border border-sky-500/25 bg-sky-500/5 p-2.5 text-[11px] leading-4 text-sky-200">
+                            Generated image awaiting your review. Approve it before treating it as an established character reference.
                           </div>
                         )}
 
