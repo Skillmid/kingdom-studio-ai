@@ -84,3 +84,24 @@ export function buildCharacterReferenceProposal(
   };
 }
 
+
+/**
+ * Finds the reusable, unapproved draft for a character. The character workspace updates
+ * this draft instead of creating another identical proposal on every button click.
+ */
+export function findPendingCharacterReferenceDraft(
+  assets: Asset[],
+  productionId: string,
+  characterId: string,
+): Asset | undefined {
+  return assets.find((asset) =>
+    asset.productionId === productionId &&
+    asset.characterId === characterId &&
+    asset.kind === "character-reference" &&
+    asset.sourceKind === "character" &&
+    asset.sourceId === characterId &&
+    asset.status === "draft" &&
+    !asset.userApproved &&
+    !asset.fileUrl?.trim()
+  );
+}
