@@ -28,6 +28,8 @@ export interface Asset {
   description?: string;
   prompt?: string;
   fileUrl?: string;
+  /** Stable private Supabase Storage path; fileUrl is a short-lived signed preview URL. */
+  storagePath?: string;
   mimeType?: string;
   sourceKind: AssetSourceKind;
   sourceId?: string;
