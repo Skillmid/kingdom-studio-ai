@@ -42,6 +42,9 @@ export interface MediaGenerationResult {
   provider: string;
   model?: string;
   outputUrl?: string;
+  /** Inline image bytes are transient provider output and must be uploaded before completion is persisted. */
+  outputBase64?: string;
+  outputMimeType?: string;
   providerJobId?: string;
   errorMessage?: string;
   failureKind?: MediaFailureKind;
@@ -77,6 +80,7 @@ export interface GenerationEnvironment {
   KLING_API_BASE_URL?: string;
   OPENAI_API_KEY?: string;
   OPENAI_IMAGE_MODEL?: string;
+  SUPABASE_MEDIA_BUCKET?: string;
 }
 
 export function readGenerationEnvironment(
@@ -89,6 +93,7 @@ export function readGenerationEnvironment(
     KLING_API_BASE_URL: env.KLING_API_BASE_URL,
     OPENAI_API_KEY: env.OPENAI_API_KEY,
     OPENAI_IMAGE_MODEL: env.OPENAI_IMAGE_MODEL,
+    SUPABASE_MEDIA_BUCKET: env.SUPABASE_MEDIA_BUCKET,
   };
 }
 
@@ -97,7 +102,7 @@ export const UNCONFIGURED_MEDIA_ERROR =
   "No generation provider is configured. The job remains recoverable and no media was invented.";
 
 export const INLINE_DATA_REQUIRES_STORAGE_ERROR =
-  "This provider/model returns inline base64 image data only. Kingdom Studio does not yet have durable media storage, so the image cannot be saved and no file URL was invented. Set OPENAI_IMAGE_MODEL to dall-e-3 or dall-e-2 (they return hosted URLs), or configure Kling. gpt-image models need durable storage, which is a future decision.";
+  "The image provider returned inline image data, but durable media storage is not configured. Configure the production-media Supabase Storage bucket and its owner-only policies before retrying.";
 
 /** Default ceiling for a single provider HTTP call made from a request handler. */
 export const PROVIDER_REQUEST_TIMEOUT_MS = 45_000;
