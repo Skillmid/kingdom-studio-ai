@@ -1,4 +1,5 @@
 import {
+  INLINE_DATA_REQUIRES_STORAGE_ERROR,
   UNCONFIGURED_MEDIA_ERROR,
   type GenerationEnvironment,
   type MediaGenerationProvider,
@@ -72,7 +73,7 @@ export class OpenAIImageProvider implements MediaGenerationProvider {
         provider: this.id,
         model,
         failureKind: "inline-data-requires-storage",
-        errorMessage: "GPT Image returns inline image data. Set SUPABASE_MEDIA_BUCKET=production-media after applying the private production media storage migration.",
+        errorMessage: INLINE_DATA_REQUIRES_STORAGE_ERROR,
       };
     }
     const size =
@@ -116,7 +117,7 @@ export class OpenAIImageProvider implements MediaGenerationProvider {
           provider: this.id,
           model,
           failureKind: "inline-data-requires-storage",
-          errorMessage: "OpenAI returned inline image data, but SUPABASE_MEDIA_BUCKET is not configured. No image URL was invented.",
+          errorMessage: INLINE_DATA_REQUIRES_STORAGE_ERROR,
         };
       }
       return {
