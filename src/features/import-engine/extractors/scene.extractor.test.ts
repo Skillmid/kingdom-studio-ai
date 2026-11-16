@@ -24,6 +24,18 @@ describe("scene extractor parsed document", () => {
     assert.equal(document.scenes[0]?.dialogue, "We should leave now. I agree.");
   });
 
+  it("does not create a phantom scene for opening transitions before the first slug line", async () => {
+    const document = await sceneExtractor.parse([
+      "FADE IN:",
+      "",
+      "INT. KITCHEN - NIGHT",
+      "MAYA",
+      "We should leave now.",
+    ].join("\n"));
+    assert.equal(document.scenes.length, 1);
+    assert.equal(document.scenes[0]?.heading, "INT. KITCHEN - NIGHT");
+  });
+
   it("returns an empty parsed scene list for blank input", async () => {
     assert.deepEqual(await sceneExtractor.parse(" \n "), { scenes: [] });
   });

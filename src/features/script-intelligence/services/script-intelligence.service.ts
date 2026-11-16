@@ -1,6 +1,7 @@
 import {
   aiGateway,
 } from "@/platform/ai";
+import { DEFAULT_AI_PROVIDER } from "@/platform/ai/config/default-provider";
 
 import {
   scriptAnalysisPrompt,
@@ -746,8 +747,7 @@ export class ScriptIntelligenceService {
 
     const response =
       await aiGateway.generate({
-        provider:
-          "openrouter",
+        provider: DEFAULT_AI_PROVIDER,
 
         systemPrompt:
           scriptAnalysisPrompt
@@ -784,8 +784,7 @@ export class ScriptIntelligenceService {
 
     const response =
       await aiGateway.generate({
-        provider:
-          "openrouter",
+        provider: DEFAULT_AI_PROVIDER,
 
         systemPrompt:
           scriptReviewPrompt
@@ -823,7 +822,7 @@ export class ScriptIntelligenceService {
     }
 
     const response = await aiGateway.generate({
-      provider: "openrouter",
+      provider: DEFAULT_AI_PROVIDER,
       systemPrompt: scriptSceneExtractionPrompt.buildSystemPrompt(),
       userPrompt: scriptSceneExtractionPrompt.buildUserPrompt(screenplay),
       temperature: 0.2,

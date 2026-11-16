@@ -1,4 +1,8 @@
 import {
+  geminiProvider,
+} from "../providers/gemini.provider";
+
+import {
   openRouterProvider,
 } from "../providers/openrouter.provider";
 
@@ -17,17 +21,15 @@ export class AIGateway {
   ): Promise<AIResponse> {
     switch (request.provider) {
       case "openrouter":
-        return openRouterProvider.generate(
-          request
-        );
+        return openRouterProvider.generate(request);
+
+      case "gemini":
+        return geminiProvider.generate(request);
 
       case "openai":
-        return openAIProvider.generate(
-          request
-        );
+        return openAIProvider.generate(request);
 
       case "claude":
-      case "gemini":
       case "grok":
       case "deepseek":
       case "local":
@@ -36,16 +38,11 @@ export class AIGateway {
         );
 
       default: {
-        const exhaustiveCheck: never =
-          request.provider;
-
-        throw new Error(
-          `Unknown AI provider: ${exhaustiveCheck}`
-        );
+        const exhaustiveCheck: never = request.provider;
+        throw new Error(`Unknown AI provider: ${exhaustiveCheck}`);
       }
     }
   }
 }
 
-export const aiGateway =
-  new AIGateway();
+export const aiGateway = new AIGateway();
