@@ -226,7 +226,7 @@ export function toJobResultDatabase(job: GenerationJob) {
  * value are written as null so stale notes/URLs are actually cleared.
  */
 export function toAssetPatchDatabase(
-  patch: Partial<Pick<Asset, "fileUrl" | "status" | "uncertaintyNotes" | "provenance" | "progress">>,
+  patch: Partial<Pick<Asset, "fileUrl" | "status" | "uncertaintyNotes" | "provenance" | "progress" | "userApproved">>,
 ): Record<string, unknown> {
   const row: Record<string, unknown> = {};
   if ("fileUrl" in patch) row.file_url = patch.fileUrl ?? null;
@@ -234,5 +234,6 @@ export function toAssetPatchDatabase(
   if (patch.status !== undefined) row.status = patch.status;
   if (patch.provenance !== undefined) row.provenance = patch.provenance;
   if (patch.progress !== undefined) row.progress = patch.progress;
+  if (patch.userApproved !== undefined) row.user_approved = patch.userApproved;
   return row;
 }
