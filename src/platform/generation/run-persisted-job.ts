@@ -44,6 +44,8 @@ export interface PersistedJobStore {
   /** Conditional save: only succeeds while the row is still running. */
   saveJobResult(job: GenerationJob): Promise<GenerationJob | null>;
   updateAsset(assetId: string, patch: Partial<Asset>): Promise<Asset | null>;
+  /** Uploads provider-returned inline image data using the authenticated, RLS-scoped storage client. */
+  storeGeneratedImage?(job: GenerationJob, base64: string, mimeType: string): Promise<string>;
 }
 
 export type RunPersistedJobOutcome =
@@ -113,7 +115,12 @@ export async function runPersistedGenerationJob(
   }
 
   const dispatch = deps.dispatch ?? dispatchGenerationJob;
-  const dispatched = await dispatch(active, deps);
+  const dispatched = await dispatch(active, {
+    ...deps,
+    storeGeneratedImage: store.storeGeneratedImage
+      ? (currentJob, base64, mimeType) => store.storeGeneratedImage!(currentJob, base64, mimeType)
+      : deps.storeGeneratedImage,
+  });
 
   let saved: GenerationJob | null;
   try {
