@@ -14,7 +14,8 @@ import { productionRepository } from "@/features/productions/repositories/produc
 import { storyBibleRepository } from "@/features/story-bible/repositories/story-bible.repository";
 import type { Character } from "../types/character";
 import { characterRepository } from "../repositories/character.repository";
-import { useAssets } from "@/features/assets/hooks/use-assets";
+import { ProviderStateUnknownError, useAssets } from "@/features/assets/hooks/use-assets";
+import { canCheckGenerationJobStatus } from "@/features/assets/services/generation-job";
 import {
   buildCharacterReferenceProposal,
   findPendingCharacterReferenceDraft,
@@ -48,6 +49,7 @@ export default function CharacterReferenceLibrary({
 
   const [selectedFullSizeAsset, setSelectedFullSizeAsset] = useState<Asset | null>(null);
   const [deletingAssetId, setDeletingAssetId] = useState<string | null>(null);
+  const [pendingProviderCheckAsset, setPendingProviderCheckAsset] = useState<Asset | null>(null);
   const [visualContext, setVisualContext] = useState<{
     creative: VisualCreativeInput | null;
     storyBible: VisualStoryBibleInput | null;
@@ -308,7 +310,7 @@ export default function CharacterReferenceLibrary({
     }
   }
 
-  async function handleGenerateImage(asset: Asset) {
+  async function handleGenerateImage(asset: Asset, confirmedProviderCheck = false) {
     if (!asset.userApproved) {
       setError("Approve this visual reference before starting image generation.");
       return;
@@ -316,7 +318,8 @@ export default function CharacterReferenceLibrary({
     try {
       setActionLoading(true);
       setError(null);
-      const result = await queueAsset(asset);
+      const result = await queueAsset(asset, { confirmedProviderCheck });
+      setPendingProviderCheckAsset(null);
       const message = result.job.status === "completed"
         ? `Image generated for ${character.name}. Review it before using it as the definitive character identity.`
         : result.job.status === "running"
@@ -326,14 +329,19 @@ export default function CharacterReferenceLibrary({
       setRefreshKey((key) => key + 1);
       onReferencesChange?.();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Unable to start character image generation.");
+      if (err instanceof ProviderStateUnknownError) {
+        setPendingProviderCheckAsset(asset);
+        setNotice(err.message);
+      } else {
+        setError(err instanceof Error ? err.message : "Unable to start character image generation.");
+      }
     } finally {
       setActionLoading(false);
     }
   }
 
   async function handleCheckGeneration(asset: Asset) {
-    const job = jobs.find((item) => item.assetId === asset.id && item.status === "running");
+    const job = jobs.find((item) => item.assetId === asset.id && canCheckGenerationJobStatus(item));
     if (!job) return;
     try {
       setActionLoading(true);
@@ -428,6 +436,33 @@ export default function CharacterReferenceLibrary({
           >
             Dismiss
           </button>
+        </div>
+      )}
+
+      {pendingProviderCheckAsset && (
+        <div className="mt-4 rounded-xl border border-amber-500/40 bg-amber-500/10 p-4">
+          <p className="text-sm font-semibold text-amber-200">Provider check required before retry</p>
+          <p className="mt-1 text-xs leading-5 text-zinc-300">
+            The previous request may already have been accepted or billed. Check the provider dashboard for this generation before continuing. Only confirm if you have verified that no usable generation is running or available.
+          </p>
+          <div className="mt-3 flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() => handleGenerateImage(pendingProviderCheckAsset, true)}
+              disabled={actionLoading || queueing}
+              className="rounded-lg bg-amber-400 px-3 py-2 text-xs font-bold text-black disabled:opacity-50"
+            >
+              I checked. Retry generation
+            </button>
+            <button
+              type="button"
+              onClick={() => setPendingProviderCheckAsset(null)}
+              disabled={actionLoading || queueing}
+              className="rounded-lg border border-zinc-700 px-3 py-2 text-xs font-semibold text-zinc-300"
+            >
+              Cancel
+            </button>
+          </div>
         </div>
       )}
 
@@ -642,7 +677,7 @@ export default function CharacterReferenceLibrary({
                             </button>
                           )}
 
-                          {isApproved && !hasImage && jobs.some((job) => job.assetId === asset.id && job.status === "running") && (
+                          {isApproved && !hasImage && jobs.some((job) => job.assetId === asset.id && canCheckGenerationJobStatus(job)) && (
                             <button
                               type="button"
                               onClick={() => handleCheckGeneration(asset)}
