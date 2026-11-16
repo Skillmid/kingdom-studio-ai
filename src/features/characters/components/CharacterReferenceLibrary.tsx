@@ -666,28 +666,6 @@ export default function CharacterReferenceLibrary({
 
                         {/* Top Badges */}
                         <div className="absolute left-3 top-3 flex flex-wrap gap-1.5">
-                          {isApproved && !hasImage && asset.prompt && (
-                            <button
-                              type="button"
-                              onClick={() => handleGenerateImage(asset)}
-                              disabled={actionLoading || queueing || asset.status === "generating"}
-                              className="rounded-lg bg-yellow-500 px-3 py-1.5 text-xs font-bold text-black transition hover:bg-yellow-400 disabled:cursor-not-allowed disabled:opacity-50"
-                            >
-                              {queueing || asset.status === "generating" ? "Generating..." : "Generate Image"}
-                            </button>
-                          )}
-
-                          {isApproved && !hasImage && jobs.some((job) => job.assetId === asset.id && canCheckGenerationJobStatus(job)) && (
-                            <button
-                              type="button"
-                              onClick={() => handleCheckGeneration(asset)}
-                              disabled={actionLoading || queueing}
-                              className="text-xs font-semibold text-sky-300 hover:text-sky-200 disabled:opacity-50"
-                            >
-                              Check Status
-                            </button>
-                          )}
-
                           {isApproved ? (
                             <span className="rounded-lg border border-yellow-500/40 bg-black/80 px-2.5 py-1 text-[10px] font-black uppercase tracking-wider text-yellow-400 backdrop-blur">
                               Approved Character Reference
@@ -768,10 +746,32 @@ export default function CharacterReferenceLibrary({
                         </div>
                       ) : (
                         <div className="flex items-center justify-between gap-2">
+                          <div className="flex flex-wrap items-center gap-2">
+                            {isApproved && !hasImage && asset.prompt && (
+                              <button
+                                type="button"
+                                onClick={() => handleGenerateImage(asset)}
+                                disabled={actionLoading || queueing || asset.status === "generating"}
+                                className="rounded-lg bg-yellow-500 px-3 py-1.5 text-xs font-bold text-black transition hover:bg-yellow-400 disabled:cursor-not-allowed disabled:opacity-50"
+                              >
+                                {queueing || asset.status === "generating" ? "Generating..." : "Generate Image"}
+                              </button>
+                            )}
+                            {isApproved && !hasImage && jobs.some((job) => job.assetId === asset.id && canCheckGenerationJobStatus(job)) && (
+                              <button
+                                type="button"
+                                onClick={() => handleCheckGeneration(asset)}
+                                disabled={actionLoading || queueing}
+                                className="text-xs font-semibold text-sky-300 hover:text-sky-200 disabled:opacity-50"
+                              >
+                                Check Status
+                              </button>
+                            )}
+                          </div>
                           {isApproved ? (
                             <button
                               type="button"
-                              onClick={() => handleRevokeApproval(asset)}
+                              onClick={() => handleRevokeApproval(asset)
                               disabled={actionLoading}
                               className="text-xs font-semibold text-zinc-400 hover:text-yellow-400"
                             >
