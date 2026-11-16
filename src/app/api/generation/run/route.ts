@@ -36,6 +36,7 @@ function createSupabaseJobStore(supabase: SupabaseClient): PersistedJobStore {
     },
     async storeGeneratedImage(job, base64, mimeType) {
       if (!job.assetId) throw new Error("A generated image must be attached to a production asset.");
+      if (process.env.SUPABASE_MEDIA_BUCKET?.trim() !== DEFAULT_PRODUCTION_MEDIA_BUCKET) throw new Error("Set SUPABASE_MEDIA_BUCKET=production-media and apply the private media storage migration before generating inline images.");
       const extensionByMime: Record<string, string> = { "image/png": "png", "image/jpeg": "jpg", "image/webp": "webp" };
       const extension = extensionByMime[mimeType];
       if (!extension) throw new Error("The image provider returned an unsupported image format.");
