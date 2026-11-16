@@ -4,6 +4,7 @@ import type { Asset } from "@/features/assets/types/asset";
 import {
   buildCharacterReferenceProposal,
   filterCharacterReferenceAssets,
+  findPendingCharacterReferenceDraft,
   getCharacterReferenceLibraryState,
 } from "./character-reference-assets";
 
@@ -91,6 +92,71 @@ describe("character-reference asset filtering", () => {
       assert.equal(state.pendingCount, 1);
       assert.equal(state.primaryApproved?.id, "approved-1");
     }
+  });
+
+
+  it("reuses only an unapproved draft for the same character instead of duplicating it", () => {
+    const reusable = makeAsset({
+      id: "draft",
+      characterId: "char-1",
+      sourceId: "char-1",
+      userApproved: false,
+      status: "draft",
+      fileUrl: undefined,
+      progress: 0,
+    });
+    const approved = makeAsset({
+      id: "approved",
+      characterId: "char-1",
+      sourceId: "char-1",
+      userApproved: true,
+      status: "ready",
+      fileUrl: "https://assets.test/approved.png",
+    });
+    const otherCharacter = makeAsset({
+      id: "other",
+      characterId: "char-2",
+      sourceId: "char-2",
+      userApproved: false,
+      status: "draft",
+      fileUrl: undefined,
+    });
+
+    assert.equal(
+      findPendingCharacterReferenceDraft(
+        [approved, otherCharacter, reusable],
+        "production-1",
+        "char-1",
+      )?.id,
+      "draft",
+    );
+  });
+
+  it("does not reuse a draft from another production or a completed image", () => {
+    const otherProduction = makeAsset({
+      id: "other-production",
+      productionId: "production-2",
+      sourceId: "char-1",
+      userApproved: false,
+      status: "draft",
+      fileUrl: undefined,
+    });
+    const generated = makeAsset({
+      id: "generated",
+      sourceId: "char-1",
+      userApproved: false,
+      status: "ready",
+      fileUrl: "https://assets.test/generated.png",
+    });
+
+    assert.equal(
+      findPendingCharacterReferenceDraft(
+        [otherProduction, generated],
+        "production-1",
+        "character-1",
+      ),
+      undefined,
+    );
   });
 
   it("builds a grounded character reference proposal", () => {
