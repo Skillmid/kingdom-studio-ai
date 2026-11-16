@@ -108,6 +108,7 @@ describe("generation job lifecycle", () => {
   it("applies job results without fabricating media", () => {
     const ready = applyJobResultToAsset(asset(), { status: "completed", outputUrl: "https://cdn.example/clerk.png" });
     assert.equal(ready.status, "ready");
+    assert.equal(ready.userApproved, false, "a generated result must return to creator review");
     const failed = applyJobResultToAsset(asset(), { status: "failed", errorMessage: UNCONFIGURED_PROVIDER_ERROR });
     assert.equal(failed.fileUrl, undefined);
   });
