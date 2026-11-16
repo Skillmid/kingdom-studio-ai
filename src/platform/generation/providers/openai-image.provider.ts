@@ -49,8 +49,8 @@ export class OpenAIImageProvider implements MediaGenerationProvider {
   }
 
   canDeliverUrl(jobType: MediaJobType): boolean {
-    // The application storage adapter turns hosted URLs and inline bytes into durable assets.
-    return jobType === "image";
+    // Inline GPT Image output is eligible only after durable storage is explicitly configured.
+    return jobType === "image" && (openAIModelReturnsUrl(this.model) || Boolean(this.env.SUPABASE_MEDIA_BUCKET?.trim()));
   }
 
   async generate(request: MediaGenerationRequest): Promise<MediaGenerationResult> {
@@ -66,6 +66,15 @@ export class OpenAIImageProvider implements MediaGenerationProvider {
       return { status: "failed", provider: this.id, failureKind: "configuration", errorMessage: UNCONFIGURED_MEDIA_ERROR };
     }
     const model = this.model;
+    if (!openAIModelReturnsUrl(model) && !this.env.SUPABASE_MEDIA_BUCKET?.trim()) {
+      return {
+        status: "failed",
+        provider: this.id,
+        model,
+        failureKind: "inline-data-requires-storage",
+        errorMessage: "GPT Image returns inline image data. Set SUPABASE_MEDIA_BUCKET=production-media after applying the private production media storage migration.",
+      };
+    }
     const size =
       typeof request.parameters?.size === "string"
         ? request.parameters.size
@@ -98,8 +107,17 @@ export class OpenAIImageProvider implements MediaGenerationProvider {
       const outputUrl = firstProviderUrl(payload.data);
       if (outputUrl) return { status: "completed", provider: this.id, model, outputUrl };
       const inline = payload.data?.find((item) => typeof item?.b64_json === "string" && item.b64_json.length > 0);
-      if (inline?.b64_json) {
+      if (inline?.b64_json && this.env.SUPABASE_MEDIA_BUCKET?.trim()) {
         return { status: "completed", provider: this.id, model, outputBase64: inline.b64_json, outputMimeType: "image/png" };
+      }
+      if (inline?.b64_json) {
+        return {
+          status: "failed",
+          provider: this.id,
+          model,
+          failureKind: "inline-data-requires-storage",
+          errorMessage: "OpenAI returned inline image data, but SUPABASE_MEDIA_BUCKET is not configured. No image URL was invented.",
+        };
       }
       return {
         status: "failed",
