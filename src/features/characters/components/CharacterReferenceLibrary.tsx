@@ -17,6 +17,7 @@ import { characterRepository } from "../repositories/character.repository";
 import { useAssets } from "@/features/assets/hooks/use-assets";
 import {
   buildCharacterReferenceProposal,
+  findPendingCharacterReferenceDraft,
   getCharacterReferenceLibraryState,
 } from "../repositories/character-reference-assets";
 
@@ -232,13 +233,10 @@ export default function CharacterReferenceLibrary({
         userApproved: false,
       });
 
-      const existingDraft = references.find((asset) =>
-        asset.sourceKind === "character" &&
-        asset.sourceId === character.id &&
-        asset.kind === "character-reference" &&
-        asset.status === "draft" &&
-        !asset.userApproved &&
-        !asset.fileUrl
+      const existingDraft = findPendingCharacterReferenceDraft(
+        references,
+        productionId,
+        character.id,
       );
       if (existingDraft) {
         await characterRepository.updateCharacterReference(existingDraft.id, proposal);
