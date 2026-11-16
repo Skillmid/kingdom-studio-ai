@@ -14,6 +14,7 @@ import {
   type GenerationJobRow,
 } from "@/features/assets/repositories/asset.mapper";
 import { runPersistedGenerationJob, type PersistedJobStore } from "@/platform/generation/run-persisted-job";
+import { DEFAULT_PRODUCTION_MEDIA_BUCKET, hydrateAssetMedia } from "@/features/assets/services/storage-media";
 
 // Provider calls are capped at PROVIDER_REQUEST_TIMEOUT_MS (45s); leave headroom for claim + persistence.
 export const maxDuration = 60;
@@ -32,6 +33,21 @@ function createSupabaseJobStore(supabase: SupabaseClient): PersistedJobStore {
       const { data, error } = await supabase.from("assets").select("*").eq("id", assetId).maybeSingle();
       if (error) throw new Error("Unable to verify asset approval.");
       return data ? fromAssetRow(data as AssetRow) : null;
+    },
+    async storeGeneratedImage(job, base64, mimeType) {
+      if (!job.assetId) throw new Error("A generated image must be attached to a production asset.");
+      if (process.env.SUPABASE_MEDIA_BUCKET?.trim() !== DEFAULT_PRODUCTION_MEDIA_BUCKET) throw new Error("Set SUPABASE_MEDIA_BUCKET=production-media and apply the private media storage migration before generating inline images.");
+      const extensionByMime: Record<string, string> = { "image/png": "png", "image/jpeg": "jpg", "image/webp": "webp" };
+      const extension = extensionByMime[mimeType];
+      if (!extension) throw new Error("The image provider returned an unsupported image format.");
+      if (!/^[A-Za-z0-9+/]+={0,2}$/.test(base64) || base64.length % 4 !== 0) throw new Error("The image provider returned malformed base64 image data.");
+      const bytes = Buffer.from(base64, "base64");
+      if (bytes.length === 0 || bytes.length > 20 * 1024 * 1024) throw new Error("Generated image must be between 1 byte and 20 MB.");
+      if (bytes.toString("base64").replace(/=+$/, "") !== base64.replace(/=+$/, "")) throw new Error("The image provider returned invalid base64 image data.");
+      const objectPath = job.productionId + "/" + job.assetId + "/" + job.id + "-" + job.attemptCount + "." + extension;
+      const { error: uploadError } = await supabase.storage.from(DEFAULT_PRODUCTION_MEDIA_BUCKET).upload(objectPath, bytes, { contentType: mimeType, cacheControl: "31536000", upsert: false });
+      if (uploadError) throw new Error(uploadError.message);
+      return "storage://" + DEFAULT_PRODUCTION_MEDIA_BUCKET + "/" + objectPath;
     },
     async loadAssetJobs(assetId) {
       const { data, error } = await supabase.from("generation_jobs").select("*").eq("asset_id", assetId);
@@ -77,7 +93,7 @@ function createSupabaseJobStore(supabase: SupabaseClient): PersistedJobStore {
         .select("*")
         .maybeSingle();
       if (error) throw new Error(error.message);
-      return data ? fromAssetRow(data as AssetRow) : null;
+      return data ? hydrateAssetMedia(fromAssetRow(data as AssetRow), supabase) : null;
     },
   };
 }

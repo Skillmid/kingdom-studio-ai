@@ -26,6 +26,8 @@ export interface DispatchDependencies {
   now?: () => string;
   /** Ceiling for a single provider call. Defaults to PROVIDER_REQUEST_TIMEOUT_MS. */
   timeoutMs?: number;
+  /** Persists transient inline image bytes and returns a durable storage reference. */
+  storeGeneratedImage?: (job: GenerationJob, base64: string, mimeType: string) => Promise<string>;
 }
 
 /** Records why the last attempt failed so retries can decide whether to re-resolve the provider. */
@@ -168,8 +170,27 @@ export async function dispatchGenerationJob(job: GenerationJob, deps: DispatchDe
     parameters: { ...cleanParameters, ...(taskId ? { providerJobId: taskId } : {}) },
   };
   if (result.status === "completed") {
-    const outputUrl = result.outputUrl?.trim();
-    if (!outputUrl) return fail(withProvider, "Provider completed without a media URL. No file URL was invented.", now, "provider");
+    let outputUrl = result.outputUrl?.trim();
+    if (!outputUrl && result.outputBase64) {
+      if (!deps.storeGeneratedImage) {
+        return fail(withProvider, "The provider returned inline image data, but the server has no durable storage adapter configured. No image was discarded silently and no file URL was invented.", now, "inline-data-requires-storage");
+      }
+      try {
+        outputUrl = await deps.storeGeneratedImage(
+          withProvider,
+          result.outputBase64,
+          result.outputMimeType || "image/png",
+        );
+      } catch (error) {
+        return fail(
+          withProvider,
+          `The provider generated an image, but durable storage failed: ${error instanceof Error ? error.message : "storage upload failed"}. The generation was not marked complete.`,
+          now,
+          "provider",
+        );
+      }
+    }
+    if (!outputUrl) return fail(withProvider, "Provider completed without a durable media reference. No file URL was invented.", now, "provider");
     return completeJob(withProvider, outputUrl, now);
   }
   if (result.status === "failed") {
