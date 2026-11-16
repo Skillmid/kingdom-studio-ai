@@ -3,7 +3,7 @@ import type { Asset } from "../types/asset";
 import { fromAssetRow, toAssetDatabase, type AssetRow } from "./asset.mapper";
 import { filterLocationReferenceAssets } from "./location-reference-assets";
 import { filterCharacterReferenceAssets } from "@/features/characters/repositories/character-reference-assets";
-import { hydrateAssetMedia } from "../services/storage-media";
+import { hydrateAssetMedia, parseStorageReference } from "../services/storage-media";
 
 const TABLE_NAME = "assets";
 
@@ -62,6 +62,17 @@ export class AssetRepository {
     return this.mapAsset(data as AssetRow);
   }
   async delete(id: string): Promise<void> {
+    const { data: existing, error: readError } = await this.supabase
+      .from(TABLE_NAME)
+      .select("file_url")
+      .eq("id", id)
+      .maybeSingle();
+    if (readError) throw new Error(readError.message);
+    const reference = existing?.file_url ? parseStorageReference(existing.file_url) : null;
+    if (reference) {
+      const { error: storageError } = await this.supabase.storage.from(reference.bucket).remove([reference.path]);
+      if (storageError) throw new Error("Unable to remove the stored production media. The asset record was kept: " + storageError.message);
+    }
     const { error } = await this.supabase.from(TABLE_NAME).delete().eq("id", id);
     if (error) throw new Error(error.message);
   }
