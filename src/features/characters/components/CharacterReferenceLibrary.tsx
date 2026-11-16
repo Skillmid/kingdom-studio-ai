@@ -33,7 +33,7 @@ export default function CharacterReferenceLibrary({
   character,
   onReferencesChange,
 }: CharacterReferenceLibraryProps) {
-  const { queueAsset, checkJobStatus, jobs, queueing } = useAssets(productionId);
+  const { queueAsset, checkJobStatus, jobs, queueing, loading: assetsLoading } = useAssets(productionId);
   const [references, setReferences] = useState<Asset[]>([]);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
@@ -766,10 +766,10 @@ export default function CharacterReferenceLibrary({
                               <button
                                 type="button"
                                 onClick={() => handleGenerateImage(asset)}
-                                disabled={actionLoading || queueing || asset.status === "generating"}
+                                disabled={actionLoading || queueing || assetsLoading || asset.status === "generating"}
                                 className="rounded-lg bg-yellow-500 px-3 py-1.5 text-xs font-bold text-black transition hover:bg-yellow-400 disabled:cursor-not-allowed disabled:opacity-50"
                               >
-                                {queueing || asset.status === "generating" ? "Generating..." : "Generate Image"}
+                                {assetsLoading ? "Loading generation history..." : queueing || asset.status === "generating" ? "Generating..." : "Generate Image"}
                               </button>
                             )}
                             {isApproved && !hasImage && jobs.some((job) => job.assetId === asset.id && canCheckGenerationJobStatus(job)) && (
