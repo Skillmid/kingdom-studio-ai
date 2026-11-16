@@ -781,7 +781,7 @@ export default function CharacterReferenceLibrary({
                           {isApproved ? (
                             <button
                               type="button"
-                              onClick={() => handleRevokeApproval(asset)
+                              onClick={() => handleRevokeApproval(asset)}
                               disabled={actionLoading}
                               className="text-xs font-semibold text-zinc-400 hover:text-yellow-400"
                             >
