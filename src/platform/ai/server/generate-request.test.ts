@@ -73,7 +73,7 @@ describe("AI generate request validation", () => {
 
 describe("OpenRouter completion normalization", () => {
   it("extracts ordinary string content", () => {
-    assert.equal(extractOpenRouterText({ choices: [{ message: { content: "{\\"fields\\":{}}" } }] }), "{\\"fields\\":{}}");
+    assert.equal(extractOpenRouterText({ choices: [{ message: { content: JSON.stringify({ fields: {} }) } }] }), JSON.stringify({ fields: {} }));
   });
 
   it("extracts text from multipart content blocks", () => {
