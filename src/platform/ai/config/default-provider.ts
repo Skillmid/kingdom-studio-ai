@@ -1,7 +1,7 @@
 import type { AIProvider } from "../types/ai-provider";
 
 const supported = (value: string | undefined): value is "openrouter" | "gemini" | "openai" =>
-  value === "openrouter" || value === "gemini" || value === "openai";
+  value === "openrouter" || value === "gemini" || value === "openai" || value === "openai";
 
 /** Global default remains limited to the existing general-purpose workflows. */
 export const DEFAULT_AI_PROVIDER: AIProvider =
