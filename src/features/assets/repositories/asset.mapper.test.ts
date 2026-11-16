@@ -11,6 +11,14 @@ describe("toAssetDatabase", () => {
     assert.equal("production_id" in row, false);
   });
 
+  it("persists a stable private storage reference instead of a signed preview URL", () => {
+    const row = toAssetDatabase({
+      storagePath: "production-id/asset-id/job-id-1.png",
+      fileUrl: "https://project.supabase.co/storage/v1/object/sign/production-media/private.png?token=short-lived",
+    });
+    assert.equal(row.file_url, "storage://production-media/production-id/asset-id/job-id-1.png");
+  });
+
   it("applies create defaults without inventing a file URL", () => {
     const row = toAssetDatabase(
       { productionId: "11111111-1111-4111-8111-111111111111", kind: "image", title: "Harbour still" },
