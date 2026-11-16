@@ -66,7 +66,7 @@ export function toAssetDatabase(asset: Partial<Asset>, options: { includeDefault
     title: asset.title,
     description: asset.description,
     prompt: asset.prompt,
-    file_url: asset.fileUrl,
+    file_url: asset.storagePath ? `storage://production-media/${asset.storagePath}` : asset.fileUrl,
     mime_type: asset.mimeType,
     source_kind: asset.sourceKind ?? (includeDefaults ? "user" : undefined),
     source_id: asset.sourceId,
@@ -152,6 +152,7 @@ export type GenerationJobRow = {
 };
 
 export function fromAssetRow(data: AssetRow): Asset {
+  const storageReference = data.file_url?.match(/^storage:\/\/([^/]+)\/(.+)$/);
   return {
     id: data.id,
     productionId: data.production_id,
@@ -165,7 +166,8 @@ export function fromAssetRow(data: AssetRow): Asset {
     title: data.title ?? undefined,
     description: data.description ?? undefined,
     prompt: data.prompt ?? undefined,
-    fileUrl: data.file_url ?? undefined,
+    fileUrl: storageReference ? undefined : data.file_url ?? undefined,
+    storagePath: storageReference ? storageReference[2] : undefined,
     mimeType: data.mime_type ?? undefined,
     sourceKind: data.source_kind,
     sourceId: data.source_id ?? undefined,
