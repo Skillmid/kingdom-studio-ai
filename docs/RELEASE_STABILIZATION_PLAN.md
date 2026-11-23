@@ -170,3 +170,12 @@
 - PR #13's migration currently includes `COMMENT ON TABLE storage.objects`, which changes a global system-table comment rather than documenting only the feature. Remove that statement before integration to avoid unrelated schema metadata mutation.
 - The media migration is not on the integration branch and has not been applied. Do not add `SUPABASE_MEDIA_BUCKET` to Preview or Production until the PR stack is integrated and upload/read/delete plus signed-URL hydration tests pass.
 - No Postgres engine, hosted Supabase schema, or authenticated two-user test environment was available in this review. These are static code findings, not database execution results.
+
+
+### First GitHub Actions execution and CI build correction (2026-11-23)
+- GitHub Actions is now confirmed to execute on branch pushes. Run #3 for commit `6770be4` completed with failure. Its 323-test suite passed 322 tests with 1 skipped; TypeScript typecheck passed; ESLint completed with one unused-variable warning.
+- The production build failed during prerender of `/studio/ai-director` because CI had no Supabase public URL/publishable key. This is a missing build-environment configuration failure, not evidence of a TypeScript or compilation error: Next.js compiled successfully before prerender failed.
+- Dependency installation reported 18 npm audit findings (1 low, 8 moderate, 8 high, 1 critical). The exact advisories and dependency paths still need triage; no automatic dependency upgrades have been applied.
+- Updated the release-verification workflow so the build step uses reserved, non-routable CI-only Supabase placeholders. No real Supabase URL, key, or project credentials are exposed or used. This change is intended only to allow static build-time shell rendering; it does not establish runtime Supabase functionality.
+- The updated workflow is running against commit `6d32b9e`; its latest observed state was in progress at dependency installation. The subsequent workflow edit has also triggered a newer run. Re-check both before recording a final CI result.
+- The Story Bible migration hardening and workflow correction are isolated to the integration branch. No production deployment, Supabase migration, or secret configuration was changed.
