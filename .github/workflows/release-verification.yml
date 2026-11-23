@@ -47,3 +47,9 @@ jobs:
         run: npm run build
         env:
           NEXT_TELEMETRY_DISABLED: 1
+          # Non-routable CI-only placeholders let Next.js prerender authenticated shells
+          # without exposing or depending on a real Supabase project.
+          NEXT_PUBLIC_SUPABASE_URL: https://supabase-not-configured.invalid
+          NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: ci-build-placeholder
+          SUPABASE_URL: https://supabase-not-configured.invalid
+          SUPABASE_PUBLISHABLE_KEY: ci-build-placeholder
