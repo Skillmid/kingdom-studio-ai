@@ -78,3 +78,29 @@
 ## Change log
 
 - 2026-11-23: Created isolated integration branch from recovery baseline and recorded initial release-stabilisation gates.
+
+## Detailed initial review findings (2026-11-23)
+
+### Branch reconciliation
+- The three older PRs are not safe merge candidates into the recovery baseline:
+  - PR #8 has 4 commits unique to its old branch and is 103 commits behind recovery.
+  - PR #9 has 5 commits unique to its old branch and is 99 commits behind recovery.
+  - PR #10 has 8 commits unique to its old branch and is 88 commits behind recovery.
+- These branches diverged from recovery. The recovery tree already contains the richer production modules and supporting tests. Do not cherry-pick or merge the old PRs without a file-level comparison.
+- The dependency stack is cleanly ordered by ancestry: recovery → multi-provider gateway → Character Studio → durable media storage. PR #11 is 73 commits ahead of recovery; PR #12 is 14 commits ahead of #11; PR #13 is 18 commits ahead of #12.
+- The latest preview deployments for recovery, provider gateway, Character Studio and media storage all report Vercel READY. This verifies deployment completion only; it does not verify runtime workflows, database migrations, provider credentials, or paid generation.
+
+### Code review observations
+- Recovery contains a functional Assets workspace with create/edit/delete, plan, approval, queue, status-check and stalled-job recovery paths. This is materially more complete than the old PR #9 branch's initial thin shell. Retain recovery as the base.
+- Recovery contains a Render workspace with persisted sequence/clip/export flows and video-render job hooks. The UI explicitly labels manifest downloads as not encoded video; the actual encoder/worker/delivery path still needs runtime verification.
+- PR #11's `.env.example` declares `OPENAI_API_KEY` twice. Clean up the duplicate when integrating.
+- PR #11's Gemini provider is routed through the authenticated server endpoint, but its default model identifier, provider allowlist behavior, error paths, and real provider compatibility still require verification. No paid call has been made.
+- PR #12 correctly separates permission to spend on generation from approval of the generated reference; generated output returns to creator review. Provider-specific reference-image conditioning is explicitly not included.
+- PR #13 adds a private bucket migration, authenticated RLS-scoped uploads, stable `storage://` references and signed previews. The migration has not been executed against Postgres, and the upload/read/delete policies and object path ownership mapping must be tested in an isolated Supabase project before enabling the feature.
+- The PR #13 route refuses inline image generation unless `SUPABASE_MEDIA_BUCKET=production-media` is configured. Do not add that variable to Production until the isolated migration and preview workflow pass.
+- Story Bible migration files are present on recovery, but the repository's own documentation states they have not been executed against clean Postgres or the hosted schema. Static migration contract tests are not a substitute for a database-engine test.
+
+### Current working state
+- Integration branch created from recovery: `integration/kingdom-studio-release-stabilization`.
+- Initial plan committed as `0c80f2631610ffd515477b2d56581b51be70983a`.
+- No application code, database, Production deployment, provider settings, or existing PR has been changed or merged during this initial audit.
