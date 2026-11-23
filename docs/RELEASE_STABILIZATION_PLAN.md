@@ -29,7 +29,7 @@
 - [ ] Integrate only changes that are not already present and that pass verification.
 
 ### 3. Resolve database and Story Bible migration readiness
-- [ ] Inventory all migrations and map them to repositories/DTOs.
+- [x] Inventory all migrations and map them to repositories/DTOs.
 - [ ] Verify the Story Bible base/reconciliation migrations against the application schema and existing migration history.
 - [ ] Verify production root schema reconciliation, foreign keys, indexes, triggers, and RLS.
 - [ ] Run clean-install and upgrade tests in an isolated database.
@@ -134,3 +134,10 @@
 - Keep PRs #11–#13 as reviewed, not yet integrated. They are a dependency stack and the PR diffs show genuine feature work, but test execution and database validation are missing.
 - Do not merge the three older PRs #8–#10. Their work is superseded or divergent relative to the recovery baseline; preserve the functional recovery implementations.
 - No application source files, database migrations, provider secrets, storage settings, Production deployment, or existing pull requests have been changed by this follow-up review.
+
+
+### Execution environment and migration inventory update (2026-11-23)
+- The recovery baseline contains 23 SQL migration files under `supabase/migrations/`, including the Story Bible base/reconciliation migrations and the November 2 render-worker migrations. PR #13 adds a 24th migration for private production media storage.
+- The migration inventory is complete, but a clean Postgres/Supabase migration run has not been performed. The isolated Vercel sandbox creation requests were rejected by the Vercel API, so this session currently has no working repository shell in which to run `npm ci`, tests, typecheck, lint, or build.
+- This is a verification blocker, not a passing result. Do not treat the earlier test report or Vercel READY cards as a substitute for a fresh run on the integration candidate.
+- Next required execution step: run the checks from a clean checkout of this integration branch in the user's Windows development environment or a working CI runner, then attach the actual command output and exit codes to this plan.
