@@ -140,4 +140,13 @@
 - The recovery baseline contains 23 SQL migration files under `supabase/migrations/`, including the Story Bible base/reconciliation migrations and the November 2 render-worker migrations. PR #13 adds a 24th migration for private production media storage.
 - The migration inventory is complete, but a clean Postgres/Supabase migration run has not been performed. The isolated Vercel sandbox creation requests were rejected by the Vercel API, so this session currently has no working repository shell in which to run `npm ci`, tests, typecheck, lint, or build.
 - This is a verification blocker, not a passing result. Do not treat the earlier test report or Vercel READY cards as a substitute for a fresh run on the integration candidate.
-- Next required execution step: run the checks from a clean checkout of this integration branch in the user's Windows development environment or a working CI runner, then attach the actual command output and exit codes to this plan.
+- Next required execution step: obtain the GitHub Actions run result for the newly added release-verification workflow. If Actions are unavailable or blocked, use an available Vercel sandbox/CI runner; do not substitute a Vercel READY deployment for test output.
+
+
+### GitHub-side verification workflow (2026-11-23)
+- Added `.github/workflows/release-verification.yml` on the integration branch in commit `ff50a935fa54dddce160838781b7f070c000c718`.
+- The workflow is scoped to pushes and pull requests targeting `integration/kingdom-studio-release-stabilization`, plus manual dispatch. It uses Node.js 22 and the committed npm lockfile, then runs `npm test`, `npm run typecheck`, `npm run lint`, and `npm run build`.
+- The workflow requests read-only repository contents permission and does not require provider or Supabase secrets for its configured checks.
+- Vercel has started a Preview deployment for this exact commit; it was still BUILDING at the time of this update.
+- GitHub's commit workflow-run lookup currently returned no run record for this push commit because the available wrapper only returns pull-request-triggered runs. The combined commit status showed the Vercel check pending. Therefore no CI test result is claimed yet.
+- Attempts to create/resume a Vercel sandbox through the available Vercel API calls returned errors; the previously listed sandbox was stopped and had no snapshot. No shell command or test has been run in this session.
