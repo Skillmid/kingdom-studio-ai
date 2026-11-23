@@ -140,6 +140,11 @@ END $$;
 ALTER TABLE public.story_bibles
     ALTER COLUMN production_id SET NOT NULL;
 
+-- A manually provisioned partial table may not have inherited the primary key
+-- from CREATE TABLE IF NOT EXISTS. Enforce row identity in either case.
+CREATE UNIQUE INDEX IF NOT EXISTS story_bibles_id_uidx
+    ON public.story_bibles(id);
+
 CREATE UNIQUE INDEX IF NOT EXISTS story_bibles_production_id_uidx
     ON public.story_bibles(production_id);
 
@@ -168,7 +173,10 @@ BEGIN
             ADD CONSTRAINT story_bibles_duration_minutes_check
             CHECK (duration_minutes > 0) NOT VALID;
     END IF;
-END $$;
+END $;
+
+ALTER TABLE public.story_bibles
+    VALIDATE CONSTRAINT story_bibles_duration_minutes_check;
 
 DROP TRIGGER IF EXISTS update_story_bibles_updated_at
     ON public.story_bibles;
