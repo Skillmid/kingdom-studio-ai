@@ -150,3 +150,12 @@
 - Vercel has started a Preview deployment for this exact commit; it was still BUILDING at the time of this update.
 - GitHub's commit workflow-run lookup currently returned no run record for this push commit because the available wrapper only returns pull-request-triggered runs. The combined commit status showed the Vercel check pending. Therefore no CI test result is claimed yet.
 - Attempts to create/resume a Vercel sandbox through the available Vercel API calls returned errors; the previously listed sandbox was stopped and had no snapshot. No shell command or test has been run in this session.
+
+
+### Latest Preview verification (2026-11-23)
+- Vercel deployment for documentation/workflow commit `669884a262f2ac8453dd0e54359dbe4f70b3c530` reached `READY`; its Vercel commit status is `success`.
+- The preview deployment is `https://kingdom-studio-g7e1o1kaa-olumide-joseph-obikoyas-projects.vercel.app`. This is a Preview deployment only, not Production.
+- Vercel runtime error aggregation for the last 24 hours returned no runtime errors. The selected preview deployment had no runtime log records in the queried 50-minute window. Absence of logs is not a functional test and does not prove that authenticated flows work.
+- GitHub workflow run results are still not confirmed. The available commit-run wrapper only returns pull-request-triggered runs, and no workflow-dispatch action is exposed by the connected GitHub toolset. Do not mark the GitHub workflow passed based on the Vercel deployment.
+- Attempted to create a fresh Vercel sandbox using the available v2, v3, and v4 APIs; each returned a generic `400 bad_request`. The old sandbox cannot be resumed because it has no snapshot. No source-code test commands were executed.
+- Next action: obtain a GitHub Actions run through repository Actions access or a working Vercel sandbox/runner, then execute the full quality suite. Continue static review of PR #11–#13 and database/RLS contracts in parallel; do not merge or promote until execution evidence exists.
