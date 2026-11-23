@@ -159,3 +159,14 @@
 - GitHub workflow run results are still not confirmed. The available commit-run wrapper only returns pull-request-triggered runs, and no workflow-dispatch action is exposed by the connected GitHub toolset. Do not mark the GitHub workflow passed based on the Vercel deployment.
 - Attempted to create a fresh Vercel sandbox using the available v2, v3, and v4 APIs; each returned a generic `400 bad_request`. The old sandbox cannot be resumed because it has no snapshot. No source-code test commands were executed.
 - Next action: obtain a GitHub Actions run through repository Actions access or a working Vercel sandbox/runner, then execute the full quality suite. Continue static review of PR #11–#13 and database/RLS contracts in parallel; do not merge or promote until execution evidence exists.
+
+
+### Database and storage static review (2026-11-23)
+- Reviewed the recovery Story Bible migration and production reconciliation migration directly from the integration branch.
+- Found a partial-schema hardening gap in the Story Bible migration: its reconciliation path checked for duplicate IDs and set the ID column NOT NULL, but did not itself guarantee ID uniqueness when an existing manually provisioned table lacked a primary/unique constraint.
+- Closed that gap on the integration branch by adding a unique index on `story_bibles(id)`. Also validate the positive-duration constraint after the migration's existing null/non-positive-value repair. Commit: `6d32b9e6c2c45ccf54d3a61a2afc31282452fb08`.
+- The production reconciliation migration backfills `created_by` from `owner_id`, adds its foreign key and strengthens the owner update policy. This remains dependent on the existing `productions.owner_id` and auth schema being present as expected; no live schema inspection has been performed.
+- Reviewed PR #13's private media migration on its feature branch. It creates a private bucket with a 20 MiB limit and PNG/JPEG/WebP allowlist. Storage SELECT/INSERT/DELETE policies bind object paths to an existing asset, its production, and the authenticated production owner. This is a sensible ownership shape, but must be tested against Supabase Storage's actual folder parsing and RLS execution using isolated users and objects.
+- PR #13's migration currently includes `COMMENT ON TABLE storage.objects`, which changes a global system-table comment rather than documenting only the feature. Remove that statement before integration to avoid unrelated schema metadata mutation.
+- The media migration is not on the integration branch and has not been applied. Do not add `SUPABASE_MEDIA_BUCKET` to Preview or Production until the PR stack is integrated and upload/read/delete plus signed-URL hydration tests pass.
+- No Postgres engine, hosted Supabase schema, or authenticated two-user test environment was available in this review. These are static code findings, not database execution results.
