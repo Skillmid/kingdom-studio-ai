@@ -18,14 +18,14 @@
 
 ### 1. Establish and protect the integration baseline
 - [x] Create this isolated integration branch from the November 13 recovery commit.
-- [ ] Compare the recovery baseline with `main` and every feature branch; identify unique commits, duplicate work, and conflicts.
-- [ ] Confirm the integration branch contains the intended recovery state before adding changes.
+- [x] Compare the recovery baseline with `main` and every feature branch; identify unique commits, duplicate work, and conflicts.
+- [x] Confirm the integration branch contains the intended recovery state before adding changes.
 - [ ] Keep production/main untouched until release gates pass.
 
 ### 2. Reconcile stacked feature branches and pull requests
-- [ ] Review PRs #8, #9, and #10 against the recovery baseline; these target the older `main` and must not be blindly merged.
-- [ ] Review the dependency stack PR #11 → #12 → #13.
-- [ ] Inspect all code diffs, migration files, review comments, and deployment evidence.
+- [x] Review PRs #8, #9, and #10 against the recovery baseline; these target the older `main` and must not be blindly merged.
+- [x] Review the dependency stack PR #11 → #12 → #13.
+- [x] Inspect all code diffs, migration files, review comments, and deployment evidence.
 - [ ] Integrate only changes that are not already present and that pass verification.
 
 ### 3. Resolve database and Story Bible migration readiness
@@ -104,3 +104,33 @@
 - Integration branch created from recovery: `integration/kingdom-studio-release-stabilization`.
 - Initial plan committed as `0c80f2631610ffd515477b2d56581b51be70983a`.
 - No application code, database, Production deployment, provider settings, or existing PR has been changed or merged during this initial audit.
+
+
+## Follow-up engineering review (2026-11-23)
+
+### CI and verification evidence
+- The recovery commit tree contains no `.github/workflows/` directory. The GitHub Actions workflow-run lookup returned no runs for the PR #11, #12, or #13 head commits. There is therefore no current GitHub Actions evidence that the integration stack has passed tests.
+- The Vercel deployment comments on PRs #11–#13 show READY preview deployments from November 16, 2026. These are build/deployment signals only and do not establish database migration success or authenticated feature correctness.
+- The recovery `package.json` defines test, typecheck, lint, build, and Playwright scripts. Those scripts have not been executed in this remote audit environment. The earlier 269-test report remains historical evidence only.
+
+### PR #11 — provider gateway review
+- The PR adds authenticated server-side OpenAI and Gemini text-generation paths, model allowlist helpers, JSON/character-profile response formatting, and browser adapters that call the authenticated route.
+- Confirmed cleanup items before integration: `.env.example` declares `OPENAI_API_KEY` twice; `src/platform/ai/config/default-provider.ts` repeats the `openai` check in its supported-provider predicate.
+- The proposed Gemini default is `gemini-3.8-flash`. Treat this as unverified until checked against the live provider model catalogue and tested with a controlled request. No provider call has been made in this audit.
+- The PR is still a draft. Its Vercel preview is READY, but no GitHub Actions run was found for its head SHA.
+
+### PR #12 — Character Studio review
+- The diff adds a creator-review gate: permission to queue generation is separate from approval of the generated image, and generated output is returned to an unapproved review state.
+- The diff also adds pending-draft reuse and generation status handling in the character reference UI.
+- No migration is included in this PR patch. The change still needs the full application test suite and an authenticated preview workflow test.
+
+### PR #13 — durable media review
+- The PR adds `supabase/migrations/202611160001_create_private_production_media_bucket.sql`, creating a private `production-media` bucket and owner-scoped SELECT/INSERT/DELETE policies that map object path segments to production and asset IDs.
+- The migration is not present on the recovery baseline and has not been applied to an isolated Supabase database. Its storage policy behavior, path parsing, bucket constraints, signed URL hydration, and cleanup behavior remain unverified.
+- The PR adds `SUPABASE_MEDIA_BUCKET=production-media` to `.env.example`; do not configure this in Production until the migration and complete preview flow pass.
+- No GitHub Actions run was found for this head SHA. The Vercel preview is READY only.
+
+### Integration decision
+- Keep PRs #11–#13 as reviewed, not yet integrated. They are a dependency stack and the PR diffs show genuine feature work, but test execution and database validation are missing.
+- Do not merge the three older PRs #8–#10. Their work is superseded or divergent relative to the recovery baseline; preserve the functional recovery implementations.
+- No application source files, database migrations, provider secrets, storage settings, Production deployment, or existing pull requests have been changed by this follow-up review.
